@@ -1,0 +1,13 @@
+{
+  "tracking": {
+    "number": "",
+    "carrierCode": ""
+  },
+  "event": {
+    "statusCode": "",
+    "statusDescription": "",
+    "timestamp": "",
+    "city": "",
+    "country": ""
+  }
+}

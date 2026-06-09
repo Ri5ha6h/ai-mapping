@@ -1,0 +1,9 @@
+<ShipmentEvent>
+  <TrackingNumber></TrackingNumber>
+  <Carrier></Carrier>
+  <StatusCode></StatusCode>
+  <StatusDescription></StatusDescription>
+  <EventTimestamp></EventTimestamp>
+  <City></City>
+  <Country></Country>
+</ShipmentEvent>

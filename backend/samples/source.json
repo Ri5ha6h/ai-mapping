@@ -1,0 +1,16 @@
+{
+  "shipment": {
+    "trackingNumber": "TRK123",
+    "carrier": "MAERSK",
+    "status": {
+      "code": "X3",
+      "description": "Arrived at pickup location"
+    },
+    "eventTime": "20260608",
+    "location": {
+      "city": "Mumbai",
+      "country": "IN"
+    }
+  }
+}
+

@@ -1,0 +1,210 @@
+from datetime import datetime
+from enum import StrEnum
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+JsonValue = dict[str, Any] | list[Any] | str | int | float | bool | None
+SchemaType = Literal["object", "array", "string", "integer", "number", "boolean", "null", "mixed"]
+
+
+class SourceFormat(StrEnum):
+    json = "json"
+    xml = "xml"
+    edi_214 = "edi_214"
+    edi_856 = "edi_856"
+
+
+class ParseRequest(BaseModel):
+    format: SourceFormat
+    content: str = Field(min_length=1)
+
+
+class ParseResponse(BaseModel):
+    format: SourceFormat
+    canonical: JsonValue
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class SchemaInferRequest(BaseModel):
+    data: JsonValue
+
+
+class SchemaNode(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: SchemaType
+    path: str
+    required: bool = True
+    fields: dict[str, SchemaNode] | None = None
+    items: SchemaNode | None = None
+    examples: list[JsonValue] = Field(default_factory=list)
+
+
+class SchemaInferResponse(BaseModel):
+    schema_: SchemaNode = Field(alias="schema")
+
+
+class RuleType(StrEnum):
+    field = "field"
+    constant = "constant"
+    concat = "concat"
+    date_format = "date_format"
+    condition = "condition"
+    loop = "loop"
+
+
+class SuggestionSource(StrEnum):
+    rule_based = "rule_based"
+    openrouter = "openrouter"
+
+
+class MappingSuggestionRequest(BaseModel):
+    source_schema: SchemaNode
+    target_schema: SchemaNode
+    domain_context: str = "logistics and supply chain integration mapping"
+    use_ai: bool = True
+
+
+class MappingSuggestion(BaseModel):
+    id: str
+    type: RuleType = RuleType.field
+    source_path: str
+    target_path: str
+    required: bool = True
+    confidence: float = Field(ge=0, le=1)
+    jsonata: str
+    explanation: str
+    source: SuggestionSource = SuggestionSource.rule_based
+
+
+class MappingSuggestionResponse(BaseModel):
+    suggestions: list[MappingSuggestion]
+    used_ai: bool = False
+    provider_errors: list[str] = Field(default_factory=list)
+
+
+class MappingCapabilitiesResponse(BaseModel):
+    ai_mapping_available: bool
+    ai_provider: str | None = None
+
+
+class OutputFormat(StrEnum):
+    json = "json"
+    xml = "xml"
+
+
+class ConditionSpec(BaseModel):
+    source_path: str
+    equals: JsonValue
+    then: JsonValue
+    otherwise: JsonValue = None
+
+
+class LoopRuleSpec(BaseModel):
+    source_path: str
+    target_path: str
+    rules: list[MappingRule]
+
+
+class MappingRule(BaseModel):
+    id: str
+    type: RuleType
+    target_path: str
+    source_path: str | None = None
+    required: bool = True
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    jsonata: str | None = None
+    value: JsonValue = None
+    source_paths: list[str] = Field(default_factory=list)
+    separator: str = ""
+    input_format: str = "%Y%m%d"
+    output_format: str = "%Y-%m-%d"
+    condition: ConditionSpec | None = None
+    loop: LoopRuleSpec | None = None
+
+
+class ValidationErrorItem(BaseModel):
+    code: str
+    path: str | None = None
+    message: str
+    rule_id: str | None = None
+
+
+class TransformRequest(BaseModel):
+    source_data: JsonValue
+    rules: list[MappingRule]
+    output_format: OutputFormat = OutputFormat.json
+    root_element: str = "Output"
+    target_schema: SchemaNode | None = None
+
+
+class TransformResponse(BaseModel):
+    output_format: OutputFormat
+    output: JsonValue | str
+    validation_errors: list[ValidationErrorItem] = Field(default_factory=list)
+
+
+class ValidateRequest(BaseModel):
+    source_data: JsonValue | None = None
+    output: JsonValue | None = None
+    rules: list[MappingRule] = Field(default_factory=list)
+    target_schema: SchemaNode | None = None
+
+
+class ValidateResponse(BaseModel):
+    valid: bool
+    errors: list[ValidationErrorItem] = Field(default_factory=list)
+
+
+class MappingSpec(BaseModel):
+    engine: str = "deterministic_rules"
+    rules: list[MappingRule]
+    full_jsonata_expression: str | None = None
+
+
+class TemplateVersion(BaseModel):
+    version: int
+    source_format: SourceFormat
+    target_format: OutputFormat
+    source_schema_snapshot: SchemaNode | None = None
+    target_schema_snapshot: SchemaNode | None = None
+    mapping_spec: MappingSpec
+    validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    sample_source_content: str | None = None
+    sample_target_content: str | None = None
+    created_at: datetime
+
+
+class MappingTemplate(BaseModel):
+    template_id: str
+    name: str
+    description: str = ""
+    active_version: int
+    is_seeded: bool = False
+    versions: list[TemplateVersion]
+
+
+class TemplateCreateRequest(BaseModel):
+    template_id: str | None = None
+    name: str = Field(min_length=1)
+    description: str = ""
+    source_format: SourceFormat
+    target_format: OutputFormat
+    source_schema_snapshot: SchemaNode | None = None
+    target_schema_snapshot: SchemaNode | None = None
+    mapping_spec: MappingSpec
+    validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+
+
+class TemplateVersionCreateRequest(BaseModel):
+    source_format: SourceFormat
+    target_format: OutputFormat
+    source_schema_snapshot: SchemaNode | None = None
+    target_schema_snapshot: SchemaNode | None = None
+    mapping_spec: MappingSpec
+    validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+
+
+class TemplateListResponse(BaseModel):
+    templates: list[MappingTemplate]

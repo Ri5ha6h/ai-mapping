@@ -1,0 +1,14 @@
+<Shipment>
+  <TrackingNumber>TRK123</TrackingNumber>
+  <Carrier>MAERSK</Carrier>
+  <Status>
+    <Code>X3</Code>
+    <Description>Arrived at pickup location</Description>
+  </Status>
+  <EventTime>20260608</EventTime>
+  <Location>
+    <City>Mumbai</City>
+    <Country>IN</Country>
+  </Location>
+</Shipment>
+

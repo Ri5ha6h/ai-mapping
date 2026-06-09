@@ -1,0 +1,42 @@
+[project]
+name = "auto-mapping-backend"
+version = "0.1.0"
+description = "Phase 1 backend POC for AI-assisted auto mapping."
+requires-python = "==3.14.5"
+dependencies = [
+  "fastapi==0.136.3",
+  "pydantic==2.13.4",
+  "uvicorn==0.49.0",
+  "httpx==0.28.1",
+  "respx==0.23.1",
+  "orjson==3.11.9",
+  "defusedxml==0.7.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.0.3",
+  "ruff==0.15.16",
+  "pyright==1.1.410",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pyright]
+include = ["app", "tests"]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+venvPath = "."
+venv = ".venv"
