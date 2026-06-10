@@ -65,7 +65,9 @@ def _validate_required_targets(
     rules: list[MappingRule],
     target_schema: SchemaNode,
 ) -> list[ValidationErrorItem]:
-    mapped_paths = {_normalize_target_path(path) for rule in rules for path in _rule_target_paths(rule)}
+    mapped_paths = {
+        _normalize_target_path(path) for rule in rules for path in _rule_target_paths(rule)
+    }
     errors: list[ValidationErrorItem] = []
 
     for leaf in _required_leaf_nodes(target_schema):
@@ -92,7 +94,9 @@ def _validate_output_types(output: Any, target_schema: SchemaNode) -> list[Valid
                     ValidationErrorItem(
                         code="type_mismatch",
                         path=leaf.path,
-                        message=f"Output value at {leaf.path} does not match target type {leaf.type}.",
+                        message=(
+                            f"Output value at {leaf.path} does not match target type {leaf.type}."
+                        ),
                     )
                 )
             continue
