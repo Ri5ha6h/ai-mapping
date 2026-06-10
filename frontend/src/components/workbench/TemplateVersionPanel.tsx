@@ -54,18 +54,20 @@ export function TemplateVersionPanel({
       </div>
 
       <div className="template-stack">
-        <label className="field-stack">
+        <label className="field-stack" htmlFor="template-name">
           <span>Name</span>
           <Input
+            id="template-name"
             value={templateName}
             onChange={(event) => onTemplateNameChange(event.target.value)}
             placeholder="Shipment status map"
           />
         </label>
 
-        <label className="field-stack">
+        <label className="field-stack" htmlFor="template-description">
           <span>Description</span>
           <Textarea
+            id="template-description"
             value={templateDescription}
             onChange={(event) => onTemplateDescriptionChange(event.target.value)}
             placeholder="Reusable partner mapping notes"

@@ -2,6 +2,10 @@ from datetime import datetime
 from typing import Any
 
 from app.api.models import MappingRule, ValidationErrorItem
+from app.core.mapping.optional_jsonata_runtime import (
+    UnsupportedJsonataExpression,
+    evaluate_jsonata_expression,
+)
 from app.core.mapping.path_utils import MISSING, get_path, relative_item_path, set_path
 
 
@@ -47,6 +51,14 @@ def execute_rules(
 
 
 def _execute_rule(source_data: Any, rule: MappingRule) -> Any:
+    if rule.jsonata:
+        try:
+            value = evaluate_jsonata_expression(source_data, rule.jsonata)
+        except UnsupportedJsonataExpression:
+            value = MISSING
+        if value is not MISSING:
+            return value
+
     match rule.type:
         case "field":
             return _required_source_value(source_data, rule)

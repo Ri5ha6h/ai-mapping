@@ -80,6 +80,8 @@ export type TemplateCreateRequest = {
   target_schema_snapshot?: SchemaNode | null
   mapping_spec: MappingSpec
   validation_rules?: ValidationErrorItem[]
+  sample_source_content?: string | null
+  sample_target_content?: string | null
 }
 
 export type TemplateVersionCreateRequest = Omit<TemplateCreateRequest, "template_id" | "name" | "description">

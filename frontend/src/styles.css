@@ -434,6 +434,31 @@
     white-space: nowrap;
   }
 
+  .rule-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .condition-detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .required-toggle {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--muted) 52%, transparent);
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 680;
+    padding: 0 9px;
+  }
+
   .monaco-frame {
     overflow: hidden;
     border-radius: 8px;
@@ -463,6 +488,45 @@
     border-radius: 8px;
     background: oklch(0.95 0.05 77);
     padding: 12px;
+  }
+
+  .confirm-dialog {
+    gap: 18px;
+    width: min(520px, 100%);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+    box-shadow: 0 24px 60px oklch(0.18 0.018 232 / 24%);
+    padding: 18px;
+  }
+
+  .confirm-dialog[open] {
+    display: grid;
+  }
+
+  .confirm-dialog::backdrop {
+    background: oklch(0.18 0.018 232 / 42%);
+  }
+
+  .confirm-dialog h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 760;
+    line-height: 1.1;
+  }
+
+  .confirm-dialog p:not(.panel-kicker) {
+    margin: 8px 0 0;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: end;
+    gap: 8px;
   }
 
   .busy-banner {

@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,7 @@ type Props = {
 
 const ruleTypes: RuleType[] = ["field", "constant", "concat", "date_format", "condition", "loop"]
 
-export function VisualMappingEditor({ rules, onRulesChange }: Props) {
+export const VisualMappingEditor = memo(function VisualMappingEditor({ rules, onRulesChange }: Props) {
   return (
     <section className="tool-panel editor-panel">
       <div className="panel-heading">
@@ -39,7 +40,7 @@ export function VisualMappingEditor({ rules, onRulesChange }: Props) {
             <div className="rule-row" key={rule.id}>
               <select
                 value={rule.type}
-                onChange={(event) => updateRule(index, { type: event.target.value as RuleType })}
+                onChange={(event) => replaceRule(index, normalizeRuleForType(rule, event.target.value as RuleType))}
               >
                 {ruleTypes.map((type) => (
                   <option key={type} value={type}>
@@ -49,15 +50,14 @@ export function VisualMappingEditor({ rules, onRulesChange }: Props) {
               </select>
               <Input
                 value={sourceDisplay(rule)}
-                onChange={(event) => updateRule(index, { source_path: event.target.value })}
+                onChange={(event) => updateSource(index, event.target.value)}
+                disabled={rule.type === "constant"}
               />
               <Input
                 value={rule.target_path}
-                onChange={(event) => updateRule(index, { target_path: event.target.value })}
+                onChange={(event) => updateTarget(index, event.target.value)}
               />
-              <div className="rule-detail" title={ruleDetail(rule)}>
-                {ruleDetail(rule)}
-              </div>
+              <RuleDetails rule={rule} onChange={(patch) => updateRule(index, patch)} />
               <Input
                 value={rule.jsonata ?? ""}
                 onChange={(event) => updateRule(index, { jsonata: event.target.value })}
@@ -81,6 +81,150 @@ export function VisualMappingEditor({ rules, onRulesChange }: Props) {
   function updateRule(index: number, patch: Partial<MappingRule>) {
     onRulesChange(rules.map((rule, ruleIndex) => (ruleIndex === index ? { ...rule, ...patch } : rule)))
   }
+
+  function replaceRule(index: number, nextRule: MappingRule) {
+    onRulesChange(rules.map((rule, ruleIndex) => (ruleIndex === index ? nextRule : rule)))
+  }
+
+  function updateSource(index: number, source: string) {
+    const rule = rules[index]
+    if (rule.type === "concat") {
+      updateRule(index, { source_paths: parsePathList(source), source_path: source })
+      return
+    }
+    if (rule.type === "condition") {
+      updateRule(index, {
+        source_path: source,
+        condition: { ...defaultCondition(rule), source_path: source },
+      })
+      return
+    }
+    if (rule.type === "loop") {
+      updateRule(index, {
+        source_path: source,
+        loop: { ...defaultLoop(rule), source_path: source },
+      })
+      return
+    }
+    updateRule(index, { source_path: source })
+  }
+
+  function updateTarget(index: number, target: string) {
+    const rule = rules[index]
+    if (rule.type === "loop") {
+      updateRule(index, {
+        target_path: target,
+        loop: { ...defaultLoop(rule), target_path: target },
+      })
+      return
+    }
+    updateRule(index, { target_path: target })
+  }
+})
+
+type RuleDetailsProps = {
+  rule: MappingRule
+  onChange: (patch: Partial<MappingRule>) => void
+}
+
+function RuleDetails({ rule, onChange }: RuleDetailsProps) {
+  if (rule.type === "constant") {
+    return (
+      <Input
+        aria-label="Constant value"
+        value={stringifyEditableValue(rule.value)}
+        onChange={(event) => onChange({ value: parseEditableValue(event.target.value) })}
+        placeholder="value"
+      />
+    )
+  }
+
+  if (rule.type === "concat") {
+    return (
+      <Input
+        aria-label="Concat separator"
+        value={rule.separator ?? ""}
+        onChange={(event) => onChange({ separator: event.target.value })}
+        placeholder="separator"
+      />
+    )
+  }
+
+  if (rule.type === "date_format") {
+    return (
+      <div className="rule-detail-grid">
+        <Input
+          aria-label="Input date format"
+          value={rule.input_format ?? "%Y%m%d"}
+          onChange={(event) => onChange({ input_format: event.target.value })}
+          placeholder="input"
+        />
+        <Input
+          aria-label="Output date format"
+          value={rule.output_format ?? "%Y-%m-%d"}
+          onChange={(event) => onChange({ output_format: event.target.value })}
+          placeholder="output"
+        />
+      </div>
+    )
+  }
+
+  if (rule.type === "condition") {
+    const condition = defaultCondition(rule)
+    return (
+      <div className="rule-detail-grid condition-detail-grid">
+        <Input
+          aria-label="Condition equals"
+          value={stringifyEditableValue(condition.equals)}
+          onChange={(event) =>
+            onChange({ condition: { ...condition, equals: parseEditableValue(event.target.value) } })
+          }
+          placeholder="equals"
+        />
+        <Input
+          aria-label="Condition then"
+          value={stringifyEditableValue(condition.then)}
+          onChange={(event) =>
+            onChange({ condition: { ...condition, then: parseEditableValue(event.target.value) } })
+          }
+          placeholder="then"
+        />
+        <Input
+          aria-label="Condition otherwise"
+          value={stringifyEditableValue(condition.otherwise)}
+          onChange={(event) =>
+            onChange({ condition: { ...condition, otherwise: parseEditableValue(event.target.value) } })
+          }
+          placeholder="otherwise"
+        />
+      </div>
+    )
+  }
+
+  if (rule.type === "loop") {
+    return (
+      <Input
+        aria-label="Loop child rules JSON"
+        defaultValue={JSON.stringify(defaultLoop(rule).rules)}
+        onBlur={(event) => {
+          const childRules = parseChildRules(event.target.value)
+          if (childRules) onChange({ loop: { ...defaultLoop(rule), rules: childRules } })
+        }}
+        placeholder="child rules JSON"
+      />
+    )
+  }
+
+  return (
+    <label className="required-toggle">
+      <input
+        type="checkbox"
+        checked={rule.required !== false}
+        onChange={(event) => onChange({ required: event.target.checked })}
+      />
+      Required
+    </label>
+  )
 }
 
 function sourceDisplay(rule: MappingRule) {
@@ -96,33 +240,89 @@ function sourceDisplay(rule: MappingRule) {
   return rule.source_path ?? ""
 }
 
-function ruleDetail(rule: MappingRule) {
-  if (rule.type === "constant") {
-    return `value ${formatValue(rule.value)}`
+function normalizeRuleForType(rule: MappingRule, type: RuleType): MappingRule {
+  const base = {
+    ...rule,
+    type,
+    source_path: rule.source_path ?? "$.",
+    jsonata: rule.jsonata ?? "",
   }
-  if (rule.type === "concat") {
-    return `join ${rule.source_paths?.length ?? 0} path(s) with ${formatValue(rule.separator ?? "")}`
+
+  if (type === "constant") {
+    return { ...base, source_path: null, value: rule.value ?? "" }
   }
-  if (rule.type === "date_format") {
-    return `${rule.input_format ?? "%Y%m%d"} -> ${rule.output_format ?? "%Y-%m-%d"}`
+  if (type === "concat") {
+    const sourcePaths = rule.source_paths && rule.source_paths.length > 0 ? rule.source_paths : parsePathList(rule.source_path)
+    return { ...base, source_path: sourcePaths.join(", "), source_paths: sourcePaths, separator: rule.separator ?? "" }
   }
-  if (rule.type === "condition" && rule.condition) {
-    return `if equals ${formatValue(rule.condition.equals)} then ${formatValue(rule.condition.then)} else ${formatValue(rule.condition.otherwise)}`
+  if (type === "date_format") {
+    return {
+      ...base,
+      input_format: rule.input_format ?? "%Y%m%d",
+      output_format: rule.output_format ?? "%Y-%m-%d",
+    }
   }
-  if (rule.type === "loop" && rule.loop) {
-    return `${rule.loop.source_path} -> ${rule.loop.target_path}; ${rule.loop.rules.length} child rule(s)`
+  if (type === "condition") {
+    const condition = defaultCondition(rule)
+    return { ...base, source_path: condition.source_path, condition }
   }
-  return rule.required === false ? "optional" : "required"
+  if (type === "loop") {
+    const loop = defaultLoop(rule)
+    return { ...base, source_path: loop.source_path, target_path: loop.target_path, loop }
+  }
+  return base
 }
 
-function formatValue(value: unknown) {
-  if (typeof value === "string") return `"${value}"`
-  return JSON.stringify(value)
+function defaultCondition(rule: MappingRule) {
+  return {
+    source_path: rule.condition?.source_path ?? rule.source_path ?? "$.",
+    equals: rule.condition?.equals ?? "",
+    then: rule.condition?.then ?? "",
+    otherwise: rule.condition?.otherwise ?? null,
+  }
+}
+
+function defaultLoop(rule: MappingRule) {
+  return {
+    source_path: rule.loop?.source_path ?? rule.source_path ?? "$.",
+    target_path: rule.loop?.target_path ?? rule.target_path,
+    rules: rule.loop?.rules ?? [],
+  }
+}
+
+function parsePathList(value: string | null | undefined) {
+  return (value ?? "").split(",").flatMap((path) => {
+    const trimmedPath = path.trim()
+    return trimmedPath ? [trimmedPath] : []
+  })
+}
+
+function stringifyEditableValue(value: unknown) {
+  if (value === undefined || value === null) return ""
+  return typeof value === "string" ? value : JSON.stringify(value)
+}
+
+function parseEditableValue(value: string) {
+  if (value.trim() === "") return ""
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+function parseChildRules(value: string) {
+  try {
+    const parsed: unknown = JSON.parse(value)
+    return Array.isArray(parsed) ? (parsed as MappingRule[]) : null
+  } catch {
+    return null
+  }
 }
 
 function newRule(): MappingRule {
   return {
-    id: `rule_${Date.now()}`,
+    id: `rule_${crypto.randomUUID()}`,
     type: "field",
     source_path: "$.",
     target_path: "$.",

@@ -1,0 +1,621 @@
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { Effect } from "effect"
+
+import type { DemoScenario } from "@/components/workbench/DemoScenarioPanel"
+import {
+  SAMPLE_EDI_214,
+  SAMPLE_EDI_856,
+  SAMPLE_SOURCE_JSON,
+  SAMPLE_SOURCE_XML,
+  SAMPLE_TARGET_JSON,
+  SAMPLE_TARGET_XML,
+} from "@/components/workbench/constants"
+import { issueFromUnknown } from "@/lib/effect/errors"
+import type { FrontendIssue } from "@/lib/effect/errors"
+import {
+  createTemplateEffect,
+  createTemplateVersionEffect,
+  getMappingCapabilitiesEffect,
+  getTemplateEffect,
+  inferSchemaEffect,
+  listTemplatesEffect,
+  parseEffect,
+  suggestMappingsEffect,
+  transformEffect,
+  validateEffect,
+} from "@/lib/effect/api_effects"
+import type {
+  MappingRule,
+  MappingTemplate,
+  MappingSuggestion,
+  OutputFormat,
+  SourceFormat,
+  TransformResponse,
+} from "@/types/mapping"
+import type { SchemaNode } from "@/types/schema"
+import type { ValidationErrorItem } from "@/types/validation"
+
+type AutoMapMode = "local" | "ai"
+type AutoMapStatus = "idle" | "local" | "ai-used" | "ai-unavailable" | "ai-fallback"
+type NewMappingPromptState = {
+  open: boolean
+  pending: boolean
+}
+
+export const demoScenarios: DemoScenario[] = [
+  {
+    id: "json-json",
+    label: "JSON to JSON",
+    description: "Shipment JSON to normalized JSON event output.",
+    sourceFormat: "json",
+    targetFormat: "json",
+    source: SAMPLE_SOURCE_JSON,
+    target: SAMPLE_TARGET_JSON,
+    icon: "json",
+  },
+  {
+    id: "xml-json",
+    label: "XML to JSON",
+    description: "Shipment XML canonicalized to JSON, then mapped to the JSON target.",
+    sourceFormat: "xml",
+    targetFormat: "json",
+    source: SAMPLE_SOURCE_XML,
+    target: SAMPLE_TARGET_JSON,
+    icon: "xml",
+  },
+  {
+    id: "json-xml",
+    label: "JSON to XML",
+    description: "Shipment JSON mapped into an XML ShipmentEvent document.",
+    sourceFormat: "json",
+    targetFormat: "xml",
+    source: SAMPLE_SOURCE_JSON,
+    target: SAMPLE_TARGET_XML,
+    icon: "xml",
+  },
+  {
+    id: "edi-214",
+    label: "EDI 214",
+    description: "Inbound 214 status update canonicalized before mapping.",
+    sourceFormat: "edi_214",
+    targetFormat: "json",
+    source: SAMPLE_EDI_214,
+    target: SAMPLE_TARGET_JSON,
+    icon: "edi",
+  },
+  {
+    id: "edi-856",
+    label: "EDI 856",
+    description: "Inbound 856 ASN canonicalized before mapping.",
+    sourceFormat: "edi_856",
+    targetFormat: "json",
+    source: SAMPLE_EDI_856,
+    target: SAMPLE_TARGET_JSON,
+    icon: "edi",
+  },
+]
+
+export function useMappingWorkbenchController() {
+  const [sourceFormat, setSourceFormat] = useState<SourceFormat>("json")
+  const [targetFormat, setTargetFormat] = useState<OutputFormat>("json")
+  const [sourceInput, setSourceInput] = useState(SAMPLE_SOURCE_JSON)
+  const [targetInput, setTargetInput] = useState(SAMPLE_TARGET_JSON)
+  const [sourceSchema, setSourceSchema] = useState<SchemaNode | null>(null)
+  const [targetSchema, setTargetSchema] = useState<SchemaNode | null>(null)
+  const [suggestions, setSuggestions] = useState<MappingSuggestion[]>([])
+  const [rules, setRules] = useState<MappingRule[]>([])
+  const [advancedJsonata, setAdvancedJsonata] = useState("")
+  const [transformResult, setTransformResult] = useState<TransformResponse | null>(null)
+  const [validationErrors, setValidationErrors] = useState<ValidationErrorItem[]>([])
+  const [providerErrors, setProviderErrors] = useState<string[]>([])
+  const [usedAi, setUsedAi] = useState(false)
+  const [autoMapMode, setAutoMapMode] = useState<AutoMapMode>("local")
+  const [autoMapStatus, setAutoMapStatus] = useState<AutoMapStatus>("idle")
+  const [aiMappingAvailable, setAiMappingAvailable] = useState(false)
+  const [templates, setTemplates] = useState<MappingTemplate[]>([])
+  const [activeTemplate, setActiveTemplate] = useState<MappingTemplate | null>(null)
+  const [selectedTemplateId, setSelectedTemplateId] = useState("")
+  const [templateName, setTemplateName] = useState("Shipment status map")
+  const [templateDescription, setTemplateDescription] = useState("")
+  const [activeScenarioId, setActiveScenarioId] = useState("json-json")
+  const [issue, setIssue] = useState<FrontendIssue | null>(null)
+  const [busyAction, setBusyAction] = useState<string | null>("Loading templates")
+  const [newMappingPrompt, setNewMappingPrompt] = useState<NewMappingPromptState>({
+    open: false,
+    pending: false,
+  })
+
+  const readyForMapping = sourceInput.trim().length > 0 && targetInput.trim().length > 0
+  const readyForTransform = readyForMapping && rules.length > 0
+  const readyForTemplateSave = Boolean(sourceSchema && targetSchema && rules.length > 0)
+
+  const statusText = useMemo(() => {
+    if (busyAction) return busyAction
+    if (validationErrors.length > 0) return `${validationErrors.length} validation issue(s)`
+    if (transformResult) return "Transformation complete"
+    if (rules.length > 0) return `${rules.length} editable rule(s)`
+    return "Waiting for samples"
+  }, [busyAction, rules.length, transformResult, validationErrors.length])
+
+  const autoMapStatusText = useMemo(() => {
+    if (autoMapStatus === "local") return "Local suggestions"
+    if (autoMapStatus === "ai-used") return "AI used"
+    if (autoMapStatus === "ai-fallback") return "AI failed, local used"
+    if (autoMapStatus === "ai-unavailable") return "AI unavailable, local used"
+    return autoMapMode === "ai" ? "AI-assisted mode" : "Local mode"
+  }, [autoMapMode, autoMapStatus])
+
+  const clearDerivedResults = useCallback(() => {
+    setSourceSchema(null)
+    setTargetSchema(null)
+    setSuggestions([])
+    setTransformResult(null)
+    setValidationErrors([])
+    setAutoMapStatus("idle")
+  }, [])
+
+  const handleSourceInputChange = useCallback((value: string) => {
+    setSourceInput(value)
+    clearDerivedResults()
+  }, [clearDerivedResults])
+
+  const handleSourceFormatChange = useCallback((format: SourceFormat) => {
+    setSourceFormat(format)
+    clearDerivedResults()
+  }, [clearDerivedResults])
+
+  const handleTargetInputChange = useCallback((value: string) => {
+    setTargetInput(value)
+    setTargetSchema(null)
+    setTransformResult(null)
+    setValidationErrors([])
+    setAutoMapStatus("idle")
+  }, [])
+
+  const handleTargetFormatChange = useCallback((format: OutputFormat) => {
+    setTargetFormat(format)
+    setTargetInput(format === "xml" ? SAMPLE_TARGET_XML : SAMPLE_TARGET_JSON)
+    setTargetSchema(null)
+    setTransformResult(null)
+    setValidationErrors([])
+    setAutoMapStatus("idle")
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void Promise.allSettled([
+      Effect.runPromise(listTemplatesEffect()),
+      Effect.runPromise(getMappingCapabilitiesEffect()),
+    ]).then(([templatesResult, capabilitiesResult]) => {
+      if (cancelled) return
+      if (templatesResult.status === "fulfilled") {
+        setTemplates(templatesResult.value.templates)
+      } else {
+        setIssue(issueFromUnknown(templatesResult.reason))
+      }
+      if (capabilitiesResult.status === "fulfilled") {
+        setAiMappingAvailable(capabilitiesResult.value.ai_mapping_available)
+        if (!capabilitiesResult.value.ai_mapping_available) setAutoMapMode("local")
+      } else {
+        setAiMappingAvailable(false)
+        setAutoMapMode("local")
+      }
+      setBusyAction((current) => (current === "Loading templates" ? null : current))
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function parseAndInfer() {
+    setBusyAction("Parsing samples")
+    setIssue(null)
+    try {
+      await parseCurrentInputs()
+      setTransformResult(null)
+      setValidationErrors([])
+      setAutoMapStatus("idle")
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function autoMap() {
+    setBusyAction("Generating mappings")
+    setIssue(null)
+    try {
+      const parsed = await parseCurrentInputs()
+      const useAi = autoMapMode === "ai"
+      const response = await Effect.runPromise(suggestMappingsEffect(parsed.sourceSchema, parsed.targetSchema, useAi))
+      setSuggestions(response.suggestions)
+      setProviderErrors(response.provider_errors)
+      setUsedAi(response.used_ai)
+      setAutoMapStatus(statusForAutoMapResult(useAi, response.used_ai, response.provider_errors))
+      applyRules(response.suggestions.map(suggestionToRule))
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function runTransform() {
+    setBusyAction("Running transformation")
+    setIssue(null)
+    try {
+      const parsed = await parseCurrentInputs()
+      const validationSchema = targetFormat === "json" ? parsed.targetSchema : null
+      const rulesForTransform = rulesWithAdvancedJsonata()
+      syncAdvancedJsonataFromRules(rulesForTransform)
+      const response = await Effect.runPromise(
+        transformEffect(parsed.sourceData, rulesForTransform, targetFormat, validationSchema),
+      )
+      setTransformResult(response)
+      const validation = await Effect.runPromise(
+        validateEffect(parsed.sourceData, response.output, rulesForTransform, validationSchema),
+      )
+      setValidationErrors([...response.validation_errors, ...validation.errors])
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function refreshTemplates() {
+    setBusyAction((current) => current ?? "Loading templates")
+    try {
+      const response = await Effect.runPromise(listTemplatesEffect())
+      setTemplates(response.templates)
+      if (selectedTemplateId) {
+        setActiveTemplate(response.templates.find((template) => template.template_id === selectedTemplateId) ?? null)
+      }
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction((current) => (current === "Loading templates" ? null : current))
+    }
+  }
+
+  async function saveTemplate() {
+    if (!sourceSchema || !targetSchema || rules.length === 0) return
+    setBusyAction("Saving template")
+    setIssue(null)
+    try {
+      const template = await Effect.runPromise(createTemplateEffect(templateRequest()))
+      await applySavedTemplate(template)
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function saveTemplateVersion() {
+    if (!sourceSchema || !targetSchema || rules.length === 0 || !selectedTemplateId) return
+    setBusyAction("Saving version")
+    setIssue(null)
+    try {
+      const template = await Effect.runPromise(createTemplateVersionEffect(selectedTemplateId, templateRequest()))
+      await applySavedTemplate(template)
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function loadTemplate(templateId: string, versionNumber?: number) {
+    setBusyAction("Loading template")
+    setIssue(null)
+    try {
+      const template = await Effect.runPromise(getTemplateEffect(templateId))
+      const version =
+        template.versions.find((item) => item.version === (versionNumber ?? template.active_version)) ??
+        template.versions.at(-1)
+      if (!version) return
+
+      setActiveTemplate(template)
+      setSelectedTemplateId(template.template_id)
+      setTemplateName(template.name)
+      setTemplateDescription(template.description)
+      setSourceFormat(version.source_format)
+      setTargetFormat(version.target_format)
+      if (version.sample_source_content) setSourceInput(version.sample_source_content)
+      if (version.sample_target_content) setTargetInput(version.sample_target_content)
+      setSourceSchema(version.source_schema_snapshot ?? null)
+      setTargetSchema(version.target_schema_snapshot ?? null)
+      applyRules(version.mapping_spec.rules, version.mapping_spec.full_jsonata_expression)
+      setValidationErrors(version.validation_rules)
+      setTransformResult(null)
+      setSuggestions([])
+      setProviderErrors([])
+      setUsedAi(false)
+      setAutoMapStatus("idle")
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  function selectTemplate(templateId: string) {
+    setSelectedTemplateId(templateId)
+    const selected = templates.find((template) => template.template_id === templateId) ?? null
+    setActiveTemplate(selected)
+    if (selected) {
+      setTemplateName(selected.name)
+      setTemplateDescription(selected.description)
+      if (selected.is_seeded) void loadTemplate(selected.template_id)
+    }
+  }
+
+  function loadScenario(scenario: DemoScenario) {
+    setActiveScenarioId(scenario.id)
+    setSourceFormat(scenario.sourceFormat)
+    setTargetFormat(scenario.targetFormat)
+    setSourceInput(scenario.source)
+    setTargetInput(scenario.target)
+    setSourceSchema(null)
+    setTargetSchema(null)
+    setSuggestions([])
+    setRules([])
+    setAdvancedJsonata("")
+    setTransformResult(null)
+    setValidationErrors([])
+    setProviderErrors([])
+    setUsedAi(false)
+    setAutoMapStatus("idle")
+    setIssue(null)
+    setTemplateName(`${scenario.label} map`)
+    setTemplateDescription(scenario.description)
+  }
+
+  async function startNewMapping() {
+    if (!hasUnsavedMapping()) {
+      resetToBlankMapping()
+      return
+    }
+    setNewMappingPrompt({ open: true, pending: false })
+  }
+
+  function cancelNewMapping() {
+    setNewMappingPrompt({ open: false, pending: false })
+  }
+
+  function discardAndStartNewMapping() {
+    resetToBlankMapping()
+    setNewMappingPrompt({ open: false, pending: false })
+  }
+
+  async function saveAndStartNewMapping() {
+    if (!sourceSchema || !targetSchema || rules.length === 0 || templateName.trim().length === 0) {
+      resetToBlankMapping()
+      setNewMappingPrompt({ open: false, pending: false })
+      return
+    }
+
+    setNewMappingPrompt({ open: true, pending: true })
+    setBusyAction("Saving template")
+    setIssue(null)
+    try {
+      const request = templateRequest()
+      const template = await Effect.runPromise(
+        selectedTemplateId
+          ? createTemplateVersionEffect(selectedTemplateId, request)
+          : createTemplateEffect(request),
+      )
+      await applySavedTemplate(template)
+      resetToBlankMapping()
+      setNewMappingPrompt({ open: false, pending: false })
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+      setNewMappingPrompt({ open: true, pending: false })
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function parseCurrentInputs() {
+    const [parsedSource, parsedTarget] = await Promise.all([
+      Effect.runPromise(parseEffect(sourceFormat, sourceInput)),
+      Effect.runPromise(parseEffect(targetFormat === "xml" ? "xml" : "json", targetInput)),
+    ])
+    const [inferredSource, inferredTarget] = await Promise.all([
+      Effect.runPromise(inferSchemaEffect(parsedSource.canonical)),
+      Effect.runPromise(inferSchemaEffect(parsedTarget.canonical)),
+    ])
+    setSourceSchema(inferredSource.schema)
+    setTargetSchema(inferredTarget.schema)
+    return {
+      sourceData: parsedSource.canonical,
+      sourceSchema: inferredSource.schema,
+      targetSchema: inferredTarget.schema,
+    }
+  }
+
+  function templateRequest() {
+    const mappingRules = rulesWithAdvancedJsonata()
+    return {
+      name: templateName.trim(),
+      description: templateDescription.trim(),
+      source_format: sourceFormat,
+      target_format: targetFormat,
+      source_schema_snapshot: sourceSchema,
+      target_schema_snapshot: targetSchema,
+      mapping_spec: {
+        engine: "deterministic_rules",
+        rules: mappingRules,
+        full_jsonata_expression: advancedJsonata.trim() || null,
+      },
+      validation_rules: validationErrors,
+      sample_source_content: sourceInput,
+      sample_target_content: targetInput,
+    }
+  }
+
+  async function applySavedTemplate(template: MappingTemplate) {
+    setActiveTemplate(template)
+    setSelectedTemplateId(template.template_id)
+    setTemplateName(template.name)
+    setTemplateDescription(template.description)
+    const response = await Effect.runPromise(listTemplatesEffect())
+    setTemplates(response.templates)
+  }
+
+  function applyRules(nextRules: MappingRule[], jsonataExpression?: string | null) {
+    setRules(nextRules)
+    setAdvancedJsonata(jsonataExpression ?? jsonataExpressionForRules(nextRules))
+  }
+
+  function updateRules(nextRules: MappingRule[]) {
+    setRules(nextRules)
+    if (shouldSyncAdvancedJsonata()) {
+      setAdvancedJsonata(jsonataExpressionForRules(nextRules))
+    }
+  }
+
+  function syncAdvancedJsonataFromRules(nextRules: MappingRule[]) {
+    if (shouldSyncAdvancedJsonata()) {
+      setAdvancedJsonata(jsonataExpressionForRules(nextRules))
+    }
+  }
+
+  function shouldSyncAdvancedJsonata() {
+    return advancedJsonata.trim() === "" || advancedJsonata === jsonataExpressionForRules(rules)
+  }
+
+  function rulesWithAdvancedJsonata() {
+    const expression = advancedJsonata.trim()
+    if (!expression || rules.length !== 1 || rules[0]?.jsonata) {
+      return rules
+    }
+    return [{ ...rules[0], jsonata: expression }]
+  }
+
+  function hasUnsavedMapping() {
+    return (
+      sourceInput.trim().length > 0 ||
+      targetInput.trim().length > 0 ||
+      rules.length > 0 ||
+      advancedJsonata.trim().length > 0 ||
+      Boolean(transformResult) ||
+      validationErrors.length > 0
+    )
+  }
+
+  function resetToBlankMapping() {
+    setSourceFormat("json")
+    setTargetFormat("json")
+    setSourceInput("")
+    setTargetInput("")
+    setSourceSchema(null)
+    setTargetSchema(null)
+    setSuggestions([])
+    setRules([])
+    setAdvancedJsonata("")
+    setTransformResult(null)
+    setValidationErrors([])
+    setProviderErrors([])
+    setUsedAi(false)
+    setAutoMapStatus("idle")
+    setIssue(null)
+    setActiveTemplate(null)
+    setSelectedTemplateId("")
+    setActiveScenarioId("")
+    setTemplateName("Untitled mapping")
+    setTemplateDescription("")
+  }
+
+  return {
+    sourceFormat,
+    targetFormat,
+    sourceInput,
+    targetInput,
+    sourceSchema,
+    targetSchema,
+    suggestions,
+    rules,
+    advancedJsonata,
+    transformResult,
+    validationErrors,
+    providerErrors,
+    usedAi,
+    autoMapMode,
+    aiMappingAvailable,
+    templates,
+    activeTemplate,
+    selectedTemplateId,
+    templateName,
+    templateDescription,
+    activeScenarioId,
+    issue,
+    busyAction,
+    newMappingPrompt,
+    readyForMapping,
+    readyForTransform,
+    readyForTemplateSave,
+    statusText,
+    autoMapStatusText,
+    setAutoMapMode,
+    setTemplateName,
+    setTemplateDescription,
+    setRules: updateRules,
+    setAdvancedJsonata,
+    handleSourceInputChange,
+    handleSourceFormatChange,
+    handleTargetInputChange,
+    handleTargetFormatChange,
+    parseAndInfer,
+    autoMap,
+    runTransform,
+    refreshTemplates,
+    saveTemplate,
+    saveTemplateVersion,
+    startNewMapping,
+    cancelNewMapping,
+    discardAndStartNewMapping,
+    saveAndStartNewMapping,
+    loadTemplate,
+    selectTemplate,
+    loadScenario,
+  }
+}
+
+function jsonataExpressionForRules(rules: MappingRule[]) {
+  const expressions = rules.flatMap((rule) => (rule.jsonata ? [rule.jsonata] : []))
+  return expressions.length > 0 ? JSON.stringify(expressions, null, 2) : ""
+}
+
+function statusForAutoMapResult(
+  requestedAi: boolean,
+  usedAi: boolean,
+  providerErrors: string[],
+): AutoMapStatus {
+  if (!requestedAi) return "local"
+  if (usedAi) return "ai-used"
+  return providerErrors.length > 0 ? "ai-fallback" : "ai-unavailable"
+}
+
+function suggestionToRule(suggestion: MappingSuggestion): MappingRule {
+  return {
+    id: suggestion.id,
+    type: suggestion.type,
+    source_path: suggestion.source_path,
+    target_path: targetPathForRuntime(suggestion.target_path),
+    required: suggestion.required,
+    confidence: suggestion.confidence,
+    jsonata: suggestion.jsonata,
+  }
+}
+
+function targetPathForRuntime(path: string) {
+  return path
+    .replace("$.ShipmentEvent.", "$.")
+    .replace("$.ShipmentEvent", "$")
+    .replace("$.tracking.number", "$.tracking.number")
+}
