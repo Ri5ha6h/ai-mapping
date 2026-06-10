@@ -195,6 +195,8 @@ class TemplateCreateRequest(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    sample_source_content: str | None = None
+    sample_target_content: str | None = None
 
 
 class TemplateVersionCreateRequest(BaseModel):
@@ -204,6 +206,8 @@ class TemplateVersionCreateRequest(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    sample_source_content: str | None = None
+    sample_target_content: str | None = None
 
 
 class TemplateListResponse(BaseModel):

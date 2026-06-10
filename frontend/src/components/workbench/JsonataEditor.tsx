@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { memo, useEffect, useState } from "react"
 
 import { Textarea } from "@/components/ui/textarea"
 import type MonacoEditor from "@monaco-editor/react"
@@ -10,7 +10,22 @@ type Props = {
   onChange: (value: string) => void
 }
 
-export function JsonataEditor({ value, onChange }: Props) {
+const editorOptions = {
+  minimap: { enabled: false },
+  fontSize: 13,
+  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  lineHeight: 20,
+  wordWrap: "on" as const,
+  scrollBeyondLastLine: false,
+  automaticLayout: true,
+  cursorBlinking: "smooth" as const,
+  cursorStyle: "line" as const,
+  cursorWidth: 2,
+  renderLineHighlight: "all" as const,
+  lineNumbers: "on" as const,
+}
+
+export const JsonataEditor = memo(function JsonataEditor({ value, onChange }: Props) {
   const [Editor, setEditor] = useState<MonacoEditorComponent | null>(null)
 
   useEffect(() => {
@@ -35,16 +50,10 @@ export function JsonataEditor({ value, onChange }: Props) {
         {Editor ? (
           <Editor
             height="260px"
-            defaultLanguage="json"
+            defaultLanguage="javascript"
             value={value}
             theme="vs-dark"
-            options={{
-              minimap: { enabled: false },
-              fontSize: 13,
-              wordWrap: "on",
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
+            options={editorOptions}
             onChange={(nextValue) => onChange(nextValue ?? "")}
           />
         ) : (
@@ -58,4 +67,4 @@ export function JsonataEditor({ value, onChange }: Props) {
       </div>
     </section>
   )
-}
+})

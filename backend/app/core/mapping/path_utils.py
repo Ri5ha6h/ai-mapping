@@ -2,21 +2,32 @@ import re
 from typing import Any
 
 MISSING = object()
+WILDCARD = "*"
 
 
 def get_path(data: Any, path: str) -> Any:
-    current = data
-    for token in _parse_path(path):
-        if isinstance(token, int):
-            if not isinstance(current, list) or token >= len(current):
-                return MISSING
-            current = current[token]
-            continue
+    return _get_tokens(data, _parse_path(path))
 
-        if not isinstance(current, dict) or token not in current:
+
+def _get_tokens(current: Any, tokens: list[str | int]) -> Any:
+    if not tokens:
+        return current
+
+    token, *remaining = tokens
+    if token == WILDCARD:
+        if not isinstance(current, list):
             return MISSING
-        current = current[token]
-    return current
+        values = [_get_tokens(item, remaining) for item in current]
+        return [value for value in values if value is not MISSING]
+
+    if isinstance(token, int):
+        if not isinstance(current, list) or token >= len(current):
+            return MISSING
+        return _get_tokens(current[token], remaining)
+
+    if not isinstance(current, dict) or token not in current:
+        return MISSING
+    return _get_tokens(current[token], remaining)
 
 
 def set_path(data: dict[str, Any], path: str, value: Any) -> None:
@@ -63,10 +74,10 @@ def _parse_path(path: str) -> list[str | int]:
     for part in path[2:].split("."):
         if not part:
             continue
-        match = re.fullmatch(r"([^\[]+)(?:\[(\d+)])?", part)
+        match = re.fullmatch(r"([^\[]+)(?:\[(\d+|\*)])?", part)
         if not match:
             raise ValueError(f"Unsupported path segment: {part}")
         tokens.append(match.group(1))
         if match.group(2) is not None:
-            tokens.append(int(match.group(2)))
+            tokens.append(WILDCARD if match.group(2) == WILDCARD else int(match.group(2)))
     return tokens

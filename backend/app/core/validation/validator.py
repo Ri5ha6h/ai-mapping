@@ -65,7 +65,7 @@ def _validate_required_targets(
     rules: list[MappingRule],
     target_schema: SchemaNode,
 ) -> list[ValidationErrorItem]:
-    mapped_paths = {_normalize_target_path(rule.target_path) for rule in rules}
+    mapped_paths = {_normalize_target_path(path) for rule in rules for path in _rule_target_paths(rule)}
     errors: list[ValidationErrorItem] = []
 
     for leaf in _required_leaf_nodes(target_schema):
@@ -85,6 +85,16 @@ def _validate_output_types(output: Any, target_schema: SchemaNode) -> list[Valid
     for leaf in _required_leaf_nodes(target_schema):
         value = get_path(output, leaf.path)
         if value is MISSING:
+            continue
+        if isinstance(value, list):
+            if any(not _matches_schema_type(item, leaf.type) for item in value):
+                errors.append(
+                    ValidationErrorItem(
+                        code="type_mismatch",
+                        path=leaf.path,
+                        message=f"Output value at {leaf.path} does not match target type {leaf.type}.",
+                    )
+                )
             continue
         if not _matches_schema_type(value, leaf.type):
             errors.append(
@@ -110,6 +120,17 @@ def _rule_source_paths(rule: MappingRule) -> list[str]:
         case "constant":
             return []
     return []
+
+
+def _rule_target_paths(rule: MappingRule) -> list[str]:
+    if rule.type != "loop" or not rule.loop:
+        return [rule.target_path]
+
+    target_paths = [rule.target_path]
+    for child_rule in rule.loop.rules:
+        child_path = child_rule.target_path.removeprefix("$.")
+        target_paths.append(f"{rule.target_path}[*].{child_path}")
+    return target_paths
 
 
 def _required_leaf_nodes(schema: SchemaNode) -> list[SchemaNode]:

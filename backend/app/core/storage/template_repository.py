@@ -321,6 +321,8 @@ def _template_version_from_create(
         target_schema_snapshot=request.target_schema_snapshot,
         mapping_spec=request.mapping_spec,
         validation_rules=request.validation_rules,
+        sample_source_content=request.sample_source_content,
+        sample_target_content=request.sample_target_content,
         created_at=datetime.now(UTC),
     )
 
@@ -338,6 +340,8 @@ def _template_version_from_version_create(
         target_schema_snapshot=request.target_schema_snapshot,
         mapping_spec=request.mapping_spec,
         validation_rules=request.validation_rules,
+        sample_source_content=request.sample_source_content,
+        sample_target_content=request.sample_target_content,
         created_at=datetime.now(UTC),
     )
 

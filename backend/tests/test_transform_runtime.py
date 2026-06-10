@@ -98,6 +98,106 @@ def test_json_to_json_transform(client: TestClient) -> None:
     assert payload["output"]["items"] == [{"sku": "ITEM001", "quantity": 10}]
 
 
+def test_transform_validates_array_wildcard_schema_paths(client: TestClient) -> None:
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": SOURCE_JSON,
+            "output_format": "json",
+            "target_schema": {
+                "type": "object",
+                "path": "$",
+                "required": True,
+                "fields": {
+                    "items": {
+                        "type": "array",
+                        "path": "$.items",
+                        "required": True,
+                        "items": {
+                            "type": "object",
+                            "path": "$.items[*]",
+                            "required": True,
+                            "fields": {
+                                "sku": {
+                                    "type": "string",
+                                    "path": "$.items[*].sku",
+                                    "required": True,
+                                }
+                            },
+                        },
+                    }
+                },
+            },
+            "rules": [
+                {
+                    "id": "rule_items",
+                    "type": "loop",
+                    "target_path": "$.items",
+                    "loop": {
+                        "source_path": "$.shipment.items",
+                        "target_path": "$.items",
+                        "rules": [
+                            {
+                                "id": "rule_item_sku",
+                                "type": "field",
+                                "source_path": "$.sku",
+                                "target_path": "$.sku",
+                            }
+                        ],
+                    },
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["validation_errors"] == []
+
+
+def test_jsonata_concat_expression_drives_rule_output(client: TestClient) -> None:
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": {"first": "john", "last": "doe"},
+            "output_format": "json",
+            "rules": [
+                {
+                    "id": "rule_full",
+                    "type": "field",
+                    "source_path": "$.first",
+                    "target_path": "$.full",
+                    "jsonata": 'first & " " & last',
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["output"]["full"] == "john doe"
+
+
+def test_concat_rule_preserves_space_separator(client: TestClient) -> None:
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": {"first": "john", "last": "doe"},
+            "output_format": "json",
+            "rules": [
+                {
+                    "id": "rule_full",
+                    "type": "concat",
+                    "source_paths": ["$.first", "$.last"],
+                    "separator": " ",
+                    "target_path": "$.full",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["output"]["full"] == "john doe"
+
+
 def test_xml_to_json_transform(client: TestClient, samples_dir: Path) -> None:
     parsed = client.post(
         "/api/parse",
@@ -332,4 +432,3 @@ def test_invalid_jsonata_metadata_validation(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json()["errors"][0]["code"] == "invalid_jsonata_expression"
-
