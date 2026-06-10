@@ -36,7 +36,12 @@ import type { SchemaNode } from "@/types/schema"
 import type { ValidationErrorItem } from "@/types/validation"
 
 type AutoMapMode = "local" | "ai"
-type AutoMapStatus = "idle" | "local" | "ai-used" | "ai-unavailable" | "ai-fallback"
+type AutoMapStatus =
+  | "idle"
+  | "local"
+  | "ai-used"
+  | "ai-unavailable"
+  | "ai-fallback"
 type NewMappingPromptState = {
   open: boolean
   pending: boolean
@@ -56,7 +61,8 @@ export const demoScenarios: DemoScenario[] = [
   {
     id: "xml-json",
     label: "XML to JSON",
-    description: "Shipment XML canonicalized to JSON, then mapped to the JSON target.",
+    description:
+      "Shipment XML canonicalized to JSON, then mapped to the JSON target.",
     sourceFormat: "xml",
     targetFormat: "json",
     source: SAMPLE_SOURCE_XML,
@@ -105,33 +111,45 @@ export function useMappingWorkbenchController() {
   const [suggestions, setSuggestions] = useState<MappingSuggestion[]>([])
   const [rules, setRules] = useState<MappingRule[]>([])
   const [advancedJsonata, setAdvancedJsonata] = useState("")
-  const [transformResult, setTransformResult] = useState<TransformResponse | null>(null)
-  const [validationErrors, setValidationErrors] = useState<ValidationErrorItem[]>([])
+  const [transformResult, setTransformResult] =
+    useState<TransformResponse | null>(null)
+  const [validationErrors, setValidationErrors] = useState<
+    ValidationErrorItem[]
+  >([])
   const [providerErrors, setProviderErrors] = useState<string[]>([])
   const [usedAi, setUsedAi] = useState(false)
   const [autoMapMode, setAutoMapMode] = useState<AutoMapMode>("local")
   const [autoMapStatus, setAutoMapStatus] = useState<AutoMapStatus>("idle")
   const [aiMappingAvailable, setAiMappingAvailable] = useState(false)
   const [templates, setTemplates] = useState<MappingTemplate[]>([])
-  const [activeTemplate, setActiveTemplate] = useState<MappingTemplate | null>(null)
+  const [activeTemplate, setActiveTemplate] = useState<MappingTemplate | null>(
+    null
+  )
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [templateName, setTemplateName] = useState("Shipment status map")
   const [templateDescription, setTemplateDescription] = useState("")
   const [activeScenarioId, setActiveScenarioId] = useState("json-json")
   const [issue, setIssue] = useState<FrontendIssue | null>(null)
-  const [busyAction, setBusyAction] = useState<string | null>("Loading templates")
-  const [newMappingPrompt, setNewMappingPrompt] = useState<NewMappingPromptState>({
-    open: false,
-    pending: false,
-  })
+  const [busyAction, setBusyAction] = useState<string | null>(
+    "Loading templates"
+  )
+  const [newMappingPrompt, setNewMappingPrompt] =
+    useState<NewMappingPromptState>({
+      open: false,
+      pending: false,
+    })
 
-  const readyForMapping = sourceInput.trim().length > 0 && targetInput.trim().length > 0
+  const readyForMapping =
+    sourceInput.trim().length > 0 && targetInput.trim().length > 0
   const readyForTransform = readyForMapping && rules.length > 0
-  const readyForTemplateSave = Boolean(sourceSchema && targetSchema && rules.length > 0)
+  const readyForTemplateSave = Boolean(
+    sourceSchema && targetSchema && rules.length > 0
+  )
 
   const statusText = useMemo(() => {
     if (busyAction) return busyAction
-    if (validationErrors.length > 0) return `${validationErrors.length} validation issue(s)`
+    if (validationErrors.length > 0)
+      return `${validationErrors.length} validation issue(s)`
     if (transformResult) return "Transformation complete"
     if (rules.length > 0) return `${rules.length} editable rule(s)`
     return "Waiting for samples"
@@ -145,41 +163,63 @@ export function useMappingWorkbenchController() {
     return autoMapMode === "ai" ? "AI-assisted mode" : "Local mode"
   }, [autoMapMode, autoMapStatus])
 
+  const clearRunResults = useCallback(() => {
+    setTransformResult(null)
+    setValidationErrors([])
+    setAutoMapStatus("idle")
+  }, [])
+
+  const clearMappingSuggestions = useCallback(() => {
+    setSuggestions([])
+    setProviderErrors([])
+    setUsedAi(false)
+  }, [])
+
   const clearDerivedResults = useCallback(() => {
     setSourceSchema(null)
     setTargetSchema(null)
-    setSuggestions([])
-    setTransformResult(null)
-    setValidationErrors([])
-    setAutoMapStatus("idle")
-  }, [])
+    clearMappingSuggestions()
+    clearRunResults()
+  }, [clearMappingSuggestions, clearRunResults])
 
-  const handleSourceInputChange = useCallback((value: string) => {
-    setSourceInput(value)
-    clearDerivedResults()
-  }, [clearDerivedResults])
-
-  const handleSourceFormatChange = useCallback((format: SourceFormat) => {
-    setSourceFormat(format)
-    clearDerivedResults()
-  }, [clearDerivedResults])
-
-  const handleTargetInputChange = useCallback((value: string) => {
-    setTargetInput(value)
+  const clearTargetDerivedResults = useCallback(() => {
     setTargetSchema(null)
-    setTransformResult(null)
-    setValidationErrors([])
-    setAutoMapStatus("idle")
-  }, [])
+    clearMappingSuggestions()
+    clearRunResults()
+  }, [clearMappingSuggestions, clearRunResults])
 
-  const handleTargetFormatChange = useCallback((format: OutputFormat) => {
-    setTargetFormat(format)
-    setTargetInput(format === "xml" ? SAMPLE_TARGET_XML : SAMPLE_TARGET_JSON)
-    setTargetSchema(null)
-    setTransformResult(null)
-    setValidationErrors([])
-    setAutoMapStatus("idle")
-  }, [])
+  const handleSourceInputChange = useCallback(
+    (value: string) => {
+      setSourceInput(value)
+      clearDerivedResults()
+    },
+    [clearDerivedResults]
+  )
+
+  const handleSourceFormatChange = useCallback(
+    (format: SourceFormat) => {
+      setSourceFormat(format)
+      clearDerivedResults()
+    },
+    [clearDerivedResults]
+  )
+
+  const handleTargetInputChange = useCallback(
+    (value: string) => {
+      setTargetInput(value)
+      clearTargetDerivedResults()
+    },
+    [clearTargetDerivedResults]
+  )
+
+  const handleTargetFormatChange = useCallback(
+    (format: OutputFormat) => {
+      setTargetFormat(format)
+      setTargetInput(format === "xml" ? SAMPLE_TARGET_XML : SAMPLE_TARGET_JSON)
+      clearTargetDerivedResults()
+    },
+    [clearTargetDerivedResults]
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -196,12 +236,15 @@ export function useMappingWorkbenchController() {
       }
       if (capabilitiesResult.status === "fulfilled") {
         setAiMappingAvailable(capabilitiesResult.value.ai_mapping_available)
-        if (!capabilitiesResult.value.ai_mapping_available) setAutoMapMode("local")
+        if (!capabilitiesResult.value.ai_mapping_available)
+          setAutoMapMode("local")
       } else {
         setAiMappingAvailable(false)
         setAutoMapMode("local")
       }
-      setBusyAction((current) => (current === "Loading templates" ? null : current))
+      setBusyAction((current) =>
+        current === "Loading templates" ? null : current
+      )
     })
 
     return () => {
@@ -230,11 +273,19 @@ export function useMappingWorkbenchController() {
     try {
       const parsed = await parseCurrentInputs()
       const useAi = autoMapMode === "ai"
-      const response = await Effect.runPromise(suggestMappingsEffect(parsed.sourceSchema, parsed.targetSchema, useAi))
+      const response = await Effect.runPromise(
+        suggestMappingsEffect(parsed.sourceSchema, parsed.targetSchema, useAi)
+      )
       setSuggestions(response.suggestions)
       setProviderErrors(response.provider_errors)
       setUsedAi(response.used_ai)
-      setAutoMapStatus(statusForAutoMapResult(useAi, response.used_ai, response.provider_errors))
+      setAutoMapStatus(
+        statusForAutoMapResult(
+          useAi,
+          response.used_ai,
+          response.provider_errors
+        )
+      )
       applyRules(response.suggestions.map(suggestionToRule))
     } catch (error) {
       setIssue(issueFromUnknown(error))
@@ -248,15 +299,26 @@ export function useMappingWorkbenchController() {
     setIssue(null)
     try {
       const parsed = await parseCurrentInputs()
-      const validationSchema = targetFormat === "json" ? parsed.targetSchema : null
+      const validationSchema =
+        targetFormat === "json" ? parsed.targetSchema : null
       const rulesForTransform = rulesWithAdvancedJsonata()
       syncAdvancedJsonataFromRules(rulesForTransform)
       const response = await Effect.runPromise(
-        transformEffect(parsed.sourceData, rulesForTransform, targetFormat, validationSchema),
+        transformEffect(
+          parsed.sourceData,
+          rulesForTransform,
+          targetFormat,
+          validationSchema
+        )
       )
       setTransformResult(response)
       const validation = await Effect.runPromise(
-        validateEffect(parsed.sourceData, response.output, rulesForTransform, validationSchema),
+        validateEffect(
+          parsed.sourceData,
+          response.output,
+          rulesForTransform,
+          validationSchema
+        )
       )
       setValidationErrors([...response.validation_errors, ...validation.errors])
     } catch (error) {
@@ -272,12 +334,18 @@ export function useMappingWorkbenchController() {
       const response = await Effect.runPromise(listTemplatesEffect())
       setTemplates(response.templates)
       if (selectedTemplateId) {
-        setActiveTemplate(response.templates.find((template) => template.template_id === selectedTemplateId) ?? null)
+        setActiveTemplate(
+          response.templates.find(
+            (template) => template.template_id === selectedTemplateId
+          ) ?? null
+        )
       }
     } catch (error) {
       setIssue(issueFromUnknown(error))
     } finally {
-      setBusyAction((current) => (current === "Loading templates" ? null : current))
+      setBusyAction((current) =>
+        current === "Loading templates" ? null : current
+      )
     }
   }
 
@@ -286,7 +354,9 @@ export function useMappingWorkbenchController() {
     setBusyAction("Saving template")
     setIssue(null)
     try {
-      const template = await Effect.runPromise(createTemplateEffect(templateRequest()))
+      const template = await Effect.runPromise(
+        createTemplateEffect(templateRequest())
+      )
       await applySavedTemplate(template)
     } catch (error) {
       setIssue(issueFromUnknown(error))
@@ -296,11 +366,19 @@ export function useMappingWorkbenchController() {
   }
 
   async function saveTemplateVersion() {
-    if (!sourceSchema || !targetSchema || rules.length === 0 || !selectedTemplateId) return
+    if (
+      !sourceSchema ||
+      !targetSchema ||
+      rules.length === 0 ||
+      !selectedTemplateId
+    )
+      return
     setBusyAction("Saving version")
     setIssue(null)
     try {
-      const template = await Effect.runPromise(createTemplateVersionEffect(selectedTemplateId, templateRequest()))
+      const template = await Effect.runPromise(
+        createTemplateVersionEffect(selectedTemplateId, templateRequest())
+      )
       await applySavedTemplate(template)
     } catch (error) {
       setIssue(issueFromUnknown(error))
@@ -315,8 +393,9 @@ export function useMappingWorkbenchController() {
     try {
       const template = await Effect.runPromise(getTemplateEffect(templateId))
       const version =
-        template.versions.find((item) => item.version === (versionNumber ?? template.active_version)) ??
-        template.versions.at(-1)
+        template.versions.find(
+          (item) => item.version === (versionNumber ?? template.active_version)
+        ) ?? template.versions.at(-1)
       if (!version) return
 
       setActiveTemplate(template)
@@ -325,11 +404,16 @@ export function useMappingWorkbenchController() {
       setTemplateDescription(template.description)
       setSourceFormat(version.source_format)
       setTargetFormat(version.target_format)
-      if (version.sample_source_content) setSourceInput(version.sample_source_content)
-      if (version.sample_target_content) setTargetInput(version.sample_target_content)
+      if (version.sample_source_content)
+        setSourceInput(version.sample_source_content)
+      if (version.sample_target_content)
+        setTargetInput(version.sample_target_content)
       setSourceSchema(version.source_schema_snapshot ?? null)
       setTargetSchema(version.target_schema_snapshot ?? null)
-      applyRules(version.mapping_spec.rules, version.mapping_spec.full_jsonata_expression)
+      applyRules(
+        version.mapping_spec.rules,
+        version.mapping_spec.full_jsonata_expression
+      )
       setValidationErrors(version.validation_rules)
       setTransformResult(null)
       setSuggestions([])
@@ -345,7 +429,8 @@ export function useMappingWorkbenchController() {
 
   function selectTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
-    const selected = templates.find((template) => template.template_id === templateId) ?? null
+    const selected =
+      templates.find((template) => template.template_id === templateId) ?? null
     setActiveTemplate(selected)
     if (selected) {
       setTemplateName(selected.name)
@@ -393,7 +478,12 @@ export function useMappingWorkbenchController() {
   }
 
   async function saveAndStartNewMapping() {
-    if (!sourceSchema || !targetSchema || rules.length === 0 || templateName.trim().length === 0) {
+    if (
+      !sourceSchema ||
+      !targetSchema ||
+      rules.length === 0 ||
+      templateName.trim().length === 0
+    ) {
       resetToBlankMapping()
       setNewMappingPrompt({ open: false, pending: false })
       return
@@ -407,7 +497,7 @@ export function useMappingWorkbenchController() {
       const template = await Effect.runPromise(
         selectedTemplateId
           ? createTemplateVersionEffect(selectedTemplateId, request)
-          : createTemplateEffect(request),
+          : createTemplateEffect(request)
       )
       await applySavedTemplate(template)
       resetToBlankMapping()
@@ -423,7 +513,9 @@ export function useMappingWorkbenchController() {
   async function parseCurrentInputs() {
     const [parsedSource, parsedTarget] = await Promise.all([
       Effect.runPromise(parseEffect(sourceFormat, sourceInput)),
-      Effect.runPromise(parseEffect(targetFormat === "xml" ? "xml" : "json", targetInput)),
+      Effect.runPromise(
+        parseEffect(targetFormat === "xml" ? "xml" : "json", targetInput)
+      ),
     ])
     const [inferredSource, inferredTarget] = await Promise.all([
       Effect.runPromise(inferSchemaEffect(parsedSource.canonical)),
@@ -467,9 +559,14 @@ export function useMappingWorkbenchController() {
     setTemplates(response.templates)
   }
 
-  function applyRules(nextRules: MappingRule[], jsonataExpression?: string | null) {
+  function applyRules(
+    nextRules: MappingRule[],
+    jsonataExpression?: string | null
+  ) {
     setRules(nextRules)
-    setAdvancedJsonata(jsonataExpression ?? jsonataExpressionForRules(nextRules))
+    setAdvancedJsonata(
+      jsonataExpression ?? jsonataExpressionForRules(nextRules)
+    )
   }
 
   function updateRules(nextRules: MappingRule[]) {
@@ -486,7 +583,10 @@ export function useMappingWorkbenchController() {
   }
 
   function shouldSyncAdvancedJsonata() {
-    return advancedJsonata.trim() === "" || advancedJsonata === jsonataExpressionForRules(rules)
+    return (
+      advancedJsonata.trim() === "" ||
+      advancedJsonata === jsonataExpressionForRules(rules)
+    )
   }
 
   function rulesWithAdvancedJsonata() {
@@ -587,14 +687,16 @@ export function useMappingWorkbenchController() {
 }
 
 function jsonataExpressionForRules(rules: MappingRule[]) {
-  const expressions = rules.flatMap((rule) => (rule.jsonata ? [rule.jsonata] : []))
+  const expressions = rules.flatMap((rule) =>
+    rule.jsonata ? [rule.jsonata] : []
+  )
   return expressions.length > 0 ? JSON.stringify(expressions, null, 2) : ""
 }
 
 function statusForAutoMapResult(
   requestedAi: boolean,
   usedAi: boolean,
-  providerErrors: string[],
+  providerErrors: string[]
 ): AutoMapStatus {
   if (!requestedAi) return "local"
   if (usedAi) return "ai-used"

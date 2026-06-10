@@ -19,20 +19,24 @@ type SchemaInferResponse = {
 }
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ?? "http://127.0.0.1:8000"
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "") ??
+  "http://127.0.0.1:8000"
 
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status?: number,
-    readonly details?: unknown,
+    readonly details?: unknown
   ) {
     super(message)
     this.name = "ApiError"
   }
 }
 
-export async function parsePayload(format: SourceFormat, content: string): Promise<ParseResponse> {
+export async function parsePayload(
+  format: SourceFormat,
+  content: string
+): Promise<ParseResponse> {
   return postJson<ParseResponse>("/api/parse", { format, content })
 }
 
@@ -85,7 +89,9 @@ export async function validatePayload(params: {
   })
 }
 
-export async function createTemplate(request: TemplateCreateRequest): Promise<MappingTemplate> {
+export async function createTemplate(
+  request: TemplateCreateRequest
+): Promise<MappingTemplate> {
   return postJson<MappingTemplate>("/api/templates", request)
 }
 
@@ -93,43 +99,48 @@ export async function listTemplates(): Promise<TemplateListResponse> {
   return getJson<TemplateListResponse>("/api/templates")
 }
 
-export async function getTemplate(templateId: string): Promise<MappingTemplate> {
-  return getJson<MappingTemplate>(`/api/templates/${encodeURIComponent(templateId)}`)
+export async function getTemplate(
+  templateId: string
+): Promise<MappingTemplate> {
+  return getJson<MappingTemplate>(
+    `/api/templates/${encodeURIComponent(templateId)}`
+  )
 }
 
 export async function createTemplateVersion(
   templateId: string,
-  request: TemplateVersionCreateRequest,
+  request: TemplateVersionCreateRequest
 ): Promise<MappingTemplate> {
-  return postJson<MappingTemplate>(`/api/templates/${encodeURIComponent(templateId)}/versions`, request)
+  return postJson<MappingTemplate>(
+    `/api/templates/${encodeURIComponent(templateId)}/versions`,
+    request
+  )
 }
 
-async function postJson<TResponse>(path: string, body: unknown): Promise<TResponse> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+async function postJson<TResponse>(
+  path: string,
+  body: unknown
+): Promise<TResponse> {
+  return requestJson<TResponse>(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   })
-
-  const contentType = response.headers.get("content-type") ?? ""
-  const payload = contentType.includes("application/json") ? await response.json() : await response.text()
-
-  if (!response.ok) {
-    const message =
-      typeof payload === "object" && payload && "detail" in payload
-        ? JSON.stringify(payload.detail)
-        : `Request failed with status ${response.status}`
-    throw new ApiError(message, response.status, payload)
-  }
-
-  return payload as TResponse
 }
 
 async function getJson<TResponse>(path: string): Promise<TResponse> {
-  const response = await fetch(`${API_BASE_URL}${path}`)
+  return requestJson<TResponse>(path)
+}
 
+async function requestJson<TResponse>(
+  path: string,
+  init?: RequestInit
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, init)
   const contentType = response.headers.get("content-type") ?? ""
-  const payload = contentType.includes("application/json") ? await response.json() : await response.text()
+  const payload = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text()
 
   if (!response.ok) {
     const message =

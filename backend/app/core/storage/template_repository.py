@@ -61,7 +61,7 @@ class TemplateRepository:
 
     def create_template(self, request: TemplateCreateRequest) -> MappingTemplate:
         template_id = request.template_id or _slugify(request.name)
-        version = _template_version_from_create(request, version_number=1)
+        version = _template_version_from_request(request, version_number=1)
         now = _timestamp()
 
         with closing(self._connect()) as connection:
@@ -107,7 +107,7 @@ class TemplateRepository:
                     (template_id,),
                 ).fetchone()[0]
             )
-            version = _template_version_from_version_create(request, version_number=next_version)
+            version = _template_version_from_request(request, version_number=next_version)
 
             with connection:
                 self._insert_version(connection, template_id, version)
@@ -191,8 +191,7 @@ class TemplateRepository:
         column_definition: str,
     ) -> None:
         columns = {
-            row["name"]
-            for row in connection.execute(f"pragma table_info({table_name})").fetchall()
+            row["name"] for row in connection.execute(f"pragma table_info({table_name})").fetchall()
         }
         if column_name in columns:
             return
@@ -308,27 +307,8 @@ class TemplateRepository:
         )
 
 
-def _template_version_from_create(
-    request: TemplateCreateRequest,
-    *,
-    version_number: int,
-) -> TemplateVersion:
-    return TemplateVersion(
-        version=version_number,
-        source_format=request.source_format,
-        target_format=request.target_format,
-        source_schema_snapshot=request.source_schema_snapshot,
-        target_schema_snapshot=request.target_schema_snapshot,
-        mapping_spec=request.mapping_spec,
-        validation_rules=request.validation_rules,
-        sample_source_content=request.sample_source_content,
-        sample_target_content=request.sample_target_content,
-        created_at=datetime.now(UTC),
-    )
-
-
-def _template_version_from_version_create(
-    request: TemplateVersionCreateRequest,
+def _template_version_from_request(
+    request: TemplateCreateRequest | TemplateVersionCreateRequest,
     *,
     version_number: int,
 ) -> TemplateVersion:

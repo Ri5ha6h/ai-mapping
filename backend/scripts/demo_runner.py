@@ -33,7 +33,10 @@ def main() -> int:
         elif args.scenario == "edi-856":
             demo_edi_856()
     except urllib.error.URLError as exc:
-        print(f"API request failed. Is the backend running at {API_BASE_URL}? {exc}", file=sys.stderr)
+        print(
+            f"API request failed. Is the backend running at {API_BASE_URL}? {exc}",
+            file=sys.stderr,
+        )
         return 1
     return 0
 
