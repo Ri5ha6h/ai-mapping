@@ -11,7 +11,13 @@ import type {
   TemplateVersionCreateRequest,
   TransformResponse,
 } from "@/types/mapping"
-import type { SchemaNode } from "@/types/schema"
+import type {
+  SchemaArtifact,
+  SchemaArtifactCreateRequest,
+  SchemaArtifactListResponse,
+  SchemaDirection,
+  SchemaNode,
+} from "@/types/schema"
 import type { ValidationErrorItem } from "@/types/validation"
 
 type SchemaInferResponse = {
@@ -42,6 +48,40 @@ export async function parsePayload(
 
 export async function inferSchema(data: unknown): Promise<SchemaInferResponse> {
   return postJson<SchemaInferResponse>("/api/schema/infer", { data })
+}
+
+export async function createSchemaArtifact(
+  request: SchemaArtifactCreateRequest
+): Promise<SchemaArtifact> {
+  return postJson<SchemaArtifact>("/api/schemas", request)
+}
+
+export async function listSchemaArtifacts(params?: {
+  direction?: SchemaDirection
+  includeDeleted?: boolean
+}): Promise<SchemaArtifactListResponse> {
+  const search = new URLSearchParams()
+  if (params?.direction) search.set("direction", params.direction)
+  if (params?.includeDeleted) search.set("include_deleted", "true")
+  const query = search.toString()
+  return getJson<SchemaArtifactListResponse>(
+    query ? `/api/schemas?${query}` : "/api/schemas"
+  )
+}
+
+export async function getSchemaArtifact(
+  schemaId: string
+): Promise<SchemaArtifact> {
+  return getJson<SchemaArtifact>(`/api/schemas/${encodeURIComponent(schemaId)}`)
+}
+
+export async function deleteSchemaArtifact(
+  schemaId: string
+): Promise<SchemaArtifact> {
+  return requestJson<SchemaArtifact>(
+    `/api/schemas/${encodeURIComponent(schemaId)}`,
+    { method: "DELETE" }
+  )
 }
 
 export async function suggestMappings(params: {

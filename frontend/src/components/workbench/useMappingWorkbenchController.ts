@@ -17,7 +17,6 @@ import {
   createTemplateVersionEffect,
   getMappingCapabilitiesEffect,
   getTemplateEffect,
-  inferSchemaEffect,
   listTemplatesEffect,
   parseEffect,
   suggestMappingsEffect,
@@ -32,7 +31,7 @@ import type {
   SourceFormat,
   TransformResponse,
 } from "@/types/mapping"
-import type { SchemaNode } from "@/types/schema"
+import type { SchemaArtifact, SchemaNode } from "@/types/schema"
 import type { ValidationErrorItem } from "@/types/validation"
 
 type AutoMapMode = "local" | "ai"
@@ -45,6 +44,11 @@ type AutoMapStatus =
 type NewMappingPromptState = {
   open: boolean
   pending: boolean
+}
+type RunMode = "saved-sample" | "override"
+type MappingWorkbenchOptions = {
+  sourceSchemas: SchemaArtifact[]
+  targetSchemas: SchemaArtifact[]
 }
 
 export const demoScenarios: DemoScenario[] = [
@@ -101,11 +105,15 @@ export const demoScenarios: DemoScenario[] = [
   },
 ]
 
-export function useMappingWorkbenchController() {
+export function useMappingWorkbenchController(options: MappingWorkbenchOptions) {
   const [sourceFormat, setSourceFormat] = useState<SourceFormat>("json")
   const [targetFormat, setTargetFormat] = useState<OutputFormat>("json")
   const [sourceInput, setSourceInput] = useState(SAMPLE_SOURCE_JSON)
   const [targetInput, setTargetInput] = useState(SAMPLE_TARGET_JSON)
+  const [selectedSourceSchemaId, setSelectedSourceSchemaId] = useState("")
+  const [selectedTargetSchemaId, setSelectedTargetSchemaId] = useState("")
+  const [runMode, setRunMode] = useState<RunMode>("saved-sample")
+  const [overrideSourceInput, setOverrideSourceInput] = useState("")
   const [sourceSchema, setSourceSchema] = useState<SchemaNode | null>(null)
   const [targetSchema, setTargetSchema] = useState<SchemaNode | null>(null)
   const [suggestions, setSuggestions] = useState<MappingSuggestion[]>([])
@@ -139,11 +147,25 @@ export function useMappingWorkbenchController() {
       pending: false,
     })
 
-  const readyForMapping =
-    sourceInput.trim().length > 0 && targetInput.trim().length > 0
+  const selectedSourceSchema =
+    options.sourceSchemas.find(
+      (schema) => schema.schema_id === selectedSourceSchemaId
+    ) ?? null
+  const selectedTargetSchema =
+    options.targetSchemas.find(
+      (schema) => schema.schema_id === selectedTargetSchemaId
+    ) ?? null
+  const activeSourceSchema = selectedSourceSchema?.inferred_schema ?? sourceSchema
+  const activeTargetSchema = selectedTargetSchema?.inferred_schema ?? targetSchema
+  const activeSourceFormat = selectedSourceSchema?.format ?? sourceFormat
+  const activeTargetFormat = selectedTargetSchema
+    ? outputFormatForSchema(selectedTargetSchema)
+    : targetFormat
+
+  const readyForMapping = Boolean(activeSourceSchema && activeTargetSchema)
   const readyForTransform = readyForMapping && rules.length > 0
   const readyForTemplateSave = Boolean(
-    sourceSchema && targetSchema && rules.length > 0
+    activeSourceSchema && activeTargetSchema && rules.length > 0
   )
 
   const statusText = useMemo(() => {
@@ -152,8 +174,15 @@ export function useMappingWorkbenchController() {
       return `${validationErrors.length} validation issue(s)`
     if (transformResult) return "Transformation complete"
     if (rules.length > 0) return `${rules.length} editable rule(s)`
-    return "Waiting for samples"
-  }, [busyAction, rules.length, transformResult, validationErrors.length])
+    if (readyForMapping) return "Schemas selected"
+    return "Waiting for schemas"
+  }, [
+    busyAction,
+    readyForMapping,
+    rules.length,
+    transformResult,
+    validationErrors.length,
+  ])
 
   const autoMapStatusText = useMemo(() => {
     if (autoMapStatus === "local") return "Local suggestions"
@@ -222,6 +251,20 @@ export function useMappingWorkbenchController() {
   )
 
   useEffect(() => {
+    if (selectedSourceSchemaId) return
+    if (sourceSchema) return
+    const firstSource = options.sourceSchemas.at(0)
+    if (firstSource) selectSourceSchema(firstSource.schema_id)
+  }, [options.sourceSchemas, selectedSourceSchemaId, sourceSchema])
+
+  useEffect(() => {
+    if (selectedTargetSchemaId) return
+    if (targetSchema) return
+    const firstTarget = options.targetSchemas.at(0)
+    if (firstTarget) selectTargetSchema(firstTarget.schema_id)
+  }, [options.targetSchemas, selectedTargetSchemaId, targetSchema])
+
+  useEffect(() => {
     let cancelled = false
 
     void Promise.allSettled([
@@ -253,10 +296,10 @@ export function useMappingWorkbenchController() {
   }, [])
 
   async function parseAndInfer() {
-    setBusyAction("Parsing samples")
+    setBusyAction("Loading schemas")
     setIssue(null)
     try {
-      await parseCurrentInputs()
+      await currentMappingInputs()
       setTransformResult(null)
       setValidationErrors([])
       setAutoMapStatus("idle")
@@ -271,7 +314,7 @@ export function useMappingWorkbenchController() {
     setBusyAction("Generating mappings")
     setIssue(null)
     try {
-      const parsed = await parseCurrentInputs()
+      const parsed = await currentMappingInputs()
       const useAi = autoMapMode === "ai"
       const response = await Effect.runPromise(
         suggestMappingsEffect(parsed.sourceSchema, parsed.targetSchema, useAi)
@@ -298,16 +341,16 @@ export function useMappingWorkbenchController() {
     setBusyAction("Running transformation")
     setIssue(null)
     try {
-      const parsed = await parseCurrentInputs()
+      const parsed = await currentMappingInputs()
       const validationSchema =
-        targetFormat === "json" ? parsed.targetSchema : null
+        activeTargetFormat === "json" ? parsed.targetSchema : null
       const rulesForTransform = rulesWithAdvancedJsonata()
       syncAdvancedJsonataFromRules(rulesForTransform)
       const response = await Effect.runPromise(
         transformEffect(
           parsed.sourceData,
           rulesForTransform,
-          targetFormat,
+          activeTargetFormat,
           validationSchema
         )
       )
@@ -350,7 +393,7 @@ export function useMappingWorkbenchController() {
   }
 
   async function saveTemplate() {
-    if (!sourceSchema || !targetSchema || rules.length === 0) return
+    if (!activeSourceSchema || !activeTargetSchema || rules.length === 0) return
     setBusyAction("Saving template")
     setIssue(null)
     try {
@@ -367,8 +410,8 @@ export function useMappingWorkbenchController() {
 
   async function saveTemplateVersion() {
     if (
-      !sourceSchema ||
-      !targetSchema ||
+      !activeSourceSchema ||
+      !activeTargetSchema ||
       rules.length === 0 ||
       !selectedTemplateId
     )
@@ -404,6 +447,8 @@ export function useMappingWorkbenchController() {
       setTemplateDescription(template.description)
       setSourceFormat(version.source_format)
       setTargetFormat(version.target_format)
+      setSelectedSourceSchemaId(version.source_schema_id ?? "")
+      setSelectedTargetSchemaId(version.target_schema_id ?? "")
       if (version.sample_source_content)
         setSourceInput(version.sample_source_content)
       if (version.sample_target_content)
@@ -441,6 +486,8 @@ export function useMappingWorkbenchController() {
 
   function loadScenario(scenario: DemoScenario) {
     setActiveScenarioId(scenario.id)
+    setSelectedSourceSchemaId("")
+    setSelectedTargetSchemaId("")
     setSourceFormat(scenario.sourceFormat)
     setTargetFormat(scenario.targetFormat)
     setSourceInput(scenario.source)
@@ -479,8 +526,8 @@ export function useMappingWorkbenchController() {
 
   async function saveAndStartNewMapping() {
     if (
-      !sourceSchema ||
-      !targetSchema ||
+      !activeSourceSchema ||
+      !activeTargetSchema ||
       rules.length === 0 ||
       templateName.trim().length === 0
     ) {
@@ -510,23 +557,41 @@ export function useMappingWorkbenchController() {
     }
   }
 
-  async function parseCurrentInputs() {
-    const [parsedSource, parsedTarget] = await Promise.all([
-      Effect.runPromise(parseEffect(sourceFormat, sourceInput)),
-      Effect.runPromise(
-        parseEffect(targetFormat === "xml" ? "xml" : "json", targetInput)
-      ),
-    ])
-    const [inferredSource, inferredTarget] = await Promise.all([
-      Effect.runPromise(inferSchemaEffect(parsedSource.canonical)),
-      Effect.runPromise(inferSchemaEffect(parsedTarget.canonical)),
-    ])
-    setSourceSchema(inferredSource.schema)
-    setTargetSchema(inferredTarget.schema)
+  async function currentMappingInputs() {
+    const nextSourceSchema = selectedSourceSchema?.inferred_schema ?? sourceSchema
+    const nextTargetSchema = selectedTargetSchema?.inferred_schema ?? targetSchema
+    if (!nextSourceSchema || !nextTargetSchema) {
+      throw new Error("Select a source schema and target schema before mapping.")
+    }
+
+    let sourceData: unknown
+    if (runMode === "override" && selectedSourceSchema) {
+      const parsedOverride = await Effect.runPromise(
+        parseEffect(selectedSourceSchema.format, overrideSourceInput)
+      )
+      sourceData = parsedOverride.canonical
+      setSourceInput(overrideSourceInput)
+    } else if (selectedSourceSchema) {
+      sourceData = selectedSourceSchema.canonical_sample
+      setSourceInput(selectedSourceSchema.original_content)
+    } else {
+      const parsedSource = await Effect.runPromise(
+        parseEffect(sourceFormat, sourceInput)
+      )
+      sourceData = parsedSource.canonical
+    }
+
+    if (selectedTargetSchema) {
+      setTargetInput(selectedTargetSchema.original_content)
+    }
+    setSourceFormat(activeSourceFormat)
+    setTargetFormat(activeTargetFormat)
+    setSourceSchema(nextSourceSchema)
+    setTargetSchema(nextTargetSchema)
     return {
-      sourceData: parsedSource.canonical,
-      sourceSchema: inferredSource.schema,
-      targetSchema: inferredTarget.schema,
+      sourceData,
+      sourceSchema: nextSourceSchema,
+      targetSchema: nextTargetSchema,
     }
   }
 
@@ -535,18 +600,20 @@ export function useMappingWorkbenchController() {
     return {
       name: templateName.trim(),
       description: templateDescription.trim(),
-      source_format: sourceFormat,
-      target_format: targetFormat,
-      source_schema_snapshot: sourceSchema,
-      target_schema_snapshot: targetSchema,
+      source_format: activeSourceFormat,
+      target_format: activeTargetFormat,
+      source_schema_id: selectedSourceSchema?.schema_id ?? null,
+      target_schema_id: selectedTargetSchema?.schema_id ?? null,
+      source_schema_snapshot: activeSourceSchema,
+      target_schema_snapshot: activeTargetSchema,
       mapping_spec: {
         engine: "deterministic_rules",
         rules: mappingRules,
         full_jsonata_expression: advancedJsonata.trim() || null,
       },
       validation_rules: validationErrors,
-      sample_source_content: sourceInput,
-      sample_target_content: targetInput,
+      sample_source_content: selectedSourceSchema?.original_content ?? sourceInput,
+      sample_target_content: selectedTargetSchema?.original_content ?? targetInput,
     }
   }
 
@@ -611,6 +678,10 @@ export function useMappingWorkbenchController() {
   function resetToBlankMapping() {
     setSourceFormat("json")
     setTargetFormat("json")
+    setSelectedSourceSchemaId("")
+    setSelectedTargetSchemaId("")
+    setRunMode("saved-sample")
+    setOverrideSourceInput("")
     setSourceInput("")
     setTargetInput("")
     setSourceSchema(null)
@@ -631,6 +702,37 @@ export function useMappingWorkbenchController() {
     setTemplateDescription("")
   }
 
+  function selectSourceSchema(schemaId: string) {
+    const schema =
+      options.sourceSchemas.find((item) => item.schema_id === schemaId) ?? null
+    setSelectedSourceSchemaId(schemaId)
+    if (schema) {
+      setSourceFormat(schema.format)
+      setSourceInput(schema.original_content)
+      setSourceSchema(schema.inferred_schema)
+      setOverrideSourceInput(schema.original_content)
+    } else {
+      setSourceSchema(null)
+    }
+    clearMappingSuggestions()
+    clearRunResults()
+  }
+
+  function selectTargetSchema(schemaId: string) {
+    const schema =
+      options.targetSchemas.find((item) => item.schema_id === schemaId) ?? null
+    setSelectedTargetSchemaId(schemaId)
+    if (schema) {
+      setTargetFormat(outputFormatForSchema(schema))
+      setTargetInput(schema.original_content)
+      setTargetSchema(schema.inferred_schema)
+    } else {
+      setTargetSchema(null)
+    }
+    clearMappingSuggestions()
+    clearRunResults()
+  }
+
   return {
     sourceFormat,
     targetFormat,
@@ -638,6 +740,12 @@ export function useMappingWorkbenchController() {
     targetInput,
     sourceSchema,
     targetSchema,
+    selectedSourceSchemaId,
+    selectedTargetSchemaId,
+    selectedSourceSchema,
+    selectedTargetSchema,
+    runMode,
+    overrideSourceInput,
     suggestions,
     rules,
     advancedJsonata,
@@ -662,6 +770,8 @@ export function useMappingWorkbenchController() {
     statusText,
     autoMapStatusText,
     setAutoMapMode,
+    setRunMode,
+    setOverrideSourceInput,
     setTemplateName,
     setTemplateDescription,
     setRules: updateRules,
@@ -670,6 +780,8 @@ export function useMappingWorkbenchController() {
     handleSourceFormatChange,
     handleTargetInputChange,
     handleTargetFormatChange,
+    selectSourceSchema,
+    selectTargetSchema,
     parseAndInfer,
     autoMap,
     runTransform,
@@ -720,4 +832,8 @@ function targetPathForRuntime(path: string) {
     .replace("$.ShipmentEvent.", "$.")
     .replace("$.ShipmentEvent", "$")
     .replace("$.tracking.number", "$.tracking.number")
+}
+
+function outputFormatForSchema(schema: SchemaArtifact): OutputFormat {
+  return schema.format === "xml" ? "xml" : "json"
 }
