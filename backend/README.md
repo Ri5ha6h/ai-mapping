@@ -5,8 +5,8 @@ Phase 2 implements mapping suggestions from source and target schemas.
 Phase 3 implements deterministic synchronous transformation and validation.
 Phase 4 implements the frontend workbench.
 Phase 5 implements local template persistence and versioning.
-The current template repository uses SQLite locally and seeds example templates
-for every deterministic rule type.
+The current storage layer uses SQLite locally for reusable schema artifacts and
+mapping templates, and seeds example templates for every deterministic rule type.
 
 ## Runtime
 
@@ -39,7 +39,7 @@ cd backend
 uvicorn app.main:app --reload
 ```
 
-For isolated template storage during demos:
+For isolated schema/template storage during demos:
 
 ```bash
 TEMPLATE_DB_PATH=/tmp/automapping-templates.sqlite3 uvicorn app.main:app --reload
@@ -112,6 +112,51 @@ Schema inference:
 curl -s http://127.0.0.1:8000/api/schema/infer \
   -H 'Content-Type: application/json' \
   -d '{"data":{"shipment":{"trackingNumber":"TRK123","pieces":2}}}'
+```
+
+Create a reusable source schema artifact:
+
+```bash
+curl -s http://127.0.0.1:8000/api/schemas \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
+{
+  "name": "Shipment Source",
+  "direction": "source",
+  "format": "json",
+  "content": "{\"shipment\":{\"trackingNumber\":\"TRK123\",\"carrier\":\"MAERSK\"}}",
+  "input_method": "paste"
+}
+JSON
+```
+
+Create a reusable target schema artifact:
+
+```bash
+curl -s http://127.0.0.1:8000/api/schemas \
+  -H 'Content-Type: application/json' \
+  --data-binary @- <<'JSON'
+{
+  "name": "Shipment Target",
+  "direction": "target",
+  "format": "json",
+  "content": "{\"tracking\":{\"number\":\"\",\"carrierCode\":\"\"}}",
+  "input_method": "paste"
+}
+JSON
+```
+
+List active schema artifacts:
+
+```bash
+curl -s 'http://127.0.0.1:8000/api/schemas?direction=source'
+curl -s 'http://127.0.0.1:8000/api/schemas?direction=target'
+```
+
+Soft-delete a schema artifact:
+
+```bash
+curl -s -X DELETE http://127.0.0.1:8000/api/schemas/shipment-source
 ```
 
 Mapping suggestions:
@@ -411,16 +456,16 @@ Supported deterministic Phase 3 rule types are `field`, `constant`, `concat`,
 `date_format`, `condition`, and basic clean-array `loop`. JSONata is stored and
 validated as editable metadata; it is not used as the execution runtime.
 
-Template storage defaults to `data/templates.sqlite3`. Override it with
-`TEMPLATE_DB_PATH` when you want an isolated local store:
+Schema and template storage defaults to `data/templates.sqlite3`. Override it
+with `TEMPLATE_DB_PATH` when you want an isolated local store:
 
 ```bash
 export TEMPLATE_DB_PATH=/tmp/automapping-templates.sqlite3
 uvicorn app.main:app --reload
 ```
 
-The SQLite repository initializes tables automatically and seeds these example
-templates on first template access:
+The SQLite repositories initialize tables automatically. Template access seeds
+these example templates:
 
 - `example-field`
 - `example-constant`

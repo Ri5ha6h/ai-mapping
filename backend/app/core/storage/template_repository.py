@@ -151,6 +151,8 @@ class TemplateRepository:
                     version integer not null,
                     source_format text not null,
                     target_format text not null,
+                    source_schema_id text,
+                    target_schema_id text,
                     source_schema_snapshot_json text,
                     target_schema_snapshot_json text,
                     mapping_spec_json text not null,
@@ -168,6 +170,18 @@ class TemplateRepository:
                 "templates",
                 "is_seeded",
                 "integer not null default 0",
+            )
+            self._ensure_column(
+                connection,
+                "template_versions",
+                "source_schema_id",
+                "text",
+            )
+            self._ensure_column(
+                connection,
+                "template_versions",
+                "target_schema_id",
+                "text",
             )
             self._ensure_column(
                 connection,
@@ -240,6 +254,8 @@ class TemplateRepository:
                     version,
                     source_format,
                     target_format,
+                    source_schema_id,
+                    target_schema_id,
                     source_schema_snapshot_json,
                     target_schema_snapshot_json,
                     mapping_spec_json,
@@ -276,6 +292,8 @@ class TemplateRepository:
                 version,
                 source_format,
                 target_format,
+                source_schema_id,
+                target_schema_id,
                 source_schema_snapshot_json,
                 target_schema_snapshot_json,
                 mapping_spec_json,
@@ -284,13 +302,15 @@ class TemplateRepository:
                 sample_target_content,
                 created_at
             )
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 template_id,
                 version.version,
                 version.source_format.value,
                 version.target_format.value,
+                version.source_schema_id,
+                version.target_schema_id,
                 _model_json_or_none(version.source_schema_snapshot),
                 _model_json_or_none(version.target_schema_snapshot),
                 version.mapping_spec.model_dump_json(),
@@ -316,6 +336,8 @@ def _template_version_from_request(
         version=version_number,
         source_format=request.source_format,
         target_format=request.target_format,
+        source_schema_id=request.source_schema_id,
+        target_schema_id=request.target_schema_id,
         source_schema_snapshot=request.source_schema_snapshot,
         target_schema_snapshot=request.target_schema_snapshot,
         mapping_spec=request.mapping_spec,
@@ -336,6 +358,8 @@ def _version_from_row(row: sqlite3.Row) -> TemplateVersion:
         version=row["version"],
         source_format=SourceFormat(row["source_format"]),
         target_format=OutputFormat(row["target_format"]),
+        source_schema_id=row["source_schema_id"],
+        target_schema_id=row["target_schema_id"],
         source_schema_snapshot=_schema_or_none(row["source_schema_snapshot_json"]),
         target_schema_snapshot=_schema_or_none(row["target_schema_snapshot_json"]),
         mapping_spec=MappingSpec.model_validate_json(row["mapping_spec_json"]),

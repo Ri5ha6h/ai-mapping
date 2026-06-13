@@ -156,6 +156,132 @@ def test_save_template_version_one_and_create_version_two(
     assert version_count == 2
 
 
+def test_template_versions_store_schema_links_and_snapshots(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "templates.sqlite3"
+    monkeypatch.setenv("TEMPLATE_DB_PATH", str(db_path))
+
+    source_schema_response = client.post(
+        "/api/schemas",
+        json={
+            "schema_id": "shipment-source-schema",
+            "name": "Shipment Source",
+            "direction": "source",
+            "format": "json",
+            "content": '{"shipment":{"trackingNumber":"TRK123"}}',
+        },
+    )
+    target_schema_response = client.post(
+        "/api/schemas",
+        json={
+            "schema_id": "shipment-target-schema",
+            "name": "Shipment Target",
+            "direction": "target",
+            "format": "json",
+            "content": '{"tracking":{"number":""}}',
+        },
+    )
+    assert source_schema_response.status_code == 200
+    assert target_schema_response.status_code == 200
+
+    create_response = client.post(
+        "/api/templates",
+        json={
+            "name": "Linked Shipment Status",
+            "source_format": "json",
+            "target_format": "json",
+            "source_schema_id": "shipment-source-schema",
+            "target_schema_id": "shipment-target-schema",
+            "source_schema_snapshot": SOURCE_SCHEMA,
+            "target_schema_snapshot": TARGET_SCHEMA,
+            "mapping_spec": {
+                "rules": [
+                    {
+                        "id": "rule_tracking",
+                        "type": "field",
+                        "source_path": "$.shipment.trackingNumber",
+                        "target_path": "$.tracking.number",
+                    }
+                ],
+            },
+        },
+    )
+
+    assert create_response.status_code == 200
+    first_version = create_response.json()["versions"][0]
+    assert first_version["source_schema_id"] == "shipment-source-schema"
+    assert first_version["target_schema_id"] == "shipment-target-schema"
+    assert first_version["source_schema_snapshot"]["path"] == "$"
+    assert first_version["target_schema_snapshot"]["path"] == "$"
+
+    assert client.delete("/api/schemas/shipment-source-schema").status_code == 200
+    assert client.delete("/api/schemas/shipment-target-schema").status_code == 200
+
+    version_response = client.post(
+        "/api/templates/linked-shipment-status/versions",
+        json={
+            "source_format": "json",
+            "target_format": "json",
+            "source_schema_id": "shipment-source-schema",
+            "target_schema_id": "shipment-target-schema",
+            "source_schema_snapshot": SOURCE_SCHEMA,
+            "target_schema_snapshot": TARGET_SCHEMA,
+            "mapping_spec": {
+                "rules": [
+                    {
+                        "id": "rule_tracking_v2",
+                        "type": "field",
+                        "source_path": "$.shipment.trackingNumber",
+                        "target_path": "$.tracking.number",
+                    }
+                ],
+            },
+        },
+    )
+
+    assert version_response.status_code == 200
+    versions = version_response.json()["versions"]
+    assert [version["source_schema_id"] for version in versions] == [
+        "shipment-source-schema",
+        "shipment-source-schema",
+    ]
+    assert [version["target_schema_id"] for version in versions] == [
+        "shipment-target-schema",
+        "shipment-target-schema",
+    ]
+
+    read_response = client.get("/api/templates/linked-shipment-status")
+    assert read_response.status_code == 200
+    read_versions = read_response.json()["versions"]
+    assert read_versions[1]["source_schema_id"] == "shipment-source-schema"
+    assert read_versions[1]["target_schema_id"] == "shipment-target-schema"
+    assert read_versions[1]["source_schema_snapshot"]["fields"]["shipment"]["path"] == (
+        "$.shipment"
+    )
+
+    with sqlite3.connect(db_path) as connection:
+        columns = {
+            row[1] for row in connection.execute("pragma table_info(template_versions)")
+        }
+        linked_rows = connection.execute(
+            """
+            select source_schema_id, target_schema_id
+            from template_versions
+            where template_id = 'linked-shipment-status'
+            order by version
+            """
+        ).fetchall()
+
+    assert {"source_schema_id", "target_schema_id"}.issubset(columns)
+    assert linked_rows == [
+        ("shipment-source-schema", "shipment-target-schema"),
+        ("shipment-source-schema", "shipment-target-schema"),
+    ]
+
+
 def test_template_conflict_and_missing_template_errors(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
@@ -194,3 +320,29 @@ def test_template_conflict_and_missing_template_errors(
         },
     )
     assert version_response.status_code == 404
+
+
+def test_snapshot_only_template_versions_remain_compatible(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TEMPLATE_DB_PATH", str(tmp_path / "templates.sqlite3"))
+
+    response = client.post(
+        "/api/templates",
+        json={
+            "name": "Snapshot Only",
+            "source_format": "json",
+            "target_format": "json",
+            "source_schema_snapshot": SOURCE_SCHEMA,
+            "target_schema_snapshot": TARGET_SCHEMA,
+            "mapping_spec": {"rules": []},
+        },
+    )
+
+    assert response.status_code == 200
+    version = response.json()["versions"][0]
+    assert version["source_schema_id"] is None
+    assert version["target_schema_id"] is None
+    assert version["source_schema_snapshot"]["path"] == "$"
