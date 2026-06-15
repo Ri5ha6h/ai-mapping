@@ -8,11 +8,11 @@ type Props = {
 
 export function ValidationPanel({ errors }: Props) {
   return (
-    <section className="tool-panel">
+    <section className="tool-panel validation-panel">
       <div className="panel-heading">
         <div>
           <p className="panel-kicker">Validation</p>
-          <h2>Runtime checks</h2>
+          <h2>Target checks</h2>
         </div>
         {errors.length === 0 ? (
           <CircleCheck size={18} className="text-emerald-600" />
@@ -36,4 +36,3 @@ export function ValidationPanel({ errors }: Props) {
     </section>
   )
 }
-

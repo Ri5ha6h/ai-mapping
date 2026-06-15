@@ -11,11 +11,11 @@ type Props = {
 
 export function MappingSuggestionPanel({ suggestions, usedAi, statusText, providerErrors }: Props) {
   return (
-    <section className="tool-panel">
+    <section className="tool-panel suggestion-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Suggestions</p>
-          <h2>Candidate mappings</h2>
+          <p className="panel-kicker">Auto map</p>
+          <h2>Suggested field links</h2>
         </div>
         <BrainCircuit size={18} className="text-muted-foreground" />
       </div>

@@ -1,4 +1,4 @@
-import { Database, PlaySquare } from "lucide-react"
+import { Bot, Database, FilePlus2, Loader2, Play, PlaySquare } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -41,6 +41,73 @@ export function MappingSchemaPanel({
           schemas={targetSchemas}
           onChange={workbench.selectTargetSchema}
         />
+      </div>
+
+      <div className="mapping-stage-toolbar" aria-label="Mapping stage toolbar">
+        <div className="mapping-stage-status" aria-live="polite">
+          <span>Stage</span>
+          <strong>{workbench.statusText}</strong>
+        </div>
+
+        <div className="mapping-stage-actions">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void workbench.startNewMapping()}
+            disabled={Boolean(workbench.busyAction)}
+          >
+            <FilePlus2 />
+            New Mapping
+          </Button>
+          <div className="auto-map-mode" aria-label="Auto map mode">
+            <button
+              type="button"
+              className={workbench.autoMapMode === "local" ? "active" : ""}
+              onClick={() => workbench.setAutoMapMode("local")}
+              disabled={Boolean(workbench.busyAction)}
+            >
+              Local
+            </button>
+            <button
+              type="button"
+              className={workbench.autoMapMode === "ai" ? "active" : ""}
+              onClick={() => workbench.setAutoMapMode("ai")}
+              disabled={Boolean(workbench.busyAction)}
+              title={
+                workbench.aiMappingAvailable
+                  ? "Use OpenRouter-assisted suggestions"
+                  : "Request AI-assisted suggestions; backend will fall back to local if unavailable"
+              }
+            >
+              AI-assisted
+            </button>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void workbench.autoMap()}
+            disabled={!workbench.readyForMapping || Boolean(workbench.busyAction)}
+          >
+            {workbench.busyAction === "Generating mappings" ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Bot />
+            )}
+            Auto map
+          </Button>
+          <Button
+            type="button"
+            onClick={() => void workbench.runTransform()}
+            disabled={!workbench.readyForTransform || Boolean(workbench.busyAction)}
+          >
+            {workbench.busyAction === "Running transformation" ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <Play />
+            )}
+            Run
+          </Button>
+        </div>
       </div>
 
       {!workbench.readyForMapping ? (

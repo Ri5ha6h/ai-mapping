@@ -1,4 +1,4 @@
-import { memo } from "react"
+import { memo, useEffect, useState } from "react"
 import { Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -17,8 +17,8 @@ export const VisualMappingEditor = memo(function VisualMappingEditor({ rules, on
     <section className="tool-panel editor-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Editor</p>
-          <h2>Visual rules</h2>
+          <p className="panel-kicker">Mapping rules</p>
+          <h2>Visual editor</h2>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => onRulesChange([...rules, newRule()])}>
           Add rule
@@ -39,6 +39,7 @@ export const VisualMappingEditor = memo(function VisualMappingEditor({ rules, on
           rules.map((rule, index) => (
             <div className="rule-row" key={rule.id}>
               <select
+                aria-label={`Rule ${index + 1} type`}
                 value={rule.type}
                 onChange={(event) => replaceRule(index, normalizeRuleForType(rule, event.target.value as RuleType))}
               >
@@ -49,16 +50,19 @@ export const VisualMappingEditor = memo(function VisualMappingEditor({ rules, on
                 ))}
               </select>
               <Input
+                aria-label={`Rule ${index + 1} source`}
                 value={sourceDisplay(rule)}
                 onChange={(event) => updateSource(index, event.target.value)}
                 disabled={rule.type === "constant"}
               />
               <Input
+                aria-label={`Rule ${index + 1} target`}
                 value={rule.target_path}
                 onChange={(event) => updateTarget(index, event.target.value)}
               />
               <RuleDetails rule={rule} onChange={(patch) => updateRule(index, patch)} />
               <Input
+                aria-label={`Rule ${index + 1} JSONata`}
                 value={rule.jsonata ?? ""}
                 onChange={(event) => updateRule(index, { jsonata: event.target.value })}
               />
@@ -202,17 +206,7 @@ function RuleDetails({ rule, onChange }: RuleDetailsProps) {
   }
 
   if (rule.type === "loop") {
-    return (
-      <Input
-        aria-label="Loop child rules JSON"
-        defaultValue={JSON.stringify(defaultLoop(rule).rules)}
-        onBlur={(event) => {
-          const childRules = parseChildRules(event.target.value)
-          if (childRules) onChange({ loop: { ...defaultLoop(rule), rules: childRules } })
-        }}
-        placeholder="child rules JSON"
-      />
-    )
+    return <LoopRulesInput rule={rule} onChange={onChange} />
   }
 
   return (
@@ -227,9 +221,31 @@ function RuleDetails({ rule, onChange }: RuleDetailsProps) {
   )
 }
 
-function sourceDisplay(rule: MappingRule) {
-  if (rule.type === "concat" && rule.source_paths && rule.source_paths.length > 0) {
-    return rule.source_paths.join(", ")
+function LoopRulesInput({ rule, onChange }: RuleDetailsProps) {
+  const loop = defaultLoop(rule)
+  const [draft, setDraft] = useState(() => JSON.stringify(loop.rules))
+
+  useEffect(() => {
+    setDraft(JSON.stringify(defaultLoop(rule).rules))
+  }, [rule.id, rule.loop?.rules])
+
+  return (
+    <Input
+      aria-label="Loop child rules JSON"
+      value={draft}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        const childRules = parseChildRules(draft)
+        if (childRules) onChange({ loop: { ...defaultLoop(rule), rules: childRules } })
+      }}
+      placeholder="child rules JSON"
+    />
+  )
+}
+
+export function sourceDisplay(rule: MappingRule) {
+  if (rule.type === "concat") {
+    return rule.source_path ?? rule.source_paths?.join(", ") ?? ""
   }
   if (rule.type === "condition" && rule.condition) {
     return rule.condition.source_path
@@ -240,7 +256,7 @@ function sourceDisplay(rule: MappingRule) {
   return rule.source_path ?? ""
 }
 
-function normalizeRuleForType(rule: MappingRule, type: RuleType): MappingRule {
+export function normalizeRuleForType(rule: MappingRule, type: RuleType): MappingRule {
   const base = {
     ...rule,
     type,
@@ -290,7 +306,7 @@ function defaultLoop(rule: MappingRule) {
   }
 }
 
-function parsePathList(value: string | null | undefined) {
+export function parsePathList(value: string | null | undefined) {
   return (value ?? "").split(",").flatMap((path) => {
     const trimmedPath = path.trim()
     return trimmedPath ? [trimmedPath] : []

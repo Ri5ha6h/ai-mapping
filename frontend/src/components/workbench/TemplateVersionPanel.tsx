@@ -44,11 +44,11 @@ export function TemplateVersionPanel({
   const busy = Boolean(busyAction)
 
   return (
-    <section className="tool-panel">
+    <section className="tool-panel template-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Templates</p>
-          <h2>Versions</h2>
+          <p className="panel-kicker">Save</p>
+          <h2>Mapping templates</h2>
         </div>
         <History size={18} className="text-muted-foreground" />
       </div>

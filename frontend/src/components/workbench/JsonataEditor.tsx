@@ -39,11 +39,11 @@ export const JsonataEditor = memo(function JsonataEditor({ value, onChange }: Pr
   }, [])
 
   return (
-    <section className="tool-panel">
+    <section className="tool-panel jsonata-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Advanced</p>
-          <h2>JSONata expression</h2>
+          <p className="panel-kicker">Advanced rules</p>
+          <h2>JSONata override</h2>
         </div>
       </div>
       <div className="monaco-frame">

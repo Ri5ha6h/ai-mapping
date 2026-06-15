@@ -8,11 +8,11 @@ type Props = {
 
 export function OutputPreview({ result }: Props) {
   return (
-    <section className="tool-panel">
+    <section className="tool-panel output-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Output</p>
-          <h2>Preview</h2>
+          <p className="panel-kicker">Transform</p>
+          <h2>Output preview</h2>
         </div>
         <FileJson2 size={18} className="text-muted-foreground" />
       </div>
@@ -26,4 +26,3 @@ export function OutputPreview({ result }: Props) {
 function formatOutput(value: unknown) {
   return typeof value === "string" ? value : JSON.stringify(value, null, 2)
 }
-

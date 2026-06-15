@@ -12,10 +12,10 @@ export function SchemaViewer({ title, schema }: Props) {
   const fields = flattenSchema(schema)
 
   return (
-    <section className="tool-panel">
+    <section className="tool-panel schema-viewer-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Schema</p>
+          <p className="panel-kicker">Selected schema</p>
           <h2>{title}</h2>
         </div>
         <Database size={18} className="text-muted-foreground" />
@@ -35,4 +35,3 @@ export function SchemaViewer({ title, schema }: Props) {
     </section>
   )
 }
-

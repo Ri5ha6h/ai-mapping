@@ -1,11 +1,4 @@
-import {
-  Database,
-  FileText,
-  Loader2,
-  RefreshCw,
-  Trash2,
-  Upload,
-} from "lucide-react"
+import { Clipboard, Database, FileText, Loader2, RefreshCw, Trash2, Upload } from "lucide-react"
 
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
 import { Button } from "@/components/ui/button"
@@ -46,22 +39,49 @@ export function SchemaLibraryPanel({ library }: Props) {
         </div>
       ) : null}
 
+      <section className="tool-panel schema-library-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-kicker">Library</p>
+            <h2>Saved schemas</h2>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            title="Refresh schemas"
+            onClick={() => void library.refreshSchemas()}
+            disabled={Boolean(library.busyAction)}
+          >
+            {library.busyAction === "Loading schemas" ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <RefreshCw />
+            )}
+          </Button>
+        </div>
+        <div className="schema-library-columns">
+          <SchemaList
+            title="Source"
+            schemas={library.sourceSchemas}
+            selectedSchemaId={library.selectedSchemaId}
+            onSelect={library.setSelectedSchemaId}
+          />
+          <SchemaList
+            title="Target"
+            schemas={library.targetSchemas}
+            selectedSchemaId={library.selectedSchemaId}
+            onSelect={library.setSelectedSchemaId}
+          />
+        </div>
+      </section>
+
       <section className="tool-panel schema-create-panel">
         <div className="panel-heading">
           <div>
-            <p className="panel-kicker">Schema</p>
-            <h2>Create schema artifact</h2>
+            <p className="panel-kicker">Create</p>
+            <h2>Schema artifact</h2>
           </div>
-          <label className="icon-button" title="Upload schema sample">
-            <Upload size={16} />
-            <input
-              className="hidden"
-              type="file"
-              onChange={(event) =>
-                void library.useUploadedFile(event.currentTarget.files?.[0])
-              }
-            />
-          </label>
         </div>
 
         <div className="schema-form-grid">
@@ -103,68 +123,100 @@ export function SchemaLibraryPanel({ library }: Props) {
           />
         </div>
 
-        <Textarea
-          className="code-input min-h-72"
-          value={library.draft.content}
-          onChange={(event) => library.usePastedContent(event.target.value)}
-          spellCheck={false}
-        />
+        <InputModeControl library={library} />
 
-        <div className="schema-create-footer">
-          <SchemaDraftMeta library={library} />
-          <Button
-            type="button"
-            onClick={() => void library.createSchema()}
-            disabled={!library.canCreateSchema}
-          >
-            {library.busyAction === "Creating schema" ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Database />
-            )}
-            Create schema
-          </Button>
-        </div>
-      </section>
+        {library.draft.inputMethod === "upload" ? (
+          <UploadDraftPanel library={library} />
+        ) : (
+          <Textarea
+            className="code-input schema-content-editor"
+            value={library.draft.content}
+            onChange={(event) => library.usePastedContent(event.target.value)}
+            spellCheck={false}
+          />
+        )}
 
-      <section className="tool-panel schema-library-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-kicker">Library</p>
-            <h2>Saved schemas</h2>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            title="Refresh schemas"
-            onClick={() => void library.refreshSchemas()}
-            disabled={Boolean(library.busyAction)}
-          >
-            {library.busyAction === "Loading schemas" ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <RefreshCw />
-            )}
-          </Button>
-        </div>
-        <div className="schema-library-columns">
-          <SchemaList
-            title="Source"
-            schemas={library.sourceSchemas}
-            selectedSchemaId={library.selectedSchemaId}
-            onSelect={library.setSelectedSchemaId}
-          />
-          <SchemaList
-            title="Target"
-            schemas={library.targetSchemas}
-            selectedSchemaId={library.selectedSchemaId}
-            onSelect={library.setSelectedSchemaId}
-          />
-        </div>
+        <SchemaDraftMeta library={library} />
+
+        <Button
+          type="button"
+          className="schema-create-action"
+          onClick={() => void library.createSchema()}
+          disabled={!library.canCreateSchema}
+        >
+          {library.busyAction === "Creating schema" ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <Database />
+          )}
+          Create schema
+        </Button>
       </section>
 
       <SchemaDetailPanel library={library} />
+    </div>
+  )
+}
+
+function InputModeControl({ library }: Props) {
+  return (
+    <div className="field-stack">
+      <span>Input mode</span>
+      <div className="schema-segmented-control schema-input-mode">
+        <button
+          type="button"
+          className={library.draft.inputMethod === "paste" ? "active" : ""}
+          onClick={() => library.usePastedContent(library.draft.content)}
+        >
+          <Clipboard size={14} />
+          Paste
+        </button>
+        <label
+          className={library.draft.inputMethod === "upload" ? "active" : ""}
+          title="Upload schema sample"
+        >
+          <Upload size={14} />
+          Upload
+          <input
+            className="hidden"
+            type="file"
+            onChange={(event) =>
+              void library.useUploadedFile(event.currentTarget.files?.[0])
+            }
+          />
+        </label>
+      </div>
+    </div>
+  )
+}
+
+function UploadDraftPanel({ library }: Props) {
+  return (
+    <div className="schema-upload-panel">
+      <label className="schema-upload-dropzone">
+        <Upload size={18} />
+        <strong>
+          {library.draft.originalFilename ?? "Choose a text schema sample"}
+        </strong>
+        <span>JSON, XML, EDI 214, and EDI 856 samples are read as text.</span>
+        <input
+          className="hidden"
+          type="file"
+          onChange={(event) =>
+            void library.useUploadedFile(event.currentTarget.files?.[0])
+          }
+        />
+      </label>
+
+      {library.draft.content ? (
+        <div className="schema-upload-preview">
+          <div className="schema-list-heading">
+            <strong>Uploaded content preview</strong>
+            <span>{formatBytes(library.draft.originalSize)}</span>
+          </div>
+          <pre className="preview-block">{library.draft.content}</pre>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -203,7 +255,9 @@ function SchemaDraftMeta({ library }: Props) {
   if (library.draft.inputMethod === "upload" && library.draft.originalFilename) {
     return (
       <p className="schema-meta-line">
-        {library.draft.originalFilename} · {formatBytes(library.draft.originalSize)}
+        {library.draft.originalFilename} ·{" "}
+        {library.draft.originalContentType || "text/plain"} ·{" "}
+        {formatBytes(library.draft.originalSize)}
       </p>
     )
   }

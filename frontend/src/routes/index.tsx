@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Bot, FilePlus2, Loader2, Play, RefreshCw, ShieldCheck } from "lucide-react"
+import { Loader2, ShieldCheck } from "lucide-react"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { JsonataEditor } from "@/components/workbench/JsonataEditor"
@@ -25,6 +25,10 @@ function MappingWorkbench() {
   })
   const [activeTab, setActiveTab] = useState<"schema" | "mapping">("schema")
   const newMappingDialogRef = useRef<HTMLDialogElement>(null)
+  const contextStatus =
+    activeTab === "schema"
+      ? `${schemaLibrary.sourceSchemas.length} source / ${schemaLibrary.targetSchemas.length} target schemas`
+      : workbench.statusText
 
   useEffect(() => {
     const dialog = newMappingDialogRef.current
@@ -45,63 +49,7 @@ function MappingWorkbench() {
           <p className="eyebrow">Auto Mapping POC</p>
           <h1>Integration Workbench</h1>
         </div>
-        <div className="run-bar">
-          <span>{workbench.statusText}</span>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void workbench.startNewMapping()}
-            disabled={Boolean(workbench.busyAction)}
-          >
-            <FilePlus2 />
-            New Mapping
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void workbench.parseAndInfer()}
-            disabled={Boolean(workbench.busyAction)}
-          >
-            {workbench.busyAction === "Parsing samples" ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-            Parse
-          </Button>
-          <div className="auto-map-mode" aria-label="Auto map mode">
-            <button
-              type="button"
-              className={workbench.autoMapMode === "local" ? "active" : ""}
-              onClick={() => workbench.setAutoMapMode("local")}
-              disabled={Boolean(workbench.busyAction)}
-            >
-              Local
-            </button>
-            <button
-              type="button"
-              className={workbench.autoMapMode === "ai" ? "active" : ""}
-              onClick={() => workbench.setAutoMapMode("ai")}
-              disabled={Boolean(workbench.busyAction) || !workbench.aiMappingAvailable}
-              title={workbench.aiMappingAvailable ? "Use OpenRouter-assisted suggestions" : "AI unavailable"}
-            >
-              AI-assisted
-            </button>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void workbench.autoMap()}
-            disabled={!workbench.readyForMapping || Boolean(workbench.busyAction)}
-          >
-            {workbench.busyAction === "Generating mappings" ? <Loader2 className="animate-spin" /> : <Bot />}
-            Auto map
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void workbench.runTransform()}
-            disabled={!workbench.readyForTransform || Boolean(workbench.busyAction)}
-          >
-            {workbench.busyAction === "Running transformation" ? <Loader2 className="animate-spin" /> : <Play />}
-            Run
-          </Button>
-        </div>
+        <div className="context-status" aria-live="polite">{contextStatus}</div>
       </header>
 
       {workbench.issue ? (
