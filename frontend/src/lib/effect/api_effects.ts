@@ -1,11 +1,15 @@
 import { Effect } from "effect"
 
 import {
+  createSchemaArtifact,
   createTemplate,
   createTemplateVersion,
+  deleteSchemaArtifact,
   getMappingCapabilities,
+  getSchemaArtifact,
   getTemplate,
   inferSchema,
+  listSchemaArtifacts,
   listTemplates,
   parsePayload,
   suggestMappings,
@@ -19,7 +23,11 @@ import type {
   TemplateCreateRequest,
   TemplateVersionCreateRequest,
 } from "@/types/mapping"
-import type { SchemaNode } from "@/types/schema"
+import type {
+  SchemaArtifactCreateRequest,
+  SchemaDirection,
+  SchemaNode,
+} from "@/types/schema"
 
 export const parseEffect = (format: SourceFormat, content: string) =>
   Effect.tryPromise({
@@ -30,6 +38,35 @@ export const parseEffect = (format: SourceFormat, content: string) =>
 export const inferSchemaEffect = (data: unknown) =>
   Effect.tryPromise({
     try: () => inferSchema(data),
+    catch: (error) => error,
+  })
+
+export const createSchemaArtifactEffect = (
+  request: SchemaArtifactCreateRequest,
+) =>
+  Effect.tryPromise({
+    try: () => createSchemaArtifact(request),
+    catch: (error) => error,
+  })
+
+export const listSchemaArtifactsEffect = (
+  direction?: SchemaDirection,
+  includeDeleted = false,
+) =>
+  Effect.tryPromise({
+    try: () => listSchemaArtifacts({ direction, includeDeleted }),
+    catch: (error) => error,
+  })
+
+export const getSchemaArtifactEffect = (schemaId: string) =>
+  Effect.tryPromise({
+    try: () => getSchemaArtifact(schemaId),
+    catch: (error) => error,
+  })
+
+export const deleteSchemaArtifactEffect = (schemaId: string) =>
+  Effect.tryPromise({
+    try: () => deleteSchemaArtifact(schemaId),
     catch: (error) => error,
   })
 

@@ -39,6 +39,8 @@ def test_seeded_templates_are_available_and_idempotent(
     for template in templates:
         if template["template_id"] in SEED_TEMPLATE_IDS:
             assert template["is_seeded"] is True
+            assert template["versions"][0]["source_schema_id"] is None
+            assert template["versions"][0]["target_schema_id"] is None
             assert template["versions"][0]["sample_source_content"]
             assert template["versions"][0]["sample_target_content"]
 

@@ -52,6 +52,8 @@ export type TemplateVersion = {
   version: number
   source_format: SourceFormat
   target_format: OutputFormat
+  source_schema_id?: string | null
+  target_schema_id?: string | null
   source_schema_snapshot?: SchemaNode | null
   target_schema_snapshot?: SchemaNode | null
   mapping_spec: MappingSpec
@@ -76,6 +78,8 @@ export type TemplateCreateRequest = {
   description?: string
   source_format: SourceFormat
   target_format: OutputFormat
+  source_schema_id?: string | null
+  target_schema_id?: string | null
   source_schema_snapshot?: SchemaNode | null
   target_schema_snapshot?: SchemaNode | null
   mapping_spec: MappingSpec

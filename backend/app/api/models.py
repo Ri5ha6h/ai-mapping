@@ -15,6 +15,16 @@ class SourceFormat(StrEnum):
     edi_856 = "edi_856"
 
 
+class SchemaDirection(StrEnum):
+    source = "source"
+    target = "target"
+
+
+class SchemaInputMethod(StrEnum):
+    paste = "paste"
+    upload = "upload"
+
+
 class ParseRequest(BaseModel):
     format: SourceFormat
     content: str = Field(min_length=1)
@@ -43,6 +53,41 @@ class SchemaNode(BaseModel):
 
 class SchemaInferResponse(BaseModel):
     schema_: SchemaNode = Field(alias="schema")
+
+
+class SchemaArtifactCreateRequest(BaseModel):
+    schema_id: str | None = None
+    name: str = Field(min_length=1)
+    description: str = ""
+    direction: SchemaDirection
+    format: SourceFormat
+    content: str = Field(min_length=1)
+    input_method: SchemaInputMethod = SchemaInputMethod.paste
+    original_filename: str | None = None
+    original_content_type: str | None = None
+    original_size: int | None = Field(default=None, ge=0)
+
+
+class SchemaArtifact(BaseModel):
+    schema_id: str
+    name: str
+    description: str = ""
+    direction: SchemaDirection
+    format: SourceFormat
+    original_content: str
+    original_filename: str | None = None
+    original_content_type: str | None = None
+    original_size: int
+    input_method: SchemaInputMethod
+    canonical_sample: JsonValue
+    inferred_schema: SchemaNode
+    parse_metadata: dict[str, Any] = Field(default_factory=dict)
+    deleted_at: datetime | None = None
+    created_at: datetime
+
+
+class SchemaArtifactListResponse(BaseModel):
+    schemas: list[SchemaArtifact]
 
 
 class RuleType(StrEnum):
@@ -167,6 +212,8 @@ class TemplateVersion(BaseModel):
     version: int
     source_format: SourceFormat
     target_format: OutputFormat
+    source_schema_id: str | None = None
+    target_schema_id: str | None = None
     source_schema_snapshot: SchemaNode | None = None
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
@@ -191,6 +238,8 @@ class TemplateCreateRequest(BaseModel):
     description: str = ""
     source_format: SourceFormat
     target_format: OutputFormat
+    source_schema_id: str | None = None
+    target_schema_id: str | None = None
     source_schema_snapshot: SchemaNode | None = None
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
@@ -202,6 +251,8 @@ class TemplateCreateRequest(BaseModel):
 class TemplateVersionCreateRequest(BaseModel):
     source_format: SourceFormat
     target_format: OutputFormat
+    source_schema_id: str | None = None
+    target_schema_id: str | None = None
     source_schema_snapshot: SchemaNode | None = None
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec

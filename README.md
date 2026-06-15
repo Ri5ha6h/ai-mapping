@@ -3,9 +3,9 @@
 This repository contains a local proof of concept for mapping inbound JSON, XML,
 EDI 214, and EDI 856 payloads into JSON or XML outputs.
 
-The backend owns parsing, schema inference, mapping suggestions, deterministic
-transformation, validation, and template versioning. The frontend is a TanStack
-Start workbench that calls the FastAPI backend directly.
+The backend owns parsing, schema artifact persistence, schema inference, mapping
+suggestions, deterministic transformation, validation, and template versioning.
+The frontend is a TanStack Start workbench that calls the FastAPI backend directly.
 
 ## Local Startup
 
@@ -81,16 +81,18 @@ Set `API_BASE_URL` if the backend is not on `http://127.0.0.1:8000`.
 
 ## Browser Demo Flow
 
-1. Load a scenario from the workbench scenario strip.
-2. Click `Parse`.
-3. Click `Auto map`.
-4. Review or edit rules.
-5. Click `Run`.
-6. Save the mapping template.
-7. Create a new version.
-8. Load a saved version back into the editor.
+1. Open the `Schema` tab.
+2. Create a source schema from pasted text or an uploaded file.
+3. Create a target schema from pasted JSON/XML or an uploaded file.
+4. Open the `Mapping` tab.
+5. Select the saved source and target schemas.
+6. Click `Auto map`.
+7. Review or edit rules and JSONata metadata.
+8. Click `Run` using the saved source sample or switch to override input.
+9. Save the mapping template.
+10. Load a linked saved template or seeded snapshot-only example.
 
-Runtime template data is written to `backend/data/templates.sqlite3` by default and
-is ignored by Git. Override it with `TEMPLATE_DB_PATH` for isolated demos.
-The backend initializes this database automatically and seeds example templates
-for each deterministic rule type plus a combined super example.
+Runtime schema and template data is written to `backend/data/templates.sqlite3`
+by default and is ignored by Git. Override it with `TEMPLATE_DB_PATH` for
+isolated demos. The backend initializes this database automatically and seeds
+example templates for each deterministic rule type plus a combined super example.

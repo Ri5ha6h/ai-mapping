@@ -46,7 +46,7 @@ export function DemoScenarioPanel({ scenarios, activeScenarioId, busyAction, onS
       </div>
       <p className="empty-line">
         {scenarios.find((scenario) => scenario.id === activeScenarioId)?.description ??
-          "Choose a scenario, then run Parse, Auto map, Run, and template save/version checks."}
+          "Choose a scenario, then create schemas, auto map, run, and save template versions."}
       </p>
     </section>
   )

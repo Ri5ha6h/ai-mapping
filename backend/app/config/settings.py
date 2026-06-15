@@ -1,5 +1,31 @@
 from dataclasses import dataclass
-from os import getenv
+from os import environ, getenv
+from pathlib import Path
+
+
+def load_dotenv_file(path: Path) -> None:
+    if not path.exists():
+        return
+
+    for line in path.read_text().splitlines():
+        value = line.strip()
+        if not value or value.startswith("#") or "=" not in value:
+            continue
+        key, raw_value = value.split("=", 1)
+        key = key.removeprefix("export ").strip()
+        if not key:
+            continue
+        raw_value = raw_value.strip()
+        if (
+            len(raw_value) >= 2
+            and raw_value[0] == raw_value[-1]
+            and raw_value[0] in {"'", '"'}
+        ):
+            raw_value = raw_value[1:-1]
+        environ.setdefault(key, raw_value)
+
+
+load_dotenv_file(Path(__file__).resolve().parents[2] / ".env")
 
 
 def _csv_env(name: str, default: str) -> list[str]:

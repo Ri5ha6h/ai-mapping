@@ -38,9 +38,13 @@ pnpm build
 
 ## Demo Flow
 
-1. Choose a scenario from the demo scenario strip.
-2. Click `Parse` to canonicalize input and infer schemas.
-3. Click `Auto map` to generate candidate rules.
-4. Edit rules or JSONata metadata if needed.
-5. Click `Run` to execute deterministic backend transformation.
-6. Save a template and create a new version from the template panel.
+1. Open the `Schema` tab.
+2. Create a source schema from pasted text or uploaded content.
+3. Create a target schema from pasted JSON/XML or uploaded content.
+4. Open the `Mapping` tab.
+5. Select the saved source and target schemas.
+6. Click `Auto map` to generate candidate rules.
+7. Edit rules or JSONata metadata if needed.
+8. Click `Run` with the saved source sample, or switch to override input.
+9. Save a template and create a new version from the template panel.
+10. Load saved linked templates or seeded snapshot-only examples from the template panel.
