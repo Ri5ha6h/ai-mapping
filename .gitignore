@@ -22,6 +22,8 @@ __pycache__/
 *.local
 .env
 .env.*
+!backend/.env.example
+!frontend/.env.example
 *.tsbuildinfo
 coverage/
 htmlcov/
