@@ -30,14 +30,24 @@ class ExecutionContext:
         *,
         root: Any,
         current: Any,
+        parent: Any = None,
+        index: int | None = None,
         variables: dict[str, Any] | None = None,
     ) -> None:
         self.root = root
         self.current = current
+        self.parent = parent
+        self.index = index
         self.variables = variables if variables is not None else {}
 
-    def child(self, current: Any) -> ExecutionContext:
-        return ExecutionContext(root=self.root, current=current, variables=self.variables.copy())
+    def child(self, current: Any, *, index: int | None = None) -> ExecutionContext:
+        return ExecutionContext(
+            root=self.root,
+            current=current,
+            parent=self.current,
+            index=index,
+            variables=self.variables.copy(),
+        )
 
 
 def execute_native_graph(
@@ -87,12 +97,29 @@ def _execute_node(
     if node.type == "loop":
         _execute_loop(node, graph, context, output, trace)
         return
+    if node.type == "map":
+        _execute_map(node, graph, context, output, trace)
+        return
+    if node.type == "append":
+        _execute_append(node, graph, context, output)
+        return
 
     value = _evaluate_node_value(node, graph, context)
     if node.var_name:
         context.variables[node.var_name] = value
     if node.target_path:
-        set_path(output, node.target_path, value)
+        if node.target_path == "$":
+            if isinstance(value, dict):
+                output.clear()
+                output.update(value)
+            else:
+                raise NativeGraphExecutionError(
+                    "Root target path requires an object value.",
+                    node_id=node.id,
+                    path=node.target_path,
+                )
+        else:
+            set_path(output, node.target_path, value)
 
 
 def _execute_loop(
@@ -116,14 +143,67 @@ def _execute_loop(
         )
 
     mapped_items: list[Any] = []
-    for item in source_items:
+    for index, item in enumerate(source_items):
         item_output: dict[str, Any] = {}
-        item_context = context.child(item)
+        item_context = context.child(item, index=index)
         for child_node in node.children:
             _execute_node(child_node, graph, item_context, item_output, trace)
             trace.append(_trace_item(child_node, status="executed"))
         mapped_items.append(item_output)
     set_path(output, node.target_path, mapped_items)
+
+
+def _execute_map(
+    node: NativeGraphNode,
+    graph: NativeGraphSpec,
+    context: ExecutionContext,
+    output: dict[str, Any],
+    trace: list[TransformTraceItem],
+) -> None:
+    source_items = _source_items(node, context)
+    mapped_items = [
+        _evaluate_map_item(node, graph, context.child(item, index=index), trace)
+        for index, item in enumerate(source_items)
+    ]
+    if node.var_name:
+        context.variables[node.var_name] = mapped_items
+    if node.target_path:
+        set_path(output, node.target_path, mapped_items)
+
+
+def _evaluate_map_item(
+    node: NativeGraphNode,
+    graph: NativeGraphSpec,
+    item_context: ExecutionContext,
+    trace: list[TransformTraceItem],
+) -> Any:
+    if node.value is not None:
+        return _resolve_template(node.value, item_context, graph)
+    if node.children:
+        item_output: dict[str, Any] = {}
+        for child_node in node.children:
+            _execute_node(child_node, graph, item_context, item_output, trace)
+            trace.append(_trace_item(child_node, status="executed"))
+        return item_output
+    return item_context.current
+
+
+def _execute_append(
+    node: NativeGraphNode,
+    graph: NativeGraphSpec,
+    context: ExecutionContext,
+    output: dict[str, Any],
+) -> None:
+    if not node.target_path:
+        raise NativeGraphExecutionError("Append node is missing target_path.", node_id=node.id)
+    existing = get_path(output, node.target_path)
+    items = existing if isinstance(existing, list) else []
+    value = _evaluate_node_value(node, graph, context)
+    if isinstance(value, list):
+        items.extend(value)
+    else:
+        items.append(value)
+    set_path(output, node.target_path, items)
 
 
 def _evaluate_node_value(
@@ -133,6 +213,32 @@ def _evaluate_node_value(
 ) -> Any:
     if node.type == "compute":
         value = _compute_operation(node, context)
+    elif node.type == "template":
+        value = _resolve_template(node.value, context, graph)
+    elif node.type == "object":
+        value = _evaluate_object(node, graph, context)
+    elif node.type == "array":
+        value = [_evaluate_node_value(child, graph, context) for child in node.children]
+    elif node.type == "filter":
+        value = [
+            item
+            for index, item in enumerate(_source_items(node, context))
+            if _condition_matches(node.condition, context.child(item, index=index), graph)
+        ]
+    elif node.type == "reduce":
+        value = _reduce_items(node, context)
+    elif node.type == "conditional":
+        value = _evaluate_conditional(node, graph, context)
+    elif node.type == "lookup":
+        value = _lookup_value(node, graph, context)
+    elif node.type == "switch":
+        value = _switch_value(node, graph, context)
+    elif node.type == "merge":
+        value = _merge_values(node, graph, context)
+    elif node.type == "group_by":
+        value = _group_by(node, context)
+    elif node.type == "sort":
+        value = _sort_items(node, context)
     elif node.expression:
         value = _evaluate_expression(node, context)
     elif node.source_path:
@@ -143,6 +249,146 @@ def _evaluate_node_value(
     for transform in node.transforms:
         value = _apply_transform(value, transform, graph, node.id)
     return value
+
+
+def _evaluate_object(
+    node: NativeGraphNode,
+    graph: NativeGraphSpec,
+    context: ExecutionContext,
+) -> dict[str, Any]:
+    if isinstance(node.value, dict):
+        resolved = _resolve_template(node.value, context, graph)
+        return resolved if isinstance(resolved, dict) else {}
+    item_output: dict[str, Any] = {}
+    trace: list[TransformTraceItem] = []
+    for child_node in node.children:
+        _execute_node(child_node, graph, context, item_output, trace)
+    return item_output
+
+
+def _source_items(node: NativeGraphNode, context: ExecutionContext) -> list[Any]:
+    if not node.source_path:
+        return []
+    value = _resolve_path(context, node.source_path)
+    if value is MISSING or value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _condition_matches(
+    condition: dict[str, Any] | None,
+    context: ExecutionContext,
+    graph: NativeGraphSpec,
+) -> bool:
+    if not condition:
+        return bool(context.current)
+    if "expression" in condition:
+        node = NativeGraphNode(
+            id="condition",
+            type="assign",
+            expression=str(condition["expression"]),
+        )
+        return bool(_evaluate_expression(node, context))
+    left = _resolve_template(
+        condition.get("left", {"$path": condition.get("source_path", "$")}),
+        context,
+        graph,
+    )
+    if "equals" in condition:
+        return left == _resolve_template(condition["equals"], context, graph)
+    if "not_equals" in condition:
+        return left != _resolve_template(condition["not_equals"], context, graph)
+    if "in" in condition:
+        candidates = _resolve_template(condition["in"], context, graph)
+        return isinstance(candidates, list) and left in candidates
+    if condition.get("exists"):
+        return left is not MISSING and left not in (None, "")
+    return bool(left)
+
+
+def _reduce_items(node: NativeGraphNode, context: ExecutionContext) -> Any:
+    items = _source_items(node, context)
+    match node.operation:
+        case "count" | None:
+            return len(items)
+        case "sum":
+            values = [_resolve_path(context.child(item), node.value_path or "$") for item in items]
+            return sum(float(value or 0) for value in values if value is not MISSING)
+        case _:
+            raise NativeGraphExecutionError(
+                f"Unsupported reduce operation: {node.operation}",
+                node_id=node.id,
+            )
+
+
+def _evaluate_conditional(
+    node: NativeGraphNode,
+    graph: NativeGraphSpec,
+    context: ExecutionContext,
+) -> Any:
+    branch = node.children[0] if _condition_matches(node.condition, context, graph) else (
+        node.children[1] if len(node.children) > 1 else None
+    )
+    return _evaluate_node_value(branch, graph, context) if branch else None
+
+
+def _lookup_value(node: NativeGraphNode, graph: NativeGraphSpec, context: ExecutionContext) -> Any:
+    table_name = node.lookup_table or node.operation
+    if not table_name:
+        raise NativeGraphExecutionError("Lookup node is missing lookup_table.", node_id=node.id)
+    key = _resolve_path(context, node.key_path or node.source_path or "$")
+    table = graph.lookup_tables.get(table_name)
+    if table is None:
+        raise NativeGraphExecutionError(
+            f"Lookup table {table_name} was not found.",
+            node_id=node.id,
+        )
+    return table.get(str(key), node.value)
+
+
+def _switch_value(node: NativeGraphNode, graph: NativeGraphSpec, context: ExecutionContext) -> Any:
+    key = _resolve_path(context, node.key_path or node.source_path or "$")
+    cases = node.value if isinstance(node.value, dict) else {}
+    return _resolve_template(cases.get(str(key), cases.get("default")), context, graph)
+
+
+def _merge_values(
+    node: NativeGraphNode,
+    graph: NativeGraphSpec,
+    context: ExecutionContext,
+) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for source_path in node.source_paths:
+        value = _resolve_path(context, source_path)
+        if isinstance(value, dict):
+            merged.update(value)
+    for child in node.children:
+        value = _evaluate_node_value(child, graph, context)
+        if isinstance(value, dict):
+            merged.update(value)
+    if isinstance(node.value, dict):
+        value = _resolve_template(node.value, context, graph)
+        if isinstance(value, dict):
+            merged.update(value)
+    return merged
+
+
+def _group_by(node: NativeGraphNode, context: ExecutionContext) -> dict[str, list[Any]]:
+    grouped: dict[str, list[Any]] = {}
+    for item in _source_items(node, context):
+        key = _resolve_path(context.child(item), node.group_key_path or node.key_path or "$")
+        grouped.setdefault(str(key), []).append(item)
+    return grouped
+
+
+def _sort_items(node: NativeGraphNode, context: ExecutionContext) -> list[Any]:
+    items = _source_items(node, context)
+    sort_path = node.sort_path or node.key_path or "$"
+    return sorted(
+        items,
+        key=lambda item: _sort_key(_resolve_path(context.child(item), sort_path)),
+        reverse=node.descending,
+    )
 
 
 def _evaluate_expression(node: NativeGraphNode, context: ExecutionContext) -> Any:
@@ -161,6 +407,126 @@ def _evaluate_expression(node: NativeGraphNode, context: ExecutionContext) -> An
             f"JSONata value expression did not resolve: {node.expression}",
             node_id=node.id,
         )
+    return value
+
+
+def _resolve_template(template: Any, context: ExecutionContext, graph: NativeGraphSpec) -> Any:
+    if isinstance(template, list):
+        return [
+            item
+            for item in (_resolve_template(value, context, graph) for value in template)
+            if item is not MISSING
+        ]
+    if not isinstance(template, dict):
+        return template
+
+    if "$literal" in template:
+        return template["$literal"]
+    if "$path" in template:
+        value = _resolve_path(context, str(template["$path"]))
+        value = template.get("default") if value is MISSING else value
+        return _apply_template_transforms(value, template.get("transforms"), graph, "template")
+    if "$var" in template:
+        value = get_path(context.variables, "$." + str(template["$var"]))
+        return template.get("default") if value is MISSING else value
+    if "$coalesce" in template and isinstance(template["$coalesce"], list):
+        for candidate in template["$coalesce"]:
+            value = _resolve_template(candidate, context, graph)
+            if value not in (MISSING, None, ""):
+                return value
+        return template.get("default")
+    if "$concat" in template and isinstance(template["$concat"], list):
+        separator = str(template.get("separator", ""))
+        parts = [_resolve_template(part, context, graph) for part in template["$concat"]]
+        return separator.join(
+            "" if part is None or part is MISSING else str(part) for part in parts
+        )
+    if "$map" in template:
+        source_path = str(template["$map"])
+        source_items = _resolve_path(context, source_path)
+        if not isinstance(source_items, list):
+            return []
+        item_template = template.get("template", {"$path": "$"})
+        return [
+            value
+            for index, item in enumerate(source_items)
+            if (
+                value := _resolve_template(item_template, context.child(item, index=index), graph)
+            )
+            is not MISSING
+        ]
+    if "$filter" in template:
+        source_path = str(template["$filter"])
+        source_items = _resolve_path(context, source_path)
+        if not isinstance(source_items, list):
+            return []
+        condition = template.get("condition")
+        return [
+            item
+            for index, item in enumerate(source_items)
+            if _condition_matches(
+                condition if isinstance(condition, dict) else None,
+                context.child(item, index=index),
+                graph,
+            )
+        ]
+    if "$append" in template and isinstance(template["$append"], list):
+        appended: list[Any] = []
+        for part in template["$append"]:
+            value = _resolve_template(part, context, graph)
+            if value is MISSING:
+                continue
+            if isinstance(value, list):
+                appended.extend(value)
+            else:
+                appended.append(value)
+        return appended
+    if "$lookup" in template:
+        table_name = str(template["$lookup"])
+        table = graph.lookup_tables.get(table_name)
+        if table is None:
+            raise NativeGraphExecutionError(
+                f"Lookup table {table_name} was not found.",
+                node_id="template",
+            )
+        key = _resolve_template(template.get("key", {"$path": "$"}), context, graph)
+        return table.get(str(key), template.get("default"))
+    if "$switch" in template:
+        key = _resolve_template(template["$switch"], context, graph)
+        cases_value = template.get("cases")
+        cases: dict[str, Any] = cases_value if isinstance(cases_value, dict) else {}
+        return _resolve_template(cases.get(str(key), template.get("default")), context, graph)
+    if "$if" in template:
+        condition = template.get("$if")
+        matched = _condition_matches(
+            condition if isinstance(condition, dict) else None,
+            context,
+            graph,
+        )
+        if not matched and "else" not in template:
+            return MISSING
+        branch = template.get("then") if matched else template.get("else")
+        return _resolve_template(branch, context, graph)
+
+    resolved: dict[str, Any] = {}
+    for key, value in template.items():
+        next_value = _resolve_template(value, context, graph)
+        if next_value is not MISSING:
+            resolved[key] = next_value
+    return resolved
+
+
+def _apply_template_transforms(
+    value: Any,
+    transforms: Any,
+    graph: NativeGraphSpec,
+    node_id: str,
+) -> Any:
+    if not isinstance(transforms, list):
+        return value
+    for transform_data in transforms:
+        if isinstance(transform_data, dict):
+            value = _apply_transform(value, NativeGraphTransform(**transform_data), graph, node_id)
     return value
 
 
@@ -222,6 +588,44 @@ def _apply_transform(
                     node_id=node_id,
                 )
             return table.get(str(value), transform.default)
+        case "split":
+            separator = transform.separator if transform.separator is not None else ","
+            return [] if value in (None, "") else str(value).split(separator)
+        case "join":
+            separator = transform.separator if transform.separator is not None else ""
+            return separator.join(str(item) for item in value) if isinstance(value, list) else value
+        case "pick":
+            if isinstance(value, list) and transform.index is not None:
+                if -len(value) <= transform.index < len(value):
+                    return value[transform.index]
+                return transform.default
+            return transform.default
+        case "trim":
+            return value.strip() if isinstance(value, str) else value
+        case "upper":
+            return value.upper() if isinstance(value, str) else value
+        case "lower":
+            return value.lower() if isinstance(value, str) else value
+        case "to_number":
+            if value in (None, ""):
+                return transform.default
+            text = re.sub(r"[^0-9.\-]", "", str(value))
+            return float(text) if "." in text else int(text)
+        case "multiply":
+            factor = transform.factor if transform.factor is not None else 1
+            return float(value) * factor if value not in (None, "") else value
+        case "divide":
+            factor = transform.factor if transform.factor not in (None, 0) else 1
+            return float(value) / factor if value not in (None, "") else value
+        case "round":
+            precision = transform.precision if transform.precision is not None else 0
+            return round(float(value), precision) if value not in (None, "") else value
+        case "empty_to_null":
+            return None if value == "" else value
+        case "suppress_empty":
+            return MISSING if value in (None, "", [], {}) else value
+        case "country_iso3_to_iso2":
+            return _country_iso3_to_iso2(value, transform.default)
         case _:
             raise NativeGraphExecutionError(
                 f"Unsupported transform: {transform.type}",
@@ -241,11 +645,47 @@ def _required_path_value(context: ExecutionContext, path: str, node_id: str) -> 
 
 
 def _resolve_path(context: ExecutionContext, path: str) -> Any:
+    if path == "$":
+        return context.current
+    if path == "$root":
+        return context.root
+    if path == "$parent":
+        return context.parent
+    if path == "$index":
+        return context.index
     if path.startswith("$root."):
         return get_path(context.root, "$." + path.removeprefix("$root."))
     if path.startswith("$var."):
         return get_path(context.variables, "$." + path.removeprefix("$var."))
+    if path.startswith("$parent."):
+        return get_path(context.parent, "$." + path.removeprefix("$parent."))
     return get_path(context.current, path)
+
+
+def _sort_key(value: Any) -> tuple[int, str]:
+    if value is MISSING or value is None:
+        return (1, "")
+    return (0, str(value))
+
+
+def _country_iso3_to_iso2(value: Any, default: Any = None) -> Any:
+    if value in (None, ""):
+        return default
+    table = {
+        "USA": "US",
+        "CAN": "CA",
+        "MEX": "MX",
+        "GBR": "GB",
+        "DEU": "DE",
+        "FRA": "FR",
+        "IND": "IN",
+        "CHN": "CN",
+        "JPN": "JP",
+        "SGP": "SG",
+        "NLD": "NL",
+    }
+    text = str(value).strip().upper()
+    return table.get(text, text if len(text) == 2 else default)
 
 
 def _trace_item(

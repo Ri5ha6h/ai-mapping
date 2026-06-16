@@ -2,6 +2,8 @@ from fastapi import APIRouter
 
 from app.api.models import (
     MappingSpec,
+    OutputDiffRequest,
+    OutputDiffResponse,
     OutputFormat,
     TransformRequest,
     TransformResponse,
@@ -11,6 +13,7 @@ from app.api.models import (
 )
 from app.core.mapping.deterministic_rule_runtime import execute_rules
 from app.core.mapping.native_graph_runtime import execute_native_graph
+from app.core.mapping.output_diff import diff_values
 from app.core.validation.native_graph_validator import validate_native_graph
 from app.core.validation.validator import validate_mapping
 from app.core.writers.json_writer import write_json
@@ -104,6 +107,12 @@ def validate_payload(request: ValidateRequest) -> ValidateResponse:
             target_schema=request.target_schema,
         )
     return ValidateResponse(valid=not errors, errors=errors)
+
+
+@router.post("/transform/diff", response_model=OutputDiffResponse)
+def diff_output(request: OutputDiffRequest) -> OutputDiffResponse:
+    diffs = diff_values(request.expected, request.actual)
+    return OutputDiffResponse(equal=not diffs, diffs=diffs)
 
 
 def _mapping_spec_from_request(

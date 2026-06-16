@@ -15,6 +15,8 @@ import type { FrontendIssue } from "@/lib/effect/errors"
 import {
   createTemplateEffect,
   createTemplateVersionEffect,
+  diffOutputEffect,
+  generateNativeGraphDraftEffect,
   getMappingCapabilitiesEffect,
   getTemplateEffect,
   listTemplatesEffect,
@@ -28,6 +30,7 @@ import type {
   MappingSpec,
   MappingTemplate,
   MappingSuggestion,
+  OutputDiffItem,
   OutputFormat,
   SourceFormat,
   TransformResponse,
@@ -122,6 +125,9 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   const [activeMappingSpec, setActiveMappingSpec] = useState<MappingSpec | null>(
     null
   )
+  const [nativeGraphText, setNativeGraphText] = useState("")
+  const [nativeGraphUnresolvedPaths, setNativeGraphUnresolvedPaths] = useState<string[]>([])
+  const [outputDiff, setOutputDiff] = useState<OutputDiffItem[]>([])
   const [advancedJsonata, setAdvancedJsonata] = useState("")
   const [transformResult, setTransformResult] =
     useState<TransformResponse | null>(null)
@@ -170,7 +176,9 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   const readyForTransform =
     readyForMapping && (rules.length > 0 || Boolean(activeMappingSpec))
   const readyForTemplateSave = Boolean(
-    activeSourceSchema && activeTargetSchema && rules.length > 0
+    activeSourceSchema &&
+      activeTargetSchema &&
+      (rules.length > 0 || Boolean(activeMappingSpec))
   )
 
   const statusText = useMemo(() => {
@@ -202,6 +210,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   const clearRunResults = useCallback(() => {
     setTransformResult(null)
     setValidationErrors([])
+    setOutputDiff([])
     setAutoMapStatus("idle")
   }, [])
 
@@ -363,6 +372,14 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
         )
       )
       setTransformResult(response)
+      if (activeTargetFormat === "json") {
+        const diff = await Effect.runPromise(
+          diffOutputEffect(parsed.targetData, response.output)
+        )
+        setOutputDiff(diff.diffs)
+      } else {
+        setOutputDiff([])
+      }
       const validation = await Effect.runPromise(
         validateEffect(
           parsed.sourceData,
@@ -402,7 +419,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   }
 
   async function saveTemplate() {
-    if (!activeSourceSchema || !activeTargetSchema || rules.length === 0) return
+    if (!activeSourceSchema || !activeTargetSchema || !hasMappingSpecForSave()) return
     setBusyAction("Saving template")
     setIssue(null)
     try {
@@ -421,7 +438,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     if (
       !activeSourceSchema ||
       !activeTargetSchema ||
-      rules.length === 0 ||
+      !hasMappingSpecForSave() ||
       !selectedTemplateId
     )
       return
@@ -464,9 +481,11 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
         setTargetInput(version.sample_target_content)
       setSourceSchema(version.source_schema_snapshot ?? null)
       setTargetSchema(version.target_schema_snapshot ?? null)
-      setActiveMappingSpec(
+      const nativeSpec =
         version.mapping_spec.engine === "native_graph" ? version.mapping_spec : null
-      )
+      setActiveMappingSpec(nativeSpec)
+      setNativeGraphText(nativeSpec ? JSON.stringify(nativeSpec, null, 2) : "")
+      setNativeGraphUnresolvedPaths([])
       applyRules(
         version.mapping_spec.rules,
         version.mapping_spec.full_jsonata_expression,
@@ -510,6 +529,8 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setSuggestions([])
     setRules([])
     setActiveMappingSpec(null)
+    setNativeGraphText("")
+    setNativeGraphUnresolvedPaths([])
     setAdvancedJsonata("")
     setTransformResult(null)
     setValidationErrors([])
@@ -542,7 +563,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     if (
       !activeSourceSchema ||
       !activeTargetSchema ||
-      rules.length === 0 ||
+      !hasMappingSpecForSave() ||
       templateName.trim().length === 0
     ) {
       resetToBlankMapping()
@@ -604,13 +625,31 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setTargetSchema(nextTargetSchema)
     return {
       sourceData,
+      targetData: await parseCurrentTargetData(),
       sourceSchema: nextSourceSchema,
       targetSchema: nextTargetSchema,
     }
   }
 
+  async function parseCurrentTargetData() {
+    if (selectedTargetSchema) {
+      return selectedTargetSchema.canonical_sample
+    }
+    const parsedTarget = await Effect.runPromise(
+      parseEffect(targetFormat, targetInput)
+    )
+    return parsedTarget.canonical
+  }
+
   function templateRequest() {
     const mappingRules = rulesWithAdvancedJsonata()
+    const mappingSpec =
+      activeMappingSpec ??
+      ({
+        engine: "deterministic_rules",
+        rules: mappingRules,
+        full_jsonata_expression: advancedJsonata.trim() || null,
+      } satisfies MappingSpec)
     return {
       name: templateName.trim(),
       description: templateDescription.trim(),
@@ -620,11 +659,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
       target_schema_id: selectedTargetSchema?.schema_id ?? null,
       source_schema_snapshot: activeSourceSchema,
       target_schema_snapshot: activeTargetSchema,
-      mapping_spec: {
-        engine: "deterministic_rules",
-        rules: mappingRules,
-        full_jsonata_expression: advancedJsonata.trim() || null,
-      },
+      mapping_spec: mappingSpec,
       validation_rules: validationErrors,
       sample_source_content: selectedSourceSchema?.original_content ?? sourceInput,
       sample_target_content: selectedTargetSchema?.original_content ?? targetInput,
@@ -646,7 +681,10 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     options?: { preserveMappingSpec?: boolean }
   ) {
     setRules(nextRules)
-    if (!options?.preserveMappingSpec) setActiveMappingSpec(null)
+    if (!options?.preserveMappingSpec) {
+      setActiveMappingSpec(null)
+      setNativeGraphText("")
+    }
     setAdvancedJsonata(
       jsonataExpression ?? jsonataExpressionForRules(nextRules)
     )
@@ -655,8 +693,56 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   function updateRules(nextRules: MappingRule[]) {
     setRules(nextRules)
     setActiveMappingSpec(null)
+    setNativeGraphText("")
+    setNativeGraphUnresolvedPaths([])
     if (shouldSyncAdvancedJsonata()) {
       setAdvancedJsonata(jsonataExpressionForRules(nextRules))
+    }
+  }
+
+  function updateNativeGraphText(value: string) {
+    setNativeGraphText(value)
+    clearRunResults()
+  }
+
+  function applyNativeGraphText() {
+    const parsed = JSON.parse(nativeGraphText) as MappingSpec
+    if (parsed.engine !== "native_graph" || !parsed.native_graph) {
+      throw new Error("Native graph JSON must be a mapping spec with engine native_graph.")
+    }
+    setActiveMappingSpec(parsed)
+    setRules(parsed.rules ?? [])
+    setAdvancedJsonata("")
+    setNativeGraphUnresolvedPaths([])
+    clearRunResults()
+  }
+
+  async function generateNativeGraphDraft() {
+    setBusyAction("Generating native graph draft")
+    setIssue(null)
+    try {
+      const parsed = await currentMappingInputs()
+      const response = await Effect.runPromise(
+        generateNativeGraphDraftEffect(
+          parsed.sourceData,
+          parsed.targetData,
+          parsed.sourceSchema,
+          parsed.targetSchema,
+          autoMapMode === "ai"
+        )
+      )
+      setActiveMappingSpec(response.mapping_spec)
+      setNativeGraphText(JSON.stringify(response.mapping_spec, null, 2))
+      setNativeGraphUnresolvedPaths(response.unresolved_target_paths)
+      setProviderErrors(response.provider_errors)
+      setUsedAi(response.used_ai)
+      setRules(response.mapping_spec.rules ?? [])
+      setAdvancedJsonata("")
+      clearRunResults()
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction(null)
     }
   }
 
@@ -686,10 +772,16 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
       sourceInput.trim().length > 0 ||
       targetInput.trim().length > 0 ||
       rules.length > 0 ||
+      Boolean(activeMappingSpec) ||
+      nativeGraphText.trim().length > 0 ||
       advancedJsonata.trim().length > 0 ||
       Boolean(transformResult) ||
       validationErrors.length > 0
     )
+  }
+
+  function hasMappingSpecForSave() {
+    return rules.length > 0 || Boolean(activeMappingSpec)
   }
 
   function resetToBlankMapping() {
@@ -706,6 +798,8 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setSuggestions([])
     setRules([])
     setActiveMappingSpec(null)
+    setNativeGraphText("")
+    setNativeGraphUnresolvedPaths([])
     setAdvancedJsonata("")
     setTransformResult(null)
     setValidationErrors([])
@@ -767,6 +861,9 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     suggestions,
     rules,
     activeMappingSpec,
+    nativeGraphText,
+    nativeGraphUnresolvedPaths,
+    outputDiff,
     advancedJsonata,
     transformResult,
     validationErrors,
@@ -794,6 +891,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setTemplateName,
     setTemplateDescription,
     setRules: updateRules,
+    setNativeGraphText: updateNativeGraphText,
     setAdvancedJsonata,
     handleSourceInputChange,
     handleSourceFormatChange,
@@ -804,6 +902,8 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     parseAndInfer,
     autoMap,
     runTransform,
+    applyNativeGraphText,
+    generateNativeGraphDraft,
     refreshTemplates,
     saveTemplate,
     saveTemplateVersion,

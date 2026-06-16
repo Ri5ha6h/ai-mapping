@@ -5,6 +5,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { JsonataEditor } from "@/components/workbench/JsonataEditor"
 import { MappingSchemaPanel } from "@/components/workbench/MappingSchemaPanel"
 import { MappingSuggestionPanel } from "@/components/workbench/MappingSuggestionPanel"
+import { NativeGraphEditor } from "@/components/workbench/NativeGraphEditor"
+import { OutputDiffPanel } from "@/components/workbench/OutputDiffPanel"
 import { OutputPreview } from "@/components/workbench/OutputPreview"
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
 import { SchemaLibraryPanel } from "@/components/workbench/SchemaLibraryPanel"
@@ -149,10 +151,24 @@ function MappingWorkbench() {
           <div className="editor-grid">
             <VisualMappingEditor rules={workbench.rules} onRulesChange={workbench.setRules} />
             <JsonataEditor value={workbench.advancedJsonata} onChange={workbench.setAdvancedJsonata} />
+            <NativeGraphEditor
+              value={workbench.nativeGraphText}
+              unresolvedPaths={workbench.nativeGraphUnresolvedPaths}
+              canGenerate={workbench.readyForMapping}
+              busyAction={workbench.busyAction}
+              onChange={workbench.setNativeGraphText}
+              onApply={workbench.applyNativeGraphText}
+              onGenerate={() => void workbench.generateNativeGraphDraft()}
+              onRun={() => {
+                workbench.applyNativeGraphText()
+                void workbench.runTransform()
+              }}
+            />
           </div>
 
           <div className="result-grid">
             <OutputPreview result={workbench.transformResult} />
+            <OutputDiffPanel diffs={workbench.outputDiff} />
             <ValidationPanel errors={workbench.validationErrors} />
             <TemplateVersionPanel
               templates={workbench.templates}

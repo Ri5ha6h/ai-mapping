@@ -50,17 +50,48 @@ export type NativeGraphTransform = {
   output_format?: string | null
   lookup_table?: string | null
   default?: unknown
+  factor?: number | null
+  separator?: string | null
+  index?: number | null
+  precision?: number | null
 }
+
+export type NativeGraphNodeType =
+  | "assign"
+  | "loop"
+  | "compute"
+  | "template"
+  | "object"
+  | "array"
+  | "map"
+  | "filter"
+  | "reduce"
+  | "conditional"
+  | "lookup"
+  | "switch"
+  | "append"
+  | "merge"
+  | "group_by"
+  | "sort"
 
 export type NativeGraphNode = {
   id: string
-  type: "assign" | "loop" | "compute"
+  type: NativeGraphNodeType
   target_path?: string | null
   source_path?: string | null
+  source_paths?: string[]
   var_name?: string | null
   value?: unknown
   expression?: string | null
   operation?: string | null
+  condition?: Record<string, unknown> | null
+  lookup_table?: string | null
+  key_path?: string | null
+  value_path?: string | null
+  sort_path?: string | null
+  group_key_path?: string | null
+  descending?: boolean
+  include_empty?: boolean
   transforms?: NativeGraphTransform[]
   children?: NativeGraphNode[]
 }
@@ -153,6 +184,25 @@ export type SuggestResponse = {
 export type MappingCapabilities = {
   ai_mapping_available: boolean
   ai_provider?: string | null
+}
+
+export type OutputDiffItem = {
+  path: string
+  kind: "missing" | "extra" | "changed"
+  expected?: unknown
+  actual?: unknown
+}
+
+export type OutputDiffResponse = {
+  equal: boolean
+  diffs: OutputDiffItem[]
+}
+
+export type NativeGraphDraftResponse = {
+  mapping_spec: MappingSpec
+  unresolved_target_paths: string[]
+  used_ai: boolean
+  provider_errors: string[]
 }
 
 export type TransformResponse = {

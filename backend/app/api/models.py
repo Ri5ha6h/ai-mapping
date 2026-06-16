@@ -196,19 +196,49 @@ class NativeGraphTransform(BaseModel):
     output_format: str | None = None
     lookup_table: str | None = None
     default: JsonValue = None
+    factor: float | None = None
+    separator: str | None = None
+    index: int | None = None
+    precision: int | None = None
 
 
 class NativeGraphNode(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    type: Literal["assign", "loop", "compute"]
+    type: Literal[
+        "assign",
+        "loop",
+        "compute",
+        "template",
+        "object",
+        "array",
+        "map",
+        "filter",
+        "reduce",
+        "conditional",
+        "lookup",
+        "switch",
+        "append",
+        "merge",
+        "group_by",
+        "sort",
+    ]
     target_path: str | None = None
     source_path: str | None = None
+    source_paths: list[str] = Field(default_factory=list)
     var_name: str | None = None
     value: JsonValue = None
     expression: str | None = None
     operation: str | None = None
+    condition: dict[str, JsonValue] | None = None
+    lookup_table: str | None = None
+    key_path: str | None = None
+    value_path: str | None = None
+    sort_path: str | None = None
+    group_key_path: str | None = None
+    descending: bool = False
+    include_empty: bool = True
     transforms: list[NativeGraphTransform] = Field(default_factory=list)
     children: list[NativeGraphNode] = Field(default_factory=list)
 
@@ -256,6 +286,39 @@ class ValidateRequest(BaseModel):
 class ValidateResponse(BaseModel):
     valid: bool
     errors: list[ValidationErrorItem] = Field(default_factory=list)
+
+
+class OutputDiffItem(BaseModel):
+    path: str
+    kind: Literal["missing", "extra", "changed"]
+    expected: JsonValue = None
+    actual: JsonValue = None
+
+
+class OutputDiffRequest(BaseModel):
+    expected: JsonValue
+    actual: JsonValue
+
+
+class OutputDiffResponse(BaseModel):
+    equal: bool
+    diffs: list[OutputDiffItem] = Field(default_factory=list)
+
+
+class NativeGraphDraftRequest(BaseModel):
+    source_sample: JsonValue
+    target_sample: JsonValue
+    source_schema: SchemaNode | None = None
+    target_schema: SchemaNode | None = None
+    domain_context: str = ""
+    use_ai: bool = False
+
+
+class NativeGraphDraftResponse(BaseModel):
+    mapping_spec: MappingSpec
+    unresolved_target_paths: list[str] = Field(default_factory=list)
+    used_ai: bool = False
+    provider_errors: list[str] = Field(default_factory=list)
 
 
 class TemplateVersion(BaseModel):

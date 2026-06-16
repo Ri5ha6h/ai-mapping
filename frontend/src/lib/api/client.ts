@@ -3,6 +3,8 @@ import type {
   MappingSpec,
   MappingTemplate,
   MappingCapabilities,
+  NativeGraphDraftResponse,
+  OutputDiffResponse,
   OutputFormat,
   ParseResponse,
   SourceFormat,
@@ -101,6 +103,22 @@ export async function getMappingCapabilities(): Promise<MappingCapabilities> {
   return getJson<MappingCapabilities>("/api/mappings/capabilities")
 }
 
+export async function generateNativeGraphDraft(params: {
+  sourceSample: unknown
+  targetSample: unknown
+  sourceSchema?: SchemaNode | null
+  targetSchema?: SchemaNode | null
+  useAi: boolean
+}): Promise<NativeGraphDraftResponse> {
+  return postJson<NativeGraphDraftResponse>("/api/mappings/native-graph/draft", {
+    source_sample: params.sourceSample,
+    target_sample: params.targetSample,
+    source_schema: params.sourceSchema ?? null,
+    target_schema: params.targetSchema ?? null,
+    use_ai: params.useAi,
+  })
+}
+
 export async function transformPayload(params: {
   sourceData: unknown
   rules: MappingRule[]
@@ -132,6 +150,13 @@ export async function validatePayload(params: {
     mapping_spec: params.mappingSpec ?? null,
     target_schema: params.targetSchema ?? null,
   })
+}
+
+export async function diffOutput(params: {
+  expected: unknown
+  actual: unknown
+}): Promise<OutputDiffResponse> {
+  return postJson<OutputDiffResponse>("/api/transform/diff", params)
 }
 
 export async function createTemplate(

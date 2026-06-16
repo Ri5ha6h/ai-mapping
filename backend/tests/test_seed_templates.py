@@ -16,6 +16,8 @@ SEED_TEMPLATE_IDS = {
     "example-condition",
     "example-loop",
     "example-native-json2json",
+    "example-native-json2json-generic",
+    "example-native-xml2json-generic",
     "example-super",
 }
 
@@ -137,7 +139,13 @@ def test_seeded_template_transforms_successfully(
     monkeypatch.setenv("TEMPLATE_DB_PATH", str(tmp_path / "templates.sqlite3"))
     template = client.get(f"/api/templates/{template_id}").json()
     version = template["versions"][0]
-    source_data = json.loads(version["sample_source_content"])
+    if version["source_format"] == "xml":
+        source_data = client.post(
+            "/api/parse",
+            json={"format": "xml", "content": version["sample_source_content"]},
+        ).json()["canonical"]
+    else:
+        source_data = json.loads(version["sample_source_content"])
     expected_output = json.loads(version["sample_target_content"])
 
     response = client.post(

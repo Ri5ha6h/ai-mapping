@@ -3,9 +3,45 @@ from typing import Any
 from app.api.models import NativeGraphNode, NativeGraphSpec, ValidationErrorItem
 from app.core.mapping.path_utils import MISSING, get_path
 
-ALLOWED_NODE_TYPES = {"assign", "loop", "compute"}
+ALLOWED_NODE_TYPES = {
+    "assign",
+    "loop",
+    "compute",
+    "template",
+    "object",
+    "array",
+    "map",
+    "filter",
+    "reduce",
+    "conditional",
+    "lookup",
+    "switch",
+    "append",
+    "merge",
+    "group_by",
+    "sort",
+}
 ALLOWED_COMPUTE_OPERATIONS = {"hapag_stops", "hapag_events", "otm_booking_request"}
-ALLOWED_TRANSFORMS = {"default", "first_token", "regex_replace", "date_format", "lookup"}
+ALLOWED_TRANSFORMS = {
+    "default",
+    "first_token",
+    "regex_replace",
+    "date_format",
+    "lookup",
+    "split",
+    "join",
+    "pick",
+    "trim",
+    "upper",
+    "lower",
+    "to_number",
+    "multiply",
+    "divide",
+    "round",
+    "empty_to_null",
+    "suppress_empty",
+    "country_iso3_to_iso2",
+}
 
 
 def validate_native_graph(
@@ -48,7 +84,22 @@ def _validate_nodes(
                 )
             )
 
-        if node.type in {"assign", "compute"} and not node.target_path and not node.var_name:
+        if node.type in {
+            "assign",
+            "compute",
+            "template",
+            "object",
+            "array",
+            "map",
+            "filter",
+            "reduce",
+            "conditional",
+            "lookup",
+            "switch",
+            "merge",
+            "group_by",
+            "sort",
+        } and not node.target_path and not node.var_name:
             errors.append(
                 ValidationErrorItem(
                     code="native_graph_missing_destination",
@@ -85,7 +136,7 @@ def _validate_nodes(
                 )
             )
 
-        if node.expression and node.type not in {"assign"}:
+        if node.expression and node.type not in {"assign", "conditional"}:
             errors.append(
                 ValidationErrorItem(
                     code="invalid_native_graph_expression",
@@ -124,6 +175,16 @@ def _validate_nodes(
                         rule_id=node.id,
                     )
                 )
+
+        lookup_table_name = node.lookup_table or node.operation
+        if node.type == "lookup" and lookup_table_name not in graph.lookup_tables:
+            errors.append(
+                ValidationErrorItem(
+                    code="unknown_native_graph_lookup",
+                    message=f"Lookup table {lookup_table_name} was not found.",
+                    rule_id=node.id,
+                )
+            )
 
         errors.extend(
             _validate_nodes(

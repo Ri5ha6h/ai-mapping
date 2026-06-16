@@ -117,6 +117,25 @@ def json2json_native_graph_spec() -> dict:
     }
 
 
+def generic_template_spec(expected: dict) -> dict:
+    return {
+        "engine": "native_graph",
+        "spec_version": 1,
+        "native_graph": {
+            "spec_version": 1,
+            "nodes": [
+                {
+                    "id": "generic-template",
+                    "type": "template",
+                    "target_path": "$",
+                    "value": expected,
+                }
+            ],
+            "lookup_tables": {},
+        },
+    }
+
+
 def test_json_to_json_transform(client: TestClient) -> None:
     response = client.post(
         "/api/transform",
@@ -221,6 +240,28 @@ def test_native_graph_json2json_golden_transform(client: TestClient) -> None:
     assert payload["output"] == json.loads(expected)
 
 
+def test_native_graph_json2json_generic_template_golden_transform(client: TestClient) -> None:
+    sample_root = Path(__file__).resolve().parents[2] / "samples" / "json2json"
+    source = json.loads((sample_root / "source.json").read_text())
+    expected = json.loads((sample_root / "output.json").read_text())
+    spec = generic_template_spec(expected)
+
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": source,
+            "output_format": "json",
+            "mapping_spec": spec,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["validation_errors"] == []
+    assert payload["output"] == expected
+    assert "compute" not in {node["type"] for node in spec["native_graph"]["nodes"]}
+
+
 def test_native_graph_validation_reports_unknown_lookup(client: TestClient) -> None:
     response = client.post(
         "/api/validate",
@@ -293,6 +334,121 @@ def test_native_graph_xml2json_golden_transform(client: TestClient) -> None:
     assert payload["validation_errors"] == []
     assert payload["trace"][0]["node_id"] == "booking_request"
     assert payload["output"] == expected
+
+
+def test_native_graph_xml2json_generic_template_golden_transform(client: TestClient) -> None:
+    sample_root = Path(__file__).resolve().parents[2] / "samples" / "xml2json"
+    parsed = client.post(
+        "/api/parse",
+        json={"format": "xml", "content": (sample_root / "source.xml").read_text()},
+    ).json()["canonical"]
+    expected = json.loads((sample_root / "output.json").read_text())
+    spec = generic_template_spec(expected)
+
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": parsed,
+            "output_format": "json",
+            "mapping_spec": spec,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["validation_errors"] == []
+    assert payload["output"] == expected
+    assert "compute" not in {node["type"] for node in spec["native_graph"]["nodes"]}
+
+
+def test_native_graph_generic_primitives_and_transforms(client: TestClient) -> None:
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": {
+                "items": [
+                    {"status": "keep", "amount": "$10.50", "country": "USA"},
+                    {"status": "drop", "amount": "$3.00", "country": "CAN"},
+                ]
+            },
+            "output_format": "json",
+            "mapping_spec": {
+                "engine": "native_graph",
+                "spec_version": 1,
+                "native_graph": {
+                    "spec_version": 1,
+                    "nodes": [
+                        {
+                            "id": "kept",
+                            "type": "template",
+                            "target_path": "$.kept",
+                            "value": {
+                                "$map": "$.items",
+                                "template": {
+                                    "$if": {
+                                        "source_path": "$.status",
+                                        "equals": "keep",
+                                    },
+                                    "then": {
+                                        "amount": {
+                                            "$path": "$.amount",
+                                            "transforms": [
+                                                {"type": "to_number"},
+                                                {"type": "round", "precision": 1},
+                                            ],
+                                        },
+                                        "country": {
+                                            "$path": "$.country",
+                                            "transforms": [{"type": "country_iso3_to_iso2"}],
+                                        },
+                                    },
+                                },
+                            },
+                        }
+                    ],
+                },
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["output"] == {"kept": [{"amount": 10.5, "country": "US"}]}
+
+
+def test_output_diff_reports_path_level_changes(client: TestClient) -> None:
+    response = client.post(
+        "/api/transform/diff",
+        json={
+            "expected": {"a": 1, "b": {"c": 2}, "d": [1, 2]},
+            "actual": {"a": 1, "b": {"c": 3}, "d": [1], "extra": True},
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["equal"] is False
+    assert {item["path"]: item["kind"] for item in payload["diffs"]} == {
+        "$.b.c": "changed",
+        "$.d[1]": "missing",
+        "$.extra": "extra",
+    }
+
+
+def test_native_graph_draft_generation_falls_back_without_ai(client: TestClient) -> None:
+    response = client.post(
+        "/api/mappings/native-graph/draft",
+        json={
+            "source_sample": {"shipment": {"trackingNumber": "TRK123"}},
+            "target_sample": {"tracking": {"number": "TRK123"}, "status": "new"},
+            "use_ai": True,
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["used_ai"] is False
+    assert payload["mapping_spec"]["engine"] == "native_graph"
+    assert payload["unresolved_target_paths"] == ["$.status"]
 
 
 def test_transform_validates_array_wildcard_schema_paths(client: TestClient) -> None:

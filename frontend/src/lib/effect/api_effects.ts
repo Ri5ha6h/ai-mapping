@@ -5,6 +5,8 @@ import {
   createTemplate,
   createTemplateVersion,
   deleteSchemaArtifact,
+  diffOutput,
+  generateNativeGraphDraft,
   getMappingCapabilities,
   getSchemaArtifact,
   getTemplate,
@@ -87,6 +89,25 @@ export const getMappingCapabilitiesEffect = () =>
     catch: (error) => error,
   })
 
+export const generateNativeGraphDraftEffect = (
+  sourceSample: unknown,
+  targetSample: unknown,
+  sourceSchema: SchemaNode | null,
+  targetSchema: SchemaNode | null,
+  useAi: boolean,
+) =>
+  Effect.tryPromise({
+    try: () =>
+      generateNativeGraphDraft({
+        sourceSample,
+        targetSample,
+        sourceSchema,
+        targetSchema,
+        useAi,
+      }),
+    catch: (error) => error,
+  })
+
 export const transformEffect = (
   sourceData: unknown,
   rules: MappingRule[],
@@ -108,6 +129,12 @@ export const validateEffect = (
 ) =>
   Effect.tryPromise({
     try: () => validatePayload({ sourceData, output, rules, mappingSpec, targetSchema }),
+    catch: (error) => error,
+  })
+
+export const diffOutputEffect = (expected: unknown, actual: unknown) =>
+  Effect.tryPromise({
+    try: () => diffOutput({ expected, actual }),
     catch: (error) => error,
   })
 

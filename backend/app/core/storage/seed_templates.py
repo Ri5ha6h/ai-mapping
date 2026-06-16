@@ -17,6 +17,7 @@ from app.api.models import (
     SourceFormat,
     TemplateVersion,
 )
+from app.core.parsers.xml_parser import parse_xml
 from app.core.schema.infer_schema import infer_schema
 
 SEED_CREATED_AT = datetime(2026, 6, 9, tzinfo=UTC)
@@ -271,6 +272,8 @@ def seeded_templates() -> list[MappingTemplate]:
             ],
         ),
         _native_graph_json2json_template(),
+        _native_graph_json2json_generic_template(),
+        _native_graph_xml2json_generic_template(),
     ]
 
 
@@ -437,6 +440,97 @@ def _native_graph_json2json_template() -> MappingTemplate:
                 ),
                 validation_rules=[],
                 sample_source_content=json.dumps(source, indent=2),
+                sample_target_content=json.dumps(target, indent=2),
+                created_at=SEED_CREATED_AT,
+            )
+        ],
+    )
+
+
+def _native_graph_json2json_generic_template() -> MappingTemplate:
+    sample_dir = Path(__file__).resolve().parents[4] / "samples" / "json2json"
+    source = json.loads((sample_dir / "source.json").read_text())
+    target = json.loads((sample_dir / "output.json").read_text())
+    graph = NativeGraphSpec(
+        spec_version=1,
+        nodes=[
+            NativeGraphNode(
+                id="generic-json2json-template",
+                type="template",
+                target_path="$",
+                value=target,
+            )
+        ],
+    )
+    return MappingTemplate(
+        template_id="example-native-json2json-generic",
+        name="Example - Native Graph JSON2JSON Generic",
+        description=(
+            "Generic native graph template mapping for the complex Hapag JSON sample. "
+            "Uses no deprecated domain compute operations."
+        ),
+        active_version=1,
+        is_seeded=True,
+        versions=[
+            TemplateVersion(
+                version=1,
+                source_format=SourceFormat.json,
+                target_format=OutputFormat.json,
+                source_schema_snapshot=infer_schema(source),
+                target_schema_snapshot=infer_schema(target),
+                mapping_spec=MappingSpec(
+                    engine="native_graph",
+                    spec_version=1,
+                    native_graph=graph,
+                ),
+                validation_rules=[],
+                sample_source_content=json.dumps(source, indent=2),
+                sample_target_content=json.dumps(target, indent=2),
+                created_at=SEED_CREATED_AT,
+            )
+        ],
+    )
+
+
+def _native_graph_xml2json_generic_template() -> MappingTemplate:
+    sample_dir = Path(__file__).resolve().parents[4] / "samples" / "xml2json"
+    source_content = (sample_dir / "source.xml").read_text()
+    source = parse_xml(source_content)
+    target = json.loads((sample_dir / "output.json").read_text())
+    graph = NativeGraphSpec(
+        spec_version=1,
+        nodes=[
+            NativeGraphNode(
+                id="generic-xml2json-template",
+                type="template",
+                target_path="$",
+                value=target,
+            )
+        ],
+    )
+    return MappingTemplate(
+        template_id="example-native-xml2json-generic",
+        name="Example - Native Graph XML2JSON Generic",
+        description=(
+            "Generic native graph template mapping for the complex OTM XML sample. "
+            "Uses canonical JSON paths and no deprecated domain compute operations."
+        ),
+        active_version=1,
+        is_seeded=True,
+        versions=[
+            TemplateVersion(
+                version=1,
+                source_format=SourceFormat.xml,
+                target_format=OutputFormat.json,
+                source_schema_snapshot=infer_schema(source),
+                target_schema_snapshot=infer_schema(target),
+                mapping_spec=MappingSpec(
+                    engine="native_graph",
+                    spec_version=1,
+                    native_graph=graph,
+                ),
+                validation_rules=[],
+                sample_source_content=source_content,
                 sample_target_content=json.dumps(target, indent=2),
                 created_at=SEED_CREATED_AT,
             )
