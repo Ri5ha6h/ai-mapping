@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/client"
 import type {
   MappingRule,
+  MappingSpec,
   OutputFormat,
   SourceFormat,
   TemplateCreateRequest,
@@ -89,11 +90,12 @@ export const getMappingCapabilitiesEffect = () =>
 export const transformEffect = (
   sourceData: unknown,
   rules: MappingRule[],
+  mappingSpec: MappingSpec | null,
   outputFormat: OutputFormat,
   targetSchema: SchemaNode | null,
 ) =>
   Effect.tryPromise({
-    try: () => transformPayload({ sourceData, rules, outputFormat, targetSchema }),
+    try: () => transformPayload({ sourceData, rules, mappingSpec, outputFormat, targetSchema }),
     catch: (error) => error,
   })
 
@@ -101,10 +103,11 @@ export const validateEffect = (
   sourceData: unknown,
   output: unknown,
   rules: MappingRule[],
+  mappingSpec: MappingSpec | null,
   targetSchema: SchemaNode | null,
 ) =>
   Effect.tryPromise({
-    try: () => validatePayload({ sourceData, output, rules, targetSchema }),
+    try: () => validatePayload({ sourceData, output, rules, mappingSpec, targetSchema }),
     catch: (error) => error,
   })
 

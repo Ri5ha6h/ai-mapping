@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Literal
@@ -176,9 +178,61 @@ class ValidationErrorItem(BaseModel):
     rule_id: str | None = None
 
 
+class TransformTraceItem(BaseModel):
+    node_id: str
+    node_type: str
+    target_path: str | None = None
+    status: Literal["executed", "failed", "skipped"] = "executed"
+    message: str = ""
+
+
+class NativeGraphTransform(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: str
+    pattern: str | None = None
+    replacement: str = ""
+    input_format: str | None = None
+    output_format: str | None = None
+    lookup_table: str | None = None
+    default: JsonValue = None
+
+
+class NativeGraphNode(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    type: Literal["assign", "loop", "compute"]
+    target_path: str | None = None
+    source_path: str | None = None
+    var_name: str | None = None
+    value: JsonValue = None
+    expression: str | None = None
+    operation: str | None = None
+    transforms: list[NativeGraphTransform] = Field(default_factory=list)
+    children: list[NativeGraphNode] = Field(default_factory=list)
+
+
+class NativeGraphSpec(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    spec_version: int = 1
+    nodes: list[NativeGraphNode]
+    lookup_tables: dict[str, dict[str, JsonValue]] = Field(default_factory=dict)
+
+
+class MappingSpec(BaseModel):
+    engine: str = "deterministic_rules"
+    spec_version: int | None = None
+    rules: list[MappingRule] = Field(default_factory=list)
+    native_graph: NativeGraphSpec | None = None
+    full_jsonata_expression: str | None = None
+
+
 class TransformRequest(BaseModel):
     source_data: JsonValue
-    rules: list[MappingRule]
+    rules: list[MappingRule] = Field(default_factory=list)
+    mapping_spec: MappingSpec | None = None
     output_format: OutputFormat = OutputFormat.json
     root_element: str = "Output"
     target_schema: SchemaNode | None = None
@@ -188,24 +242,20 @@ class TransformResponse(BaseModel):
     output_format: OutputFormat
     output: JsonValue | str
     validation_errors: list[ValidationErrorItem] = Field(default_factory=list)
+    trace: list[TransformTraceItem] = Field(default_factory=list)
 
 
 class ValidateRequest(BaseModel):
     source_data: JsonValue | None = None
     output: JsonValue | None = None
     rules: list[MappingRule] = Field(default_factory=list)
+    mapping_spec: MappingSpec | None = None
     target_schema: SchemaNode | None = None
 
 
 class ValidateResponse(BaseModel):
     valid: bool
     errors: list[ValidationErrorItem] = Field(default_factory=list)
-
-
-class MappingSpec(BaseModel):
-    engine: str = "deterministic_rules"
-    rules: list[MappingRule]
-    full_jsonata_expression: str | None = None
 
 
 class TemplateVersion(BaseModel):

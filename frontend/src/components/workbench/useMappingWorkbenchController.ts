@@ -25,6 +25,7 @@ import {
 } from "@/lib/effect/api_effects"
 import type {
   MappingRule,
+  MappingSpec,
   MappingTemplate,
   MappingSuggestion,
   OutputFormat,
@@ -118,6 +119,9 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   const [targetSchema, setTargetSchema] = useState<SchemaNode | null>(null)
   const [suggestions, setSuggestions] = useState<MappingSuggestion[]>([])
   const [rules, setRules] = useState<MappingRule[]>([])
+  const [activeMappingSpec, setActiveMappingSpec] = useState<MappingSpec | null>(
+    null
+  )
   const [advancedJsonata, setAdvancedJsonata] = useState("")
   const [transformResult, setTransformResult] =
     useState<TransformResponse | null>(null)
@@ -163,7 +167,8 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     : targetFormat
 
   const readyForMapping = Boolean(activeSourceSchema && activeTargetSchema)
-  const readyForTransform = readyForMapping && rules.length > 0
+  const readyForTransform =
+    readyForMapping && (rules.length > 0 || Boolean(activeMappingSpec))
   const readyForTemplateSave = Boolean(
     activeSourceSchema && activeTargetSchema && rules.length > 0
   )
@@ -173,6 +178,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     if (validationErrors.length > 0)
       return `${validationErrors.length} validation issue(s)`
     if (transformResult) return "Transformation complete"
+    if (activeMappingSpec?.engine === "native_graph") return "Native graph loaded"
     if (rules.length > 0) return `${rules.length} editable rule(s)`
     if (readyForMapping) return "Schemas selected"
     return "Waiting for schemas"
@@ -180,6 +186,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     busyAction,
     readyForMapping,
     rules.length,
+    activeMappingSpec,
     transformResult,
     validationErrors.length,
   ])
@@ -350,6 +357,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
         transformEffect(
           parsed.sourceData,
           rulesForTransform,
+          activeMappingSpec,
           activeTargetFormat,
           validationSchema
         )
@@ -360,6 +368,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
           parsed.sourceData,
           response.output,
           rulesForTransform,
+          activeMappingSpec,
           validationSchema
         )
       )
@@ -455,9 +464,13 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
         setTargetInput(version.sample_target_content)
       setSourceSchema(version.source_schema_snapshot ?? null)
       setTargetSchema(version.target_schema_snapshot ?? null)
+      setActiveMappingSpec(
+        version.mapping_spec.engine === "native_graph" ? version.mapping_spec : null
+      )
       applyRules(
         version.mapping_spec.rules,
-        version.mapping_spec.full_jsonata_expression
+        version.mapping_spec.full_jsonata_expression,
+        { preserveMappingSpec: version.mapping_spec.engine === "native_graph" }
       )
       setValidationErrors(version.validation_rules)
       setTransformResult(null)
@@ -496,6 +509,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setTargetSchema(null)
     setSuggestions([])
     setRules([])
+    setActiveMappingSpec(null)
     setAdvancedJsonata("")
     setTransformResult(null)
     setValidationErrors([])
@@ -628,9 +642,11 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
 
   function applyRules(
     nextRules: MappingRule[],
-    jsonataExpression?: string | null
+    jsonataExpression?: string | null,
+    options?: { preserveMappingSpec?: boolean }
   ) {
     setRules(nextRules)
+    if (!options?.preserveMappingSpec) setActiveMappingSpec(null)
     setAdvancedJsonata(
       jsonataExpression ?? jsonataExpressionForRules(nextRules)
     )
@@ -638,6 +654,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
 
   function updateRules(nextRules: MappingRule[]) {
     setRules(nextRules)
+    setActiveMappingSpec(null)
     if (shouldSyncAdvancedJsonata()) {
       setAdvancedJsonata(jsonataExpressionForRules(nextRules))
     }
@@ -688,6 +705,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setTargetSchema(null)
     setSuggestions([])
     setRules([])
+    setActiveMappingSpec(null)
     setAdvancedJsonata("")
     setTransformResult(null)
     setValidationErrors([])
@@ -748,6 +766,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     overrideSourceInput,
     suggestions,
     rules,
+    activeMappingSpec,
     advancedJsonata,
     transformResult,
     validationErrors,

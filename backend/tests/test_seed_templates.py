@@ -15,6 +15,7 @@ SEED_TEMPLATE_IDS = {
     "example-date-format",
     "example-condition",
     "example-loop",
+    "example-native-json2json",
     "example-super",
 }
 
@@ -145,6 +146,7 @@ def test_seeded_template_transforms_successfully(
             "source_data": source_data,
             "output_format": version["target_format"],
             "rules": version["mapping_spec"]["rules"],
+            "mapping_spec": version["mapping_spec"],
         },
     )
 

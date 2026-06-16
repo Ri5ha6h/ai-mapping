@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -12,6 +13,108 @@ SOURCE_JSON = {
         "items": [{"sku": "ITEM001", "qty": 10}],
     }
 }
+
+
+def json2json_native_graph_spec() -> dict:
+    return {
+        "engine": "native_graph",
+        "spec_version": 1,
+        "native_graph": {
+            "spec_version": 1,
+            "nodes": [
+                {
+                    "id": "ref_num",
+                    "type": "assign",
+                    "source_path": "$.refNum",
+                    "target_path": "$.refNum",
+                },
+                {
+                    "id": "ref_type",
+                    "type": "assign",
+                    "target_path": "$.refType",
+                    "value": "booking_number",
+                },
+                {
+                    "id": "carrier_name",
+                    "type": "assign",
+                    "target_path": "$.JTCarrierName",
+                    "value": "HAPAG-LLOYD",
+                },
+                {
+                    "id": "origin",
+                    "type": "assign",
+                    "source_path": "$.origin",
+                    "target_path": "$.origin",
+                },
+                {
+                    "id": "destination",
+                    "type": "assign",
+                    "source_path": "$.destination",
+                    "target_path": "$.destination",
+                },
+                {
+                    "id": "current_status",
+                    "type": "assign",
+                    "source_path": "$.currentStatus",
+                    "target_path": "$.currentStatus",
+                },
+                {
+                    "id": "booking_num",
+                    "type": "assign",
+                    "source_path": "$.bookingNum",
+                    "target_path": "$.bookingNum",
+                },
+                {
+                    "id": "bol_num",
+                    "type": "assign",
+                    "source_path": "$.bolNum",
+                    "target_path": "$.bolNum",
+                    "transforms": [{"type": "default", "default": ""}],
+                },
+                {
+                    "id": "containers",
+                    "type": "loop",
+                    "source_path": "$.containers",
+                    "target_path": "$.container",
+                    "children": [
+                        {
+                            "id": "container_type",
+                            "type": "assign",
+                            "source_path": "$.containerType",
+                            "target_path": "$.containerType",
+                            "transforms": [{"type": "first_token"}],
+                        },
+                        {
+                            "id": "container_num",
+                            "type": "assign",
+                            "source_path": "$.containerNum",
+                            "target_path": "$.containerNum",
+                            "transforms": [
+                                {
+                                    "type": "regex_replace",
+                                    "pattern": "\\s+",
+                                    "replacement": "",
+                                }
+                            ],
+                        },
+                        {
+                            "id": "stops",
+                            "type": "compute",
+                            "operation": "hapag_stops",
+                            "target_path": "$.stops",
+                        },
+                        {
+                            "id": "events",
+                            "type": "compute",
+                            "operation": "hapag_events",
+                            "target_path": "$.events",
+                        },
+                    ],
+                },
+            ],
+            "lookup_tables": {},
+        },
+    }
 
 
 def test_json_to_json_transform(client: TestClient) -> None:
@@ -96,6 +199,100 @@ def test_json_to_json_transform(client: TestClient) -> None:
     assert payload["output"]["event"]["isPickup"] is True
     assert payload["output"]["source"] == "api"
     assert payload["output"]["items"] == [{"sku": "ITEM001", "quantity": 10}]
+
+
+def test_native_graph_json2json_golden_transform(client: TestClient) -> None:
+    sample_root = Path(__file__).resolve().parents[2] / "samples" / "json2json"
+    source = (sample_root / "source.json").read_text()
+    expected = (sample_root / "output.json").read_text()
+
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": json.loads(source),
+            "output_format": "json",
+            "mapping_spec": json2json_native_graph_spec(),
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["validation_errors"] == []
+    assert payload["output"] == json.loads(expected)
+
+
+def test_native_graph_validation_reports_unknown_lookup(client: TestClient) -> None:
+    response = client.post(
+        "/api/validate",
+        json={
+            "source_data": {"status": "loaded"},
+            "mapping_spec": {
+                "engine": "native_graph",
+                "spec_version": 1,
+                "native_graph": {
+                    "spec_version": 1,
+                    "nodes": [
+                        {
+                            "id": "status_code",
+                            "type": "assign",
+                            "source_path": "$.status",
+                            "target_path": "$.statusCode",
+                            "transforms": [
+                                {"type": "lookup", "lookup_table": "missing", "default": ""}
+                            ],
+                        }
+                    ],
+                    "lookup_tables": {},
+                },
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["errors"][0]["code"] == "unknown_native_graph_lookup"
+
+
+def test_native_graph_xml2json_golden_transform(client: TestClient) -> None:
+    sample_root = Path(__file__).resolve().parents[2] / "samples" / "xml2json"
+    parsed = client.post(
+        "/api/parse",
+        json={"format": "xml", "content": (sample_root / "source.xml").read_text()},
+    ).json()["canonical"]
+    expected = json.loads((sample_root / "output.json").read_text())
+
+    response = client.post(
+        "/api/transform",
+        json={
+            "source_data": parsed,
+            "output_format": "json",
+            "mapping_spec": {
+                "engine": "native_graph",
+                "spec_version": 1,
+                "native_graph": {
+                    "spec_version": 1,
+                    "lookup_tables": {
+                        "service_levels": {
+                            "FDX_INT_PRTY": "FEDEX_INTERNATIONAL_PRIORITY"
+                        }
+                    },
+                    "nodes": [
+                        {
+                            "id": "booking_request",
+                            "type": "compute",
+                            "operation": "otm_booking_request",
+                            "target_path": "$.jtBookingReqCanonical",
+                        }
+                    ],
+                },
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["validation_errors"] == []
+    assert payload["trace"][0]["node_id"] == "booking_request"
+    assert payload["output"] == expected
 
 
 def test_transform_validates_array_wildcard_schema_paths(client: TestClient) -> None:

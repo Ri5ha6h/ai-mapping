@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from app.api.models import (
@@ -8,6 +9,9 @@ from app.api.models import (
     MappingRule,
     MappingSpec,
     MappingTemplate,
+    NativeGraphNode,
+    NativeGraphSpec,
+    NativeGraphTransform,
     OutputFormat,
     RuleType,
     SourceFormat,
@@ -266,6 +270,7 @@ def seeded_templates() -> list[MappingTemplate]:
                 ),
             ],
         ),
+        _native_graph_json2json_template(),
     ]
 
 
@@ -312,3 +317,128 @@ def _template(
 
 def _sample_content(value: dict[str, Any]) -> str:
     return json.dumps(value, indent=2, sort_keys=True)
+
+
+def _native_graph_json2json_template() -> MappingTemplate:
+    sample_dir = Path(__file__).resolve().parents[4] / "samples" / "json2json"
+    source = json.loads((sample_dir / "source.json").read_text())
+    target = json.loads((sample_dir / "output.json").read_text())
+    graph = NativeGraphSpec(
+        spec_version=1,
+        nodes=[
+            NativeGraphNode(
+                id="ref_num",
+                type="assign",
+                source_path="$.refNum",
+                target_path="$.refNum",
+            ),
+            NativeGraphNode(
+                id="ref_type",
+                type="assign",
+                target_path="$.refType",
+                value="booking_number",
+            ),
+            NativeGraphNode(
+                id="carrier_name",
+                type="assign",
+                target_path="$.JTCarrierName",
+                value="HAPAG-LLOYD",
+            ),
+            NativeGraphNode(
+                id="origin",
+                type="assign",
+                source_path="$.origin",
+                target_path="$.origin",
+            ),
+            NativeGraphNode(
+                id="destination",
+                type="assign",
+                source_path="$.destination",
+                target_path="$.destination",
+            ),
+            NativeGraphNode(
+                id="current_status",
+                type="assign",
+                source_path="$.currentStatus",
+                target_path="$.currentStatus",
+            ),
+            NativeGraphNode(
+                id="booking_num",
+                type="assign",
+                source_path="$.bookingNum",
+                target_path="$.bookingNum",
+            ),
+            NativeGraphNode(
+                id="bol_num",
+                type="assign",
+                source_path="$.bolNum",
+                target_path="$.bolNum",
+                transforms=[NativeGraphTransform(type="default", default="")],
+            ),
+            NativeGraphNode(
+                id="containers",
+                type="loop",
+                source_path="$.containers",
+                target_path="$.container",
+                children=[
+                    NativeGraphNode(
+                        id="container_type",
+                        type="assign",
+                        source_path="$.containerType",
+                        target_path="$.containerType",
+                        transforms=[NativeGraphTransform(type="first_token")],
+                    ),
+                    NativeGraphNode(
+                        id="container_num",
+                        type="assign",
+                        source_path="$.containerNum",
+                        target_path="$.containerNum",
+                        transforms=[
+                            NativeGraphTransform(
+                                type="regex_replace",
+                                pattern=r"\s+",
+                                replacement="",
+                            )
+                        ],
+                    ),
+                    NativeGraphNode(
+                        id="stops",
+                        type="compute",
+                        operation="hapag_stops",
+                        target_path="$.stops",
+                    ),
+                    NativeGraphNode(
+                        id="events",
+                        type="compute",
+                        operation="hapag_events",
+                        target_path="$.events",
+                    ),
+                ],
+            ),
+        ],
+    )
+    return MappingTemplate(
+        template_id="example-native-json2json",
+        name="Example - Native Graph JSON2JSON",
+        description="Native graph mapping that matches the complex Hapag JSON sample.",
+        active_version=1,
+        is_seeded=True,
+        versions=[
+            TemplateVersion(
+                version=1,
+                source_format=SourceFormat.json,
+                target_format=OutputFormat.json,
+                source_schema_snapshot=infer_schema(source),
+                target_schema_snapshot=infer_schema(target),
+                mapping_spec=MappingSpec(
+                    engine="native_graph",
+                    spec_version=1,
+                    native_graph=graph,
+                ),
+                validation_rules=[],
+                sample_source_content=json.dumps(source, indent=2),
+                sample_target_content=json.dumps(target, indent=2),
+                created_at=SEED_CREATED_AT,
+            )
+        ],
+    )

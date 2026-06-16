@@ -1,5 +1,6 @@
 import type {
   MappingRule,
+  MappingSpec,
   MappingTemplate,
   MappingCapabilities,
   OutputFormat,
@@ -103,12 +104,14 @@ export async function getMappingCapabilities(): Promise<MappingCapabilities> {
 export async function transformPayload(params: {
   sourceData: unknown
   rules: MappingRule[]
+  mappingSpec?: MappingSpec | null
   outputFormat: OutputFormat
   targetSchema?: SchemaNode | null
 }): Promise<TransformResponse> {
   return postJson<TransformResponse>("/api/transform", {
     source_data: params.sourceData,
     rules: params.rules,
+    mapping_spec: params.mappingSpec ?? null,
     output_format: params.outputFormat,
     root_element: "ShipmentEvent",
     target_schema: params.targetSchema ?? null,
@@ -119,12 +122,14 @@ export async function validatePayload(params: {
   sourceData: unknown
   output?: unknown
   rules: MappingRule[]
+  mappingSpec?: MappingSpec | null
   targetSchema?: SchemaNode | null
 }): Promise<{ valid: boolean; errors: ValidationErrorItem[] }> {
   return postJson("/api/validate", {
     source_data: params.sourceData,
     output: params.output ?? null,
     rules: params.rules,
+    mapping_spec: params.mappingSpec ?? null,
     target_schema: params.targetSchema ?? null,
   })
 }

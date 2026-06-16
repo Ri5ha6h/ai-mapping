@@ -282,6 +282,73 @@ def test_template_versions_store_schema_links_and_snapshots(
     ]
 
 
+def test_native_graph_template_persists_and_executes(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TEMPLATE_DB_PATH", str(tmp_path / "templates.sqlite3"))
+    mapping_spec = {
+        "engine": "native_graph",
+        "spec_version": 1,
+        "native_graph": {
+            "spec_version": 1,
+            "nodes": [
+                {
+                    "id": "tracking",
+                    "type": "assign",
+                    "source_path": "$.shipment.trackingNumber",
+                    "target_path": "$.tracking.number",
+                },
+                {
+                    "id": "source",
+                    "type": "assign",
+                    "target_path": "$.metadata.source",
+                    "value": "native_graph",
+                },
+            ],
+            "lookup_tables": {},
+        },
+    }
+
+    create_response = client.post(
+        "/api/templates",
+        json={
+            "name": "Native Graph Shipment",
+            "source_format": "json",
+            "target_format": "json",
+            "mapping_spec": mapping_spec,
+            "sample_source_content": '{"shipment":{"trackingNumber":"TRK123"}}',
+            "sample_target_content": (
+                '{"tracking":{"number":"TRK123"},"metadata":{"source":"native_graph"}}'
+            ),
+        },
+    )
+
+    assert create_response.status_code == 200
+    read_response = client.get("/api/templates/native-graph-shipment")
+    assert read_response.status_code == 200
+    version = read_response.json()["versions"][0]
+    assert version["mapping_spec"]["engine"] == "native_graph"
+    assert version["mapping_spec"]["native_graph"]["nodes"][0]["id"] == "tracking"
+
+    transform_response = client.post(
+        "/api/transform",
+        json={
+            "source_data": {"shipment": {"trackingNumber": "TRK123"}},
+            "output_format": "json",
+            "mapping_spec": version["mapping_spec"],
+        },
+    )
+
+    assert transform_response.status_code == 200
+    assert transform_response.json()["validation_errors"] == []
+    assert transform_response.json()["output"] == {
+        "tracking": {"number": "TRK123"},
+        "metadata": {"source": "native_graph"},
+    }
+
+
 def test_template_conflict_and_missing_template_errors(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

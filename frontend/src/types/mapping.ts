@@ -42,9 +42,40 @@ export type MappingRule = {
   loop?: LoopRule | null
 }
 
+export type NativeGraphTransform = {
+  type: string
+  pattern?: string | null
+  replacement?: string
+  input_format?: string | null
+  output_format?: string | null
+  lookup_table?: string | null
+  default?: unknown
+}
+
+export type NativeGraphNode = {
+  id: string
+  type: "assign" | "loop" | "compute"
+  target_path?: string | null
+  source_path?: string | null
+  var_name?: string | null
+  value?: unknown
+  expression?: string | null
+  operation?: string | null
+  transforms?: NativeGraphTransform[]
+  children?: NativeGraphNode[]
+}
+
+export type NativeGraphSpec = {
+  spec_version: number
+  nodes: NativeGraphNode[]
+  lookup_tables?: Record<string, Record<string, unknown>>
+}
+
 export type MappingSpec = {
   engine: string
+  spec_version?: number | null
   rules: MappingRule[]
+  native_graph?: NativeGraphSpec | null
   full_jsonata_expression?: string | null
 }
 
@@ -128,6 +159,13 @@ export type TransformResponse = {
   output_format: OutputFormat
   output: unknown
   validation_errors: ValidationErrorItem[]
+  trace?: Array<{
+    node_id: string
+    node_type: string
+    target_path?: string | null
+    status: "executed" | "failed" | "skipped"
+    message: string
+  }>
 }
 
 export type WorkbenchPayload = {

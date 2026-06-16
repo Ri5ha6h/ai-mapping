@@ -826,6 +826,37 @@
     line-height: 1.55;
   }
 
+  .trace-list {
+    display: grid;
+    gap: 6px;
+    max-height: 160px;
+    overflow: auto;
+    border: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .trace-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .trace-row strong,
+  .trace-row span,
+  .template-engine-note {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .trace-row span,
+  .template-engine-note {
+    color: var(--muted-foreground);
+  }
+
   .issue-banner,
   .busy-banner {
     max-width: 1800px;
@@ -990,6 +1021,11 @@
   .version-row span {
     color: var(--muted-foreground);
     font-size: 12px;
+  }
+
+  .version-row .template-engine-note {
+    color: var(--primary);
+    font-weight: 720;
   }
 }
 

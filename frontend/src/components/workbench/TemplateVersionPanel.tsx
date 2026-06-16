@@ -143,6 +143,11 @@ export function TemplateVersionPanel({
                       {version.source_format} to {version.target_format}
                       {version.sample_source_content ? " with samples" : ""}
                     </span>
+                    {version.mapping_spec.engine === "native_graph" ? (
+                      <span className="template-engine-note">
+                        Native graph · {version.mapping_spec.native_graph?.nodes.length ?? 0} nodes
+                      </span>
+                    ) : null}
                   </div>
                   <Button
                     type="button"
