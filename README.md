@@ -94,5 +94,6 @@ Set `API_BASE_URL` if the backend is not on `http://127.0.0.1:8000`.
 
 Runtime schema and template data is written to `backend/data/templates.sqlite3`
 by default and is ignored by Git. Override it with `TEMPLATE_DB_PATH` for
-isolated demos. The backend initializes this database automatically and seeds
-example templates for each deterministic rule type plus a combined super example.
+isolated demos; relative paths are resolved from the backend directory. The
+backend initializes this database automatically and seeds example script
+templates.

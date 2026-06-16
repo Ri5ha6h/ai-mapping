@@ -2,6 +2,9 @@ from dataclasses import dataclass
 from os import environ, getenv
 from pathlib import Path
 
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_TEMPLATE_DB_PATH = BACKEND_ROOT / "data" / "templates.sqlite3"
+
 
 def load_dotenv_file(path: Path) -> None:
     if not path.exists():
@@ -25,7 +28,7 @@ def load_dotenv_file(path: Path) -> None:
         environ.setdefault(key, raw_value)
 
 
-load_dotenv_file(Path(__file__).resolve().parents[2] / ".env")
+load_dotenv_file(BACKEND_ROOT / ".env")
 
 
 def _csv_env(name: str, default: str) -> list[str]:
@@ -41,12 +44,24 @@ def _default_cors_origins() -> str:
     return ",".join(origins)
 
 
+def _template_db_path_from_env() -> str:
+    configured_path = getenv("TEMPLATE_DB_PATH")
+    if not configured_path:
+        return str(DEFAULT_TEMPLATE_DB_PATH)
+
+    db_path = Path(configured_path)
+    if db_path.is_absolute():
+        return str(db_path)
+
+    return str(BACKEND_ROOT / db_path)
+
+
 @dataclass(frozen=True)
 class Settings:
     app_name: str = "Auto Mapping Service"
     api_prefix: str = "/api"
     cors_origins: list[str] | None = None
-    template_db_path: str = getenv("TEMPLATE_DB_PATH", "data/templates.sqlite3")
+    template_db_path: str = _template_db_path_from_env()
     openrouter_api_key: str | None = getenv("OPENROUTER_API_KEY")
     openrouter_model: str | None = getenv("OPENROUTER_MODEL")
     openrouter_http_referer: str | None = getenv("OPENROUTER_HTTP_REFERER")
@@ -67,7 +82,7 @@ settings = Settings()
 def get_settings() -> Settings:
     return Settings(
         cors_origins=_csv_env("CORS_ORIGINS", _default_cors_origins()),
-        template_db_path=getenv("TEMPLATE_DB_PATH", "data/templates.sqlite3"),
+        template_db_path=_template_db_path_from_env(),
         openrouter_api_key=getenv("OPENROUTER_API_KEY"),
         openrouter_model=getenv("OPENROUTER_MODEL"),
         openrouter_http_referer=getenv("OPENROUTER_HTTP_REFERER"),
