@@ -47,22 +47,7 @@ def demo_json_to_json() -> None:
         "JSON to JSON",
         source,
         "json",
-        [
-            field("rule_tracking", "$.shipment.trackingNumber", "$.tracking.number"),
-            field("rule_carrier", "$.shipment.carrier", "$.tracking.carrierCode"),
-            field("rule_status", "$.shipment.status.code", "$.event.statusCode"),
-            field("rule_description", "$.shipment.status.description", "$.event.statusDescription"),
-            {
-                "id": "rule_event_date",
-                "type": "date_format",
-                "source_path": "$.shipment.eventTime",
-                "target_path": "$.event.timestamp",
-                "input_format": "%Y%m%d",
-                "output_format": "%Y-%m-%d",
-            },
-            field("rule_city", "$.shipment.location.city", "$.event.city"),
-            field("rule_country", "$.shipment.location.country", "$.event.country"),
-        ],
+        script_for_paths("shipment", xml_output=False),
     )
 
 
@@ -72,22 +57,7 @@ def demo_xml_to_json() -> None:
         "XML to JSON",
         parsed["canonical"],
         "json",
-        [
-            field("rule_tracking", "$.Shipment.TrackingNumber", "$.tracking.number"),
-            field("rule_carrier", "$.Shipment.Carrier", "$.tracking.carrierCode"),
-            field("rule_status", "$.Shipment.Status.Code", "$.event.statusCode"),
-            field("rule_description", "$.Shipment.Status.Description", "$.event.statusDescription"),
-            {
-                "id": "rule_event_date",
-                "type": "date_format",
-                "source_path": "$.Shipment.EventTime",
-                "target_path": "$.event.timestamp",
-                "input_format": "%Y%m%d",
-                "output_format": "%Y-%m-%d",
-            },
-            field("rule_city", "$.Shipment.Location.City", "$.event.city"),
-            field("rule_country", "$.Shipment.Location.Country", "$.event.country"),
-        ],
+        script_for_paths("Shipment", xml_output=False),
     )
 
 
@@ -97,47 +67,28 @@ def demo_json_to_xml() -> None:
         "JSON to XML",
         source,
         "xml",
-        [
-            field("rule_tracking", "$.shipment.trackingNumber", "$.TrackingNumber"),
-            field("rule_carrier", "$.shipment.carrier", "$.Carrier"),
-            field("rule_status", "$.shipment.status.code", "$.StatusCode"),
-            field("rule_description", "$.shipment.status.description", "$.StatusDescription"),
-            {
-                "id": "rule_event_date",
-                "type": "date_format",
-                "source_path": "$.shipment.eventTime",
-                "target_path": "$.EventTimestamp",
-                "input_format": "%Y%m%d",
-                "output_format": "%Y-%m-%d",
-            },
-            field("rule_city", "$.shipment.location.city", "$.City"),
-            field("rule_country", "$.shipment.location.country", "$.Country"),
-        ],
+        script_for_paths("shipment", xml_output=True),
     )
 
 
 def demo_edi_214() -> None:
     parsed = parse("edi_214", read_sample("edi_214.edi"))
-    rules = [
-        field("rule_transaction", "$.edi.transaction_set", "$.ediType"),
-        field("rule_tracking", "$.edi.segments[3].elements[1]", "$.trackingNumber"),
-        field("rule_carrier", "$.edi.segments[3].elements[2]", "$.carrier"),
-        field("rule_status", "$.edi.segments[5].elements[0]", "$.statusCode"),
-    ]
-    transform("EDI 214 to JSON", parsed["canonical"], "json", rules)
-    transform("EDI 214 to XML", parsed["canonical"], "xml", rules, root_element="ShipmentStatus")
+    script = edi_script("trackingNumber")
+    transform("EDI 214 to JSON", parsed["canonical"], "json", script)
+    transform("EDI 214 to XML", parsed["canonical"], "xml", script, root_element="ShipmentStatus")
 
 
 def demo_edi_856() -> None:
     parsed = parse("edi_856", read_sample("edi_856.edi"))
-    rules = [
-        field("rule_transaction", "$.edi.transaction_set", "$.ediType"),
-        field("rule_ship_id", "$.edi.segments[3].elements[1]", "$.shipmentId"),
-        field("rule_carrier", "$.edi.segments[5].elements[2]", "$.carrier"),
-        field("rule_order", "$.edi.segments[6].elements[1]", "$.orderNumber"),
-    ]
-    transform("EDI 856 to JSON", parsed["canonical"], "json", rules)
-    transform("EDI 856 to XML", parsed["canonical"], "xml", rules, root_element="AdvanceShipNotice")
+    script = edi_script("shipmentId")
+    transform("EDI 856 to JSON", parsed["canonical"], "json", script)
+    transform(
+        "EDI 856 to XML",
+        parsed["canonical"],
+        "xml",
+        script,
+        root_element="AdvanceShipNotice",
+    )
 
 
 def parse(format_: str, content: str) -> dict[str, Any]:
@@ -150,7 +101,7 @@ def transform(
     title: str,
     source_data: Any,
     output_format: str,
-    rules: list[dict[str, Any]],
+    script: str,
     *,
     root_element: str = "ShipmentEvent",
 ) -> None:
@@ -160,19 +111,51 @@ def transform(
             "source_data": source_data,
             "output_format": output_format,
             "root_element": root_element,
-            "rules": rules,
+            "mapping_spec": {"engine": "script_js", "script": script},
         },
     )
     print_block(title, response)
 
 
-def field(rule_id: str, source_path: str, target_path: str) -> dict[str, Any]:
-    return {
-        "id": rule_id,
-        "type": "field",
-        "source_path": source_path,
-        "target_path": target_path,
-    }
+def script_for_paths(root: str, *, xml_output: bool) -> str:
+    if xml_output:
+        return f"""function transform(source, helpers) {{
+  return {{
+    TrackingNumber: helpers.get(source, "$.{root}.trackingNumber", ""),
+    Carrier: helpers.get(source, "$.{root}.carrier", ""),
+    StatusCode: helpers.get(source, "$.{root}.status.code", ""),
+    StatusDescription: helpers.get(source, "$.{root}.status.description", ""),
+    EventTimestamp: helpers.formatDate(helpers.get(source, "$.{root}.eventTime", "")),
+    City: helpers.get(source, "$.{root}.location.city", ""),
+    Country: helpers.get(source, "$.{root}.location.country", "")
+  }};
+}}"""
+    return f"""function transform(source, helpers) {{
+  return {{
+    tracking: {{
+      number: helpers.get(source, "$.{root}.trackingNumber", ""),
+      carrierCode: helpers.get(source, "$.{root}.carrier", "")
+    }},
+    event: {{
+      statusCode: helpers.get(source, "$.{root}.status.code", ""),
+      statusDescription: helpers.get(source, "$.{root}.status.description", ""),
+      timestamp: helpers.formatDate(helpers.get(source, "$.{root}.eventTime", "")),
+      city: helpers.get(source, "$.{root}.location.city", ""),
+      country: helpers.get(source, "$.{root}.location.country", "")
+    }}
+  }};
+}}"""
+
+
+def edi_script(identifier_key: str) -> str:
+    return f"""function transform(source, helpers) {{
+  return {{
+    ediType: helpers.get(source, "$.edi.transaction_set", ""),
+    {identifier_key}: helpers.get(source, "$.edi.segments[3].elements[1]", ""),
+    carrier: helpers.get(source, "$.edi.segments[3].elements[2]", ""),
+    statusCode: helpers.get(source, "$.edi.segments[5].elements[0]", "")
+  }};
+}}"""
 
 
 def post(path: str, payload: dict[str, Any]) -> dict[str, Any]:

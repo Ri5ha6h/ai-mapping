@@ -1,82 +1,49 @@
 from typing import Any
 
-from app.api.models import MappingRule, SchemaNode, ValidationErrorItem
+from app.api.models import MappingSpec, SchemaNode, ValidationErrorItem
 from app.core.mapping.path_utils import MISSING, get_path
 
 
-def validate_mapping(
+def validate_script_mapping(
     *,
-    source_data: Any | None,
+    mapping_spec: MappingSpec | None,
     output: Any | None,
-    rules: list[MappingRule],
     target_schema: SchemaNode | None,
 ) -> list[ValidationErrorItem]:
     errors: list[ValidationErrorItem] = []
-    errors.extend(_validate_source_paths(source_data, rules))
-    errors.extend(_validate_jsonata_metadata(rules))
-
-    if target_schema is not None:
-        errors.extend(_validate_required_targets(rules, target_schema))
-        if output is not None:
-            errors.extend(_validate_output_types(output, target_schema))
-
-    return errors
-
-
-def _validate_source_paths(
-    source_data: Any | None,
-    rules: list[MappingRule],
-) -> list[ValidationErrorItem]:
-    if source_data is None:
-        return []
-
-    errors: list[ValidationErrorItem] = []
-    for rule in rules:
-        paths = _rule_source_paths(rule)
-        for path in paths:
-            if get_path(source_data, path) is MISSING:
-                errors.append(
-                    ValidationErrorItem(
-                        code="missing_source_path",
-                        path=path,
-                        message=f"Source path {path} was not found.",
-                        rule_id=rule.id,
-                    )
-                )
-    return errors
-
-
-def _validate_jsonata_metadata(rules: list[MappingRule]) -> list[ValidationErrorItem]:
-    errors: list[ValidationErrorItem] = []
-    for rule in rules:
-        if rule.jsonata and not _balanced_expression(rule.jsonata):
-            errors.append(
-                ValidationErrorItem(
-                    code="invalid_jsonata_expression",
-                    path=rule.target_path,
-                    message=f"JSONata metadata for rule {rule.id} has unbalanced delimiters.",
-                    rule_id=rule.id,
-                )
+    if mapping_spec is None or mapping_spec.engine != "script_js":
+        errors.append(
+            ValidationErrorItem(
+                code="missing_script_mapping",
+                message="A script_js mapping specification is required.",
+                rule_id="script",
             )
+        )
+    elif not mapping_spec.script.strip():
+        errors.append(
+            ValidationErrorItem(
+                code="missing_script",
+                message="Transform function is required.",
+                rule_id="script",
+            )
+        )
+
+    if target_schema is not None and output is not None:
+        errors.extend(_validate_required_output(output, target_schema))
+        errors.extend(_validate_output_types(output, target_schema))
     return errors
 
 
-def _validate_required_targets(
-    rules: list[MappingRule],
-    target_schema: SchemaNode,
-) -> list[ValidationErrorItem]:
-    mapped_paths = {
-        _normalize_target_path(path) for rule in rules for path in _rule_target_paths(rule)
-    }
+def _validate_required_output(output: Any, target_schema: SchemaNode) -> list[ValidationErrorItem]:
     errors: list[ValidationErrorItem] = []
-
     for leaf in _required_leaf_nodes(target_schema):
-        if _normalize_target_path(leaf.path) not in mapped_paths:
+        value = get_path(output, leaf.path)
+        if value is MISSING or (isinstance(value, list) and not _flatten_values(value)):
             errors.append(
                 ValidationErrorItem(
-                    code="unmapped_required_target_field",
+                    code="missing_required_output_field",
                     path=leaf.path,
-                    message=f"Required target field {leaf.path} is not mapped.",
+                    message=f"Required target field {leaf.path} is missing from output.",
                 )
             )
     return errors
@@ -89,7 +56,7 @@ def _validate_output_types(output: Any, target_schema: SchemaNode) -> list[Valid
         if value is MISSING:
             continue
         if isinstance(value, list):
-            if any(not _matches_schema_type(item, leaf.type) for item in value):
+            if any(not _matches_schema_type(item, leaf.type) for item in _flatten_values(value)):
                 errors.append(
                     ValidationErrorItem(
                         code="type_mismatch",
@@ -111,30 +78,14 @@ def _validate_output_types(output: Any, target_schema: SchemaNode) -> list[Valid
     return errors
 
 
-def _rule_source_paths(rule: MappingRule) -> list[str]:
-    match rule.type:
-        case "field" | "date_format":
-            return [rule.source_path] if rule.source_path else []
-        case "concat":
-            return rule.source_paths
-        case "condition":
-            return [rule.condition.source_path] if rule.condition else []
-        case "loop":
-            return [rule.loop.source_path] if rule.loop else []
-        case "constant":
-            return []
-    return []
-
-
-def _rule_target_paths(rule: MappingRule) -> list[str]:
-    if rule.type != "loop" or not rule.loop:
-        return [rule.target_path]
-
-    target_paths = [rule.target_path]
-    for child_rule in rule.loop.rules:
-        child_path = child_rule.target_path.removeprefix("$.")
-        target_paths.append(f"{rule.target_path}[*].{child_path}")
-    return target_paths
+def _flatten_values(values: list[Any]) -> list[Any]:
+    flattened: list[Any] = []
+    for value in values:
+        if isinstance(value, list):
+            flattened.extend(_flatten_values(value))
+        else:
+            flattened.append(value)
+    return flattened
 
 
 def _required_leaf_nodes(schema: SchemaNode) -> list[SchemaNode]:
@@ -166,18 +117,3 @@ def _matches_schema_type(value: Any, schema_type: str) -> bool:
             return True
         case _:
             return True
-
-
-def _balanced_expression(expression: str) -> bool:
-    pairs = {")": "(", "]": "[", "}": "{"}
-    stack: list[str] = []
-    for character in expression:
-        if character in "([{":
-            stack.append(character)
-        elif character in pairs and (not stack or stack.pop() != pairs[character]):
-            return False
-    return not stack
-
-
-def _normalize_target_path(path: str) -> str:
-    return path.replace("[*]", "")

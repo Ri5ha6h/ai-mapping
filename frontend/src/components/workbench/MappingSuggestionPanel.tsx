@@ -14,15 +14,15 @@ export function MappingSuggestionPanel({ suggestions, usedAi, statusText, provid
     <section className="tool-panel suggestion-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Auto map</p>
-          <h2>Suggested field links</h2>
+          <p className="panel-kicker">Script hints</p>
+          <h2>Likely field links</h2>
         </div>
         <BrainCircuit size={18} className="text-muted-foreground" />
       </div>
       <div className="status-strip">
         <span>{statusText}</span>
         <span>{usedAi ? "OpenRouter" : "Deterministic"}</span>
-        <span>{suggestions.length} suggestions</span>
+        <span>{suggestions.length} hints</span>
       </div>
       {providerErrors.map((error) => (
         <p className="issue-line" key={error}>
@@ -31,7 +31,7 @@ export function MappingSuggestionPanel({ suggestions, usedAi, statusText, provid
       ))}
       <div className="suggestion-stack">
         {suggestions.length === 0 ? (
-          <p className="empty-line">No suggestions generated yet.</p>
+          <p className="empty-line">No field hints generated yet.</p>
         ) : (
           suggestions.map((suggestion) => (
             <div className="suggestion-row" key={suggestion.id}>

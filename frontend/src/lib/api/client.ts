@@ -1,12 +1,11 @@
 import type {
-  MappingRule,
   MappingSpec,
   MappingTemplate,
   MappingCapabilities,
-  NativeGraphDraftResponse,
   OutputDiffResponse,
   OutputFormat,
   ParseResponse,
+  ScriptDraftResponse,
   SourceFormat,
   SuggestResponse,
   TemplateCreateRequest,
@@ -103,14 +102,14 @@ export async function getMappingCapabilities(): Promise<MappingCapabilities> {
   return getJson<MappingCapabilities>("/api/mappings/capabilities")
 }
 
-export async function generateNativeGraphDraft(params: {
+export async function generateScriptDraft(params: {
   sourceSample: unknown
   targetSample: unknown
   sourceSchema?: SchemaNode | null
   targetSchema?: SchemaNode | null
   useAi: boolean
-}): Promise<NativeGraphDraftResponse> {
-  return postJson<NativeGraphDraftResponse>("/api/mappings/native-graph/draft", {
+}): Promise<ScriptDraftResponse> {
+  return postJson<ScriptDraftResponse>("/api/mappings/script/draft", {
     source_sample: params.sourceSample,
     target_sample: params.targetSample,
     source_schema: params.sourceSchema ?? null,
@@ -121,15 +120,13 @@ export async function generateNativeGraphDraft(params: {
 
 export async function transformPayload(params: {
   sourceData: unknown
-  rules: MappingRule[]
-  mappingSpec?: MappingSpec | null
+  mappingSpec: MappingSpec
   outputFormat: OutputFormat
   targetSchema?: SchemaNode | null
 }): Promise<TransformResponse> {
   return postJson<TransformResponse>("/api/transform", {
     source_data: params.sourceData,
-    rules: params.rules,
-    mapping_spec: params.mappingSpec ?? null,
+    mapping_spec: params.mappingSpec,
     output_format: params.outputFormat,
     root_element: "ShipmentEvent",
     target_schema: params.targetSchema ?? null,
@@ -139,15 +136,13 @@ export async function transformPayload(params: {
 export async function validatePayload(params: {
   sourceData: unknown
   output?: unknown
-  rules: MappingRule[]
-  mappingSpec?: MappingSpec | null
+  mappingSpec: MappingSpec
   targetSchema?: SchemaNode | null
 }): Promise<{ valid: boolean; errors: ValidationErrorItem[] }> {
   return postJson("/api/validate", {
     source_data: params.sourceData,
     output: params.output ?? null,
-    rules: params.rules,
-    mapping_spec: params.mappingSpec ?? null,
+    mapping_spec: params.mappingSpec,
     target_schema: params.targetSchema ?? null,
   })
 }

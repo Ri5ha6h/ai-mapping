@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from app.api.models import (
     MappingSpec,
     MappingTemplate,
@@ -42,7 +44,8 @@ class TemplateRepository:
                 order by lower(name)
                 """
             ).fetchall()
-            return [self._template_from_row(connection, row) for row in rows]
+            templates = [self._template_from_row(connection, row) for row in rows]
+            return [template for template in templates if template is not None]
 
     def get_template(self, template_id: str) -> MappingTemplate:
         with closing(self._connect()) as connection:
@@ -57,7 +60,10 @@ class TemplateRepository:
             ).fetchone()
             if row is None:
                 raise TemplateNotFoundError(template_id)
-            return self._template_from_row(connection, row)
+            template = self._template_from_row(connection, row)
+            if template is None:
+                raise TemplateNotFoundError(template_id)
+            return template
 
     def create_template(self, request: TemplateCreateRequest) -> MappingTemplate:
         template_id = request.template_id or _slugify(request.name)
@@ -212,7 +218,32 @@ class TemplateRepository:
         connection.execute(f"alter table {table_name} add column {column_name} {column_definition}")
 
     def _seed_templates(self, connection: sqlite3.Connection) -> None:
-        for template in seeded_templates():
+        templates = seeded_templates()
+        seed_ids = {template.template_id for template in templates}
+        if seed_ids:
+            placeholders = ", ".join("?" for _ in seed_ids)
+            connection.execute(
+                f"""
+                delete from template_versions
+                where template_id in (
+                    select template_id
+                    from templates
+                    where is_seeded = 1
+                    and template_id not in ({placeholders})
+                )
+                """,
+                tuple(seed_ids),
+            )
+            connection.execute(
+                f"""
+                delete from templates
+                where is_seeded = 1
+                and template_id not in ({placeholders})
+                """,
+                tuple(seed_ids),
+            )
+
+        for template in templates:
             created_at = template.versions[0].created_at.isoformat()
             cursor = connection.execute(
                 """
@@ -245,9 +276,9 @@ class TemplateRepository:
         self,
         connection: sqlite3.Connection,
         row: sqlite3.Row,
-    ) -> MappingTemplate:
+    ) -> MappingTemplate | None:
         versions = [
-            _version_from_row(version_row)
+            version
             for version_row in connection.execute(
                 """
                 select
@@ -269,7 +300,10 @@ class TemplateRepository:
                 """,
                 (row["template_id"],),
             ).fetchall()
+            if (version := _version_from_row(version_row)) is not None
         ]
+        if not versions:
+            return None
         return MappingTemplate(
             template_id=row["template_id"],
             name=row["name"],
@@ -353,24 +387,27 @@ def _slugify(value: str) -> str:
     return slug or "mapping-template"
 
 
-def _version_from_row(row: sqlite3.Row) -> TemplateVersion:
-    return TemplateVersion(
-        version=row["version"],
-        source_format=SourceFormat(row["source_format"]),
-        target_format=OutputFormat(row["target_format"]),
-        source_schema_id=row["source_schema_id"],
-        target_schema_id=row["target_schema_id"],
-        source_schema_snapshot=_schema_or_none(row["source_schema_snapshot_json"]),
-        target_schema_snapshot=_schema_or_none(row["target_schema_snapshot_json"]),
-        mapping_spec=MappingSpec.model_validate_json(row["mapping_spec_json"]),
-        validation_rules=[
-            ValidationErrorItem.model_validate(item)
-            for item in json.loads(row["validation_rules_json"])
-        ],
-        sample_source_content=row["sample_source_content"],
-        sample_target_content=row["sample_target_content"],
-        created_at=datetime.fromisoformat(row["created_at"]),
-    )
+def _version_from_row(row: sqlite3.Row) -> TemplateVersion | None:
+    try:
+        return TemplateVersion(
+            version=row["version"],
+            source_format=SourceFormat(row["source_format"]),
+            target_format=OutputFormat(row["target_format"]),
+            source_schema_id=row["source_schema_id"],
+            target_schema_id=row["target_schema_id"],
+            source_schema_snapshot=_schema_or_none(row["source_schema_snapshot_json"]),
+            target_schema_snapshot=_schema_or_none(row["target_schema_snapshot_json"]),
+            mapping_spec=MappingSpec.model_validate_json(row["mapping_spec_json"]),
+            validation_rules=[
+                ValidationErrorItem.model_validate(item)
+                for item in json.loads(row["validation_rules_json"])
+            ],
+            sample_source_content=row["sample_source_content"],
+            sample_target_content=row["sample_target_content"],
+            created_at=datetime.fromisoformat(row["created_at"]),
+        )
+    except (ValueError, TypeError, ValidationError, json.JSONDecodeError):
+        return None
 
 
 def _schema_or_none(value: str | None) -> SchemaNode | None:

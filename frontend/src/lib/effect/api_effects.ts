@@ -6,7 +6,7 @@ import {
   createTemplateVersion,
   deleteSchemaArtifact,
   diffOutput,
-  generateNativeGraphDraft,
+  generateScriptDraft,
   getMappingCapabilities,
   getSchemaArtifact,
   getTemplate,
@@ -19,7 +19,6 @@ import {
   validatePayload,
 } from "@/lib/api/client"
 import type {
-  MappingRule,
   MappingSpec,
   OutputFormat,
   SourceFormat,
@@ -89,7 +88,7 @@ export const getMappingCapabilitiesEffect = () =>
     catch: (error) => error,
   })
 
-export const generateNativeGraphDraftEffect = (
+export const generateScriptDraftEffect = (
   sourceSample: unknown,
   targetSample: unknown,
   sourceSchema: SchemaNode | null,
@@ -98,7 +97,7 @@ export const generateNativeGraphDraftEffect = (
 ) =>
   Effect.tryPromise({
     try: () =>
-      generateNativeGraphDraft({
+      generateScriptDraft({
         sourceSample,
         targetSample,
         sourceSchema,
@@ -110,25 +109,23 @@ export const generateNativeGraphDraftEffect = (
 
 export const transformEffect = (
   sourceData: unknown,
-  rules: MappingRule[],
-  mappingSpec: MappingSpec | null,
+  mappingSpec: MappingSpec,
   outputFormat: OutputFormat,
   targetSchema: SchemaNode | null,
 ) =>
   Effect.tryPromise({
-    try: () => transformPayload({ sourceData, rules, mappingSpec, outputFormat, targetSchema }),
+    try: () => transformPayload({ sourceData, mappingSpec, outputFormat, targetSchema }),
     catch: (error) => error,
   })
 
 export const validateEffect = (
   sourceData: unknown,
   output: unknown,
-  rules: MappingRule[],
-  mappingSpec: MappingSpec | null,
+  mappingSpec: MappingSpec,
   targetSchema: SchemaNode | null,
 ) =>
   Effect.tryPromise({
-    try: () => validatePayload({ sourceData, output, rules, mappingSpec, targetSchema }),
+    try: () => validatePayload({ sourceData, output, mappingSpec, targetSchema }),
     catch: (error) => error,
   })
 

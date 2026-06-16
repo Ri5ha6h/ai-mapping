@@ -11,6 +11,7 @@ dependencies = [
   "respx==0.23.1",
   "orjson==3.11.9",
   "defusedxml==0.7.1",
+  "mini-racer==0.12.4",
 ]
 
 [project.optional-dependencies]

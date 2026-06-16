@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 
-from app.api.models import MappingSuggestion, RuleType, SchemaNode, SuggestionSource
+from app.api.models import MappingSuggestion, SchemaNode, SuggestionSource
 
 
 @dataclass(frozen=True)
@@ -65,13 +65,11 @@ def suggest_rule_based_mappings(
 
         suggestions.append(
             MappingSuggestion(
-                id=f"rule_{len(suggestions) + 1:03d}",
-                type=RuleType.field,
+                id=f"hint_{len(suggestions) + 1:03d}",
                 source_path=source.path,
                 target_path=target.path,
                 required=target.required,
                 confidence=round(score, 2),
-                jsonata=_jsonata_for_source_path(source.path),
                 explanation=_explanation(source, target, score),
                 source=SuggestionSource.rule_based,
             )
@@ -168,15 +166,8 @@ def _is_mappable_type(schema_type: str) -> bool:
     return schema_type in {"string", "integer", "number", "boolean", "null", "mixed"}
 
 
-def _jsonata_for_source_path(path: str) -> str:
-    if path == "$":
-        return "$"
-    return path.removeprefix("$.").replace("[*]", "")
-
-
 def _explanation(source: FieldInfo, target: FieldInfo, score: float) -> str:
     return (
         f"Matched {source.path} to {target.path} using name, synonym, path ending, "
         f"and type similarity; confidence {score:.2f}."
     )
-

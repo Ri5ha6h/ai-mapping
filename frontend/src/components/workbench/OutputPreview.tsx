@@ -22,8 +22,8 @@ export function OutputPreview({ result }: Props) {
       {result?.trace?.length ? (
         <div className="trace-list">
           {result.trace.map((item) => (
-            <div className="trace-row" key={`${item.node_id}-${item.target_path ?? ""}`}>
-              <strong>{item.node_id}</strong>
+            <div className="trace-row" key={`${item.step_id}-${item.target_path ?? ""}`}>
+              <strong>{item.step_id}</strong>
               <span>
                 {item.status} {item.target_path ? `to ${item.target_path}` : ""}
               </span>

@@ -92,15 +92,6 @@ class SchemaArtifactListResponse(BaseModel):
     schemas: list[SchemaArtifact]
 
 
-class RuleType(StrEnum):
-    field = "field"
-    constant = "constant"
-    concat = "concat"
-    date_format = "date_format"
-    condition = "condition"
-    loop = "loop"
-
-
 class SuggestionSource(StrEnum):
     rule_based = "rule_based"
     openrouter = "openrouter"
@@ -115,12 +106,10 @@ class MappingSuggestionRequest(BaseModel):
 
 class MappingSuggestion(BaseModel):
     id: str
-    type: RuleType = RuleType.field
     source_path: str
     target_path: str
     required: bool = True
     confidence: float = Field(ge=0, le=1)
-    jsonata: str
     explanation: str
     source: SuggestionSource = SuggestionSource.rule_based
 
@@ -141,36 +130,6 @@ class OutputFormat(StrEnum):
     xml = "xml"
 
 
-class ConditionSpec(BaseModel):
-    source_path: str
-    equals: JsonValue
-    then: JsonValue
-    otherwise: JsonValue = None
-
-
-class LoopRuleSpec(BaseModel):
-    source_path: str
-    target_path: str
-    rules: list[MappingRule]
-
-
-class MappingRule(BaseModel):
-    id: str
-    type: RuleType
-    target_path: str
-    source_path: str | None = None
-    required: bool = True
-    confidence: float | None = Field(default=None, ge=0, le=1)
-    jsonata: str | None = None
-    value: JsonValue = None
-    source_paths: list[str] = Field(default_factory=list)
-    separator: str = ""
-    input_format: str = "%Y%m%d"
-    output_format: str = "%Y-%m-%d"
-    condition: ConditionSpec | None = None
-    loop: LoopRuleSpec | None = None
-
-
 class ValidationErrorItem(BaseModel):
     code: str
     path: str | None = None
@@ -179,89 +138,27 @@ class ValidationErrorItem(BaseModel):
 
 
 class TransformTraceItem(BaseModel):
-    node_id: str
-    node_type: str
+    step_id: str
+    step_type: str
     target_path: str | None = None
     status: Literal["executed", "failed", "skipped"] = "executed"
     message: str = ""
 
 
-class NativeGraphTransform(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    type: str
-    pattern: str | None = None
-    replacement: str = ""
-    input_format: str | None = None
-    output_format: str | None = None
-    lookup_table: str | None = None
-    default: JsonValue = None
-    factor: float | None = None
-    separator: str | None = None
-    index: int | None = None
-    precision: int | None = None
-
-
-class NativeGraphNode(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    id: str
-    type: Literal[
-        "assign",
-        "loop",
-        "compute",
-        "template",
-        "object",
-        "array",
-        "map",
-        "filter",
-        "reduce",
-        "conditional",
-        "lookup",
-        "switch",
-        "append",
-        "merge",
-        "group_by",
-        "sort",
-    ]
-    target_path: str | None = None
-    source_path: str | None = None
-    source_paths: list[str] = Field(default_factory=list)
-    var_name: str | None = None
-    value: JsonValue = None
-    expression: str | None = None
-    operation: str | None = None
-    condition: dict[str, JsonValue] | None = None
-    lookup_table: str | None = None
-    key_path: str | None = None
-    value_path: str | None = None
-    sort_path: str | None = None
-    group_key_path: str | None = None
-    descending: bool = False
-    include_empty: bool = True
-    transforms: list[NativeGraphTransform] = Field(default_factory=list)
-    children: list[NativeGraphNode] = Field(default_factory=list)
-
-
-class NativeGraphSpec(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    spec_version: int = 1
-    nodes: list[NativeGraphNode]
-    lookup_tables: dict[str, dict[str, JsonValue]] = Field(default_factory=dict)
+class ScriptLogItem(BaseModel):
+    level: Literal["log", "info", "warn", "error"]
+    message: str
+    index: int
 
 
 class MappingSpec(BaseModel):
-    engine: str = "deterministic_rules"
-    spec_version: int | None = None
-    rules: list[MappingRule] = Field(default_factory=list)
-    native_graph: NativeGraphSpec | None = None
-    full_jsonata_expression: str | None = None
+    engine: Literal["script_js"] = "script_js"
+    script_version: int = 1
+    script: str = Field(default="", description="JavaScript transform(source, helpers) function.")
 
 
 class TransformRequest(BaseModel):
     source_data: JsonValue
-    rules: list[MappingRule] = Field(default_factory=list)
     mapping_spec: MappingSpec | None = None
     output_format: OutputFormat = OutputFormat.json
     root_element: str = "Output"
@@ -273,12 +170,12 @@ class TransformResponse(BaseModel):
     output: JsonValue | str
     validation_errors: list[ValidationErrorItem] = Field(default_factory=list)
     trace: list[TransformTraceItem] = Field(default_factory=list)
+    logs: list[ScriptLogItem] = Field(default_factory=list)
 
 
 class ValidateRequest(BaseModel):
     source_data: JsonValue | None = None
     output: JsonValue | None = None
-    rules: list[MappingRule] = Field(default_factory=list)
     mapping_spec: MappingSpec | None = None
     target_schema: SchemaNode | None = None
 
@@ -305,7 +202,7 @@ class OutputDiffResponse(BaseModel):
     diffs: list[OutputDiffItem] = Field(default_factory=list)
 
 
-class NativeGraphDraftRequest(BaseModel):
+class ScriptDraftRequest(BaseModel):
     source_sample: JsonValue
     target_sample: JsonValue
     source_schema: SchemaNode | None = None
@@ -314,8 +211,9 @@ class NativeGraphDraftRequest(BaseModel):
     use_ai: bool = False
 
 
-class NativeGraphDraftResponse(BaseModel):
+class ScriptDraftResponse(BaseModel):
     mapping_spec: MappingSpec
+    explanation: str = ""
     unresolved_target_paths: list[str] = Field(default_factory=list)
     used_ai: bool = False
     provider_errors: list[str] = Field(default_factory=list)

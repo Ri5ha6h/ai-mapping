@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { MappingSchemaPanel } from "./MappingSchemaPanel"
@@ -9,32 +9,20 @@ import type { useMappingWorkbenchController } from "./useMappingWorkbenchControl
 afterEach(cleanup)
 
 describe("MappingSchemaPanel", () => {
-  it("keeps AI-assisted mode visible and selectable when capability metadata is unavailable", () => {
-    const setAutoMapMode = vi.fn()
-
+  it("keeps transform actions out of schema selection", () => {
     render(
       <MappingSchemaPanel
-        workbench={
-          {
-            ...baseWorkbench,
-            aiMappingAvailable: false,
-            autoMapMode: "local",
-            setAutoMapMode,
-          } as unknown as ReturnType<typeof useMappingWorkbenchController>
-        }
+        workbench={baseWorkbench as unknown as ReturnType<typeof useMappingWorkbenchController>}
         sourceSchemas={[]}
         targetSchemas={[]}
         onOpenSchemaTab={vi.fn()}
       />
     )
 
-    const aiModeButton = screen.getByRole("button", { name: "AI-assisted" })
-    expect(aiModeButton).toBeInstanceOf(HTMLButtonElement)
-    expect((aiModeButton as HTMLButtonElement).disabled).toBe(false)
-
-    fireEvent.click(aiModeButton)
-
-    expect(setAutoMapMode).toHaveBeenCalledWith("ai")
+    expect(screen.getByRole("button", { name: "New Transform" })).toBeInstanceOf(HTMLButtonElement)
+    expect(screen.queryByRole("button", { name: "AI-assisted" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Field hints" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Run script" })).toBeNull()
   })
 })
 
