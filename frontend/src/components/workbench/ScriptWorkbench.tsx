@@ -1,10 +1,10 @@
-import Editor from "@monaco-editor/react"
-import { memo, useMemo } from "react"
+import { Suspense, lazy, memo, useMemo } from "react"
 import { Bot, Braces, Loader2, Play, Wand2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
 type AutoMapMode = "local" | "ai"
+const MonacoEditor = lazy(() => import("@monaco-editor/react"))
 
 type Props = {
   script: string
@@ -25,7 +25,7 @@ type Props = {
   onAutoMapModeChange: (mode: AutoMapMode) => void
 }
 
-export const ScriptWorkbench = memo(function ScriptWorkbench({
+export const ScriptWorkbench = memo(function ScriptWorkbenchView({
   script,
   explanation,
   unresolvedPaths,
@@ -122,28 +122,29 @@ export const ScriptWorkbench = memo(function ScriptWorkbench({
       </div>
 
       <div className="monaco-frame script-editor-frame">
-        <Editor
-          height="460px"
-          defaultLanguage="javascript"
-          language="javascript"
-          theme="vs-dark"
-          value={script}
-          loading={<div className="editor-loading">Loading editor...</div>}
-          options={{
-            automaticLayout: true,
-            bracketPairColorization: { enabled: true },
-            detectIndentation: false,
-            fontSize: 13,
-            formatOnPaste: true,
-            formatOnType: true,
-            insertSpaces: true,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            tabSize: 2,
-            wordWrap: "on",
-          }}
-          onChange={(value) => onScriptChange(value ?? "")}
-        />
+        <Suspense fallback={<div className="editor-loading">Loading editor...</div>}>
+          <MonacoEditor
+            height="460px"
+            defaultLanguage="javascript"
+            language="javascript"
+            theme="vs-dark"
+            value={script}
+            options={{
+              automaticLayout: true,
+              bracketPairColorization: { enabled: true },
+              detectIndentation: false,
+              fontSize: 13,
+              formatOnPaste: true,
+              formatOnType: true,
+              insertSpaces: true,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              tabSize: 2,
+              wordWrap: "on",
+            }}
+            onChange={(value) => onScriptChange(value ?? "")}
+          />
+        </Suspense>
       </div>
 
       <details className="script-reference">

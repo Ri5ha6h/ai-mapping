@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Effect } from "effect"
 
-import type { DemoScenario } from "@/components/workbench/DemoScenarioPanel"
 import {
-  SAMPLE_EDI_214,
-  SAMPLE_EDI_856,
   SAMPLE_SOURCE_JSON,
-  SAMPLE_SOURCE_XML,
   SAMPLE_TARGET_JSON,
-  SAMPLE_TARGET_XML,
 } from "@/components/workbench/constants"
 import { issueFromUnknown } from "@/lib/effect/errors"
 import type { FrontendIssue } from "@/lib/effect/errors"
@@ -58,59 +53,6 @@ const DEFAULT_SCRIPT = `function transform(source, helpers) {
   };
 }`
 
-export const demoScenarios: DemoScenario[] = [
-  {
-    id: "json-json",
-    label: "JSON to JSON",
-    description: "Shipment JSON to normalized JSON event output.",
-    sourceFormat: "json",
-    targetFormat: "json",
-    source: SAMPLE_SOURCE_JSON,
-    target: SAMPLE_TARGET_JSON,
-    icon: "json",
-  },
-  {
-    id: "xml-json",
-    label: "XML to JSON",
-    description: "Shipment XML canonicalized to JSON, then mapped to the JSON target.",
-    sourceFormat: "xml",
-    targetFormat: "json",
-    source: SAMPLE_SOURCE_XML,
-    target: SAMPLE_TARGET_JSON,
-    icon: "xml",
-  },
-  {
-    id: "json-xml",
-    label: "JSON to XML",
-    description: "Shipment JSON mapped into an XML ShipmentEvent document.",
-    sourceFormat: "json",
-    targetFormat: "xml",
-    source: SAMPLE_SOURCE_JSON,
-    target: SAMPLE_TARGET_XML,
-    icon: "xml",
-  },
-  {
-    id: "edi-214",
-    label: "EDI 214",
-    description: "Inbound 214 status update canonicalized before mapping.",
-    sourceFormat: "edi_214",
-    targetFormat: "json",
-    source: SAMPLE_EDI_214,
-    target: SAMPLE_TARGET_JSON,
-    icon: "edi",
-  },
-  {
-    id: "edi-856",
-    label: "EDI 856",
-    description: "Inbound 856 ASN canonicalized before mapping.",
-    sourceFormat: "edi_856",
-    targetFormat: "json",
-    source: SAMPLE_EDI_856,
-    target: SAMPLE_TARGET_JSON,
-    icon: "edi",
-  },
-]
-
 export function useMappingWorkbenchController(options: MappingWorkbenchOptions) {
   const [sourceFormat, setSourceFormat] = useState<SourceFormat>("json")
   const [targetFormat, setTargetFormat] = useState<OutputFormat>("json")
@@ -139,7 +81,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [templateName, setTemplateName] = useState("Shipment transform")
   const [templateDescription, setTemplateDescription] = useState("")
-  const [activeScenarioId, setActiveScenarioId] = useState("json-json")
   const [issue, setIssue] = useState<FrontendIssue | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>("Loading templates")
   const [newMappingPrompt, setNewMappingPrompt] = useState<NewMappingPromptState>({
@@ -198,51 +139,24 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setUsedAi(false)
   }, [])
 
-  const clearDerivedResults = useCallback(() => {
-    setSourceSchema(null)
-    setTargetSchema(null)
-    clearMappingSuggestions()
-    clearRunResults()
-  }, [clearMappingSuggestions, clearRunResults])
-
-  const clearTargetDerivedResults = useCallback(() => {
-    setTargetSchema(null)
-    clearMappingSuggestions()
-    clearRunResults()
-  }, [clearMappingSuggestions, clearRunResults])
-
-  const handleSourceInputChange = useCallback(
-    (value: string) => {
-      setSourceInput(value)
-      clearDerivedResults()
-    },
-    [clearDerivedResults]
-  )
-
-  const handleSourceFormatChange = useCallback(
-    (format: SourceFormat) => {
-      setSourceFormat(format)
-      clearDerivedResults()
-    },
-    [clearDerivedResults]
-  )
-
-  const handleTargetInputChange = useCallback(
-    (value: string) => {
-      setTargetInput(value)
-      clearTargetDerivedResults()
-    },
-    [clearTargetDerivedResults]
-  )
-
-  const handleTargetFormatChange = useCallback(
-    (format: OutputFormat) => {
-      setTargetFormat(format)
-      setTargetInput(format === "xml" ? SAMPLE_TARGET_XML : SAMPLE_TARGET_JSON)
-      clearTargetDerivedResults()
-    },
-    [clearTargetDerivedResults]
-  )
+  const refreshTemplates = useCallback(async () => {
+    setBusyAction((current) => current ?? "Loading templates")
+    try {
+      const response = await Effect.runPromise(listTemplatesEffect())
+      setTemplates(response.templates)
+      setActiveTemplate((current) => {
+        if (!current) return current
+        return (
+          response.templates.find((template) => template.template_id === current.template_id) ??
+          null
+        )
+      })
+    } catch (error) {
+      setIssue(issueFromUnknown(error))
+    } finally {
+      setBusyAction((current) => (current === "Loading templates" ? null : current))
+    }
+  }, [])
 
   useEffect(() => {
     void refreshTemplates()
@@ -250,8 +164,7 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
       (capabilities) => setAiMappingAvailable(capabilities.ai_mapping_available),
       () => setAiMappingAvailable(false)
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [refreshTemplates])
 
   async function parseAndInfer() {
     setBusyAction("Inferring schemas")
@@ -348,23 +261,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     }
   }
 
-  async function refreshTemplates() {
-    setBusyAction((current) => current ?? "Loading templates")
-    try {
-      const response = await Effect.runPromise(listTemplatesEffect())
-      setTemplates(response.templates)
-      if (selectedTemplateId) {
-        setActiveTemplate(
-          response.templates.find((template) => template.template_id === selectedTemplateId) ?? null
-        )
-      }
-    } catch (error) {
-      setIssue(issueFromUnknown(error))
-    } finally {
-      setBusyAction((current) => (current === "Loading templates" ? null : current))
-    }
-  }
-
   async function saveTemplate() {
     if (!readyForTemplateSave) return
     setBusyAction("Saving template")
@@ -443,31 +339,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
       setTemplateDescription(selected.description)
       if (selected.is_seeded) void loadTemplate(selected.template_id)
     }
-  }
-
-  function loadScenario(scenario: DemoScenario) {
-    setActiveScenarioId(scenario.id)
-    setSelectedSourceSchemaId("")
-    setSelectedTargetSchemaId("")
-    setSourceFormat(scenario.sourceFormat)
-    setTargetFormat(scenario.targetFormat)
-    setSourceInput(scenario.source)
-    setTargetInput(scenario.target)
-    setSourceSchema(null)
-    setTargetSchema(null)
-    setSuggestions([])
-    setScript(DEFAULT_SCRIPT)
-    setTransformResult(null)
-    setValidationErrors([])
-    setOutputDiff([])
-    setProviderErrors([])
-    setUsedAi(false)
-    setAutoMapStatus("idle")
-    setDraftExplanation("")
-    setUnresolvedTargetPaths([])
-    setIssue(null)
-    setTemplateName(`${scenario.label} transform`)
-    setTemplateDescription(scenario.description)
   }
 
   function updateScript(value: string) {
@@ -622,7 +493,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setIssue(null)
     setActiveTemplate(null)
     setSelectedTemplateId("")
-    setActiveScenarioId("")
     setTemplateName("Untitled transform")
     setTemplateDescription("")
   }
@@ -686,7 +556,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     selectedTemplateId,
     templateName,
     templateDescription,
-    activeScenarioId,
     issue,
     busyAction,
     newMappingPrompt,
@@ -701,10 +570,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     setTemplateName,
     setTemplateDescription,
     setScript: updateScript,
-    handleSourceInputChange,
-    handleSourceFormatChange,
-    handleTargetInputChange,
-    handleTargetFormatChange,
     selectSourceSchema,
     selectTargetSchema,
     parseAndInfer,
@@ -720,7 +585,6 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
     saveAndStartNewMapping,
     loadTemplate,
     selectTemplate,
-    loadScenario,
   }
 }
 

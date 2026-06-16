@@ -71,12 +71,6 @@ export async function listSchemaArtifacts(params?: {
   )
 }
 
-export async function getSchemaArtifact(
-  schemaId: string
-): Promise<SchemaArtifact> {
-  return getJson<SchemaArtifact>(`/api/schemas/${encodeURIComponent(schemaId)}`)
-}
-
 export async function deleteSchemaArtifact(
   schemaId: string
 ): Promise<SchemaArtifact> {

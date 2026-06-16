@@ -8,7 +8,6 @@ import {
   diffOutput,
   generateScriptDraft,
   getMappingCapabilities,
-  getSchemaArtifact,
   getTemplate,
   inferSchema,
   listSchemaArtifacts,
@@ -57,12 +56,6 @@ export const listSchemaArtifactsEffect = (
 ) =>
   Effect.tryPromise({
     try: () => listSchemaArtifacts({ direction, includeDeleted }),
-    catch: (error) => error,
-  })
-
-export const getSchemaArtifactEffect = (schemaId: string) =>
-  Effect.tryPromise({
-    try: () => getSchemaArtifact(schemaId),
     catch: (error) => error,
   })
 
