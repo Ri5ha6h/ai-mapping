@@ -9,13 +9,15 @@ from fastapi.testclient import TestClient
 from app.core.storage.template_repository import TemplateRepository
 
 SEED_TEMPLATE_IDS = {
-    "example-field",
-    "example-constant",
-    "example-concat",
-    "example-date-format",
-    "example-condition",
-    "example-loop",
-    "example-super",
+    "example-script-field",
+    "example-script-constant",
+    "example-script-concat",
+    "example-script-date-format",
+    "example-script-condition",
+    "example-script-loop",
+    "example-script-super",
+    "example-script-json2json",
+    "example-script-xml2json",
 }
 
 
@@ -86,23 +88,23 @@ def test_seeded_templates_initialize_safely_under_concurrent_reads(tmp_path: Pat
     assert seeded_template_count == len(SEED_TEMPLATE_IDS)
 
 
-def test_super_seed_contains_all_rule_types(
+def test_super_seed_contains_transform_function(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
     monkeypatch.setenv("TEMPLATE_DB_PATH", str(tmp_path / "templates.sqlite3"))
 
-    response = client.get("/api/templates/example-super")
+    response = client.get("/api/templates/example-script-super")
 
     assert response.status_code == 200
     template = response.json()
     version = template["versions"][0]
-    rule_types = {rule["type"] for rule in version["mapping_spec"]["rules"]}
     assert template["is_seeded"] is True
     assert version["sample_source_content"]
     assert version["sample_target_content"]
-    assert rule_types == {"field", "constant", "concat", "date_format", "condition", "loop"}
+    assert version["mapping_spec"]["engine"] == "script_js"
+    assert "function transform" in version["mapping_spec"]["script"]
 
 
 def test_seeded_template_ids_cannot_be_recreated(
@@ -115,11 +117,14 @@ def test_seeded_template_ids_cannot_be_recreated(
     response = client.post(
         "/api/templates",
         json={
-            "template_id": "example-field",
-            "name": "Example - Field",
+            "template_id": "example-script-field",
+            "name": "Example - Script Field",
             "source_format": "json",
             "target_format": "json",
-            "mapping_spec": {"rules": []},
+            "mapping_spec": {
+                "engine": "script_js",
+                "script": "function transform() { return {}; }",
+            },
         },
     )
 
@@ -136,7 +141,13 @@ def test_seeded_template_transforms_successfully(
     monkeypatch.setenv("TEMPLATE_DB_PATH", str(tmp_path / "templates.sqlite3"))
     template = client.get(f"/api/templates/{template_id}").json()
     version = template["versions"][0]
-    source_data = json.loads(version["sample_source_content"])
+    if version["source_format"] == "xml":
+        source_data = client.post(
+            "/api/parse",
+            json={"format": "xml", "content": version["sample_source_content"]},
+        ).json()["canonical"]
+    else:
+        source_data = json.loads(version["sample_source_content"])
     expected_output = json.loads(version["sample_target_content"])
 
     response = client.post(
@@ -144,7 +155,7 @@ def test_seeded_template_transforms_successfully(
         json={
             "source_data": source_data,
             "output_format": version["target_format"],
-            "rules": version["mapping_spec"]["rules"],
+            "mapping_spec": version["mapping_spec"],
         },
     )
 

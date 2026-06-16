@@ -2,15 +2,16 @@ import { useEffect, useRef, useState } from "react"
 import { Loader2, ShieldCheck } from "lucide-react"
 import { createFileRoute } from "@tanstack/react-router"
 
-import { JsonataEditor } from "@/components/workbench/JsonataEditor"
 import { MappingSchemaPanel } from "@/components/workbench/MappingSchemaPanel"
 import { MappingSuggestionPanel } from "@/components/workbench/MappingSuggestionPanel"
+import { OutputDiffPanel } from "@/components/workbench/OutputDiffPanel"
 import { OutputPreview } from "@/components/workbench/OutputPreview"
+import { RunLogsPanel } from "@/components/workbench/RunLogsPanel"
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
 import { SchemaLibraryPanel } from "@/components/workbench/SchemaLibraryPanel"
+import { ScriptWorkbench } from "@/components/workbench/ScriptWorkbench"
 import { TemplateVersionPanel } from "@/components/workbench/TemplateVersionPanel"
 import { ValidationPanel } from "@/components/workbench/ValidationPanel"
-import { VisualMappingEditor } from "@/components/workbench/VisualMappingEditor"
 import { useMappingWorkbenchController } from "@/components/workbench/useMappingWorkbenchController"
 import { useSchemaLibraryController } from "@/components/workbench/useSchemaLibraryController"
 import { Button } from "@/components/ui/button"
@@ -93,7 +94,7 @@ function MappingWorkbench() {
           <p className="panel-kicker">Unsaved work</p>
           <h2 id="new-mapping-title">Start a new mapping?</h2>
           <p>
-            Save this mapping as a template before clearing the source, target, rules, output, and validation state.
+            Save this transform as a template before clearing the source, target, script, output, and validation state.
           </p>
         </div>
         <div className="dialog-actions">
@@ -147,12 +148,30 @@ function MappingWorkbench() {
           </div>
 
           <div className="editor-grid">
-            <VisualMappingEditor rules={workbench.rules} onRulesChange={workbench.setRules} />
-            <JsonataEditor value={workbench.advancedJsonata} onChange={workbench.setAdvancedJsonata} />
+            <ScriptWorkbench
+              script={workbench.script}
+              explanation={workbench.draftExplanation}
+              unresolvedPaths={workbench.unresolvedTargetPaths}
+              sourceReference={workbench.sourceReference}
+              sourceFormat={workbench.sourceFormat}
+              statusText={workbench.statusText}
+              autoMapMode={workbench.autoMapMode}
+              aiMappingAvailable={workbench.aiMappingAvailable}
+              canGenerate={workbench.readyForMapping}
+              canRun={workbench.readyForTransform}
+              busyAction={workbench.busyAction}
+              onScriptChange={workbench.setScript}
+              onGenerate={() => void workbench.generateScript()}
+              onRun={() => void workbench.runTransform()}
+              onFieldHints={() => void workbench.autoMap()}
+              onAutoMapModeChange={workbench.setAutoMapMode}
+            />
           </div>
 
           <div className="result-grid">
             <OutputPreview result={workbench.transformResult} />
+            <RunLogsPanel logs={workbench.transformResult?.logs ?? []} />
+            <OutputDiffPanel diffs={workbench.outputDiff} />
             <ValidationPanel errors={workbench.validationErrors} />
             <TemplateVersionPanel
               templates={workbench.templates}

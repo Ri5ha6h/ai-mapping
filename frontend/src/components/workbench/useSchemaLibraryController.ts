@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Effect } from "effect"
 
 import { issueFromUnknown } from "@/lib/effect/errors"
@@ -59,12 +59,8 @@ export function useSchemaLibraryController() {
     draft.content.trim().length > 0 &&
     !busyAction
 
-  useEffect(() => {
-    void refreshSchemas()
-  }, [])
-
-  async function refreshSchemas() {
-    if (!busyAction) setBusyAction("Loading schemas")
+  const refreshSchemas = useCallback(async () => {
+    setBusyAction((current) => current ?? "Loading schemas")
     setIssue(null)
     try {
       const [sources, targets] = await Promise.all([
@@ -93,7 +89,11 @@ export function useSchemaLibraryController() {
         current === "Loading schemas" ? null : current
       )
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void refreshSchemas()
+  }, [refreshSchemas])
 
   async function createSchema() {
     if (!canCreateSchema) return

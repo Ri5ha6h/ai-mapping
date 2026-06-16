@@ -47,7 +47,6 @@ def test_rule_based_mapping_suggestions_from_api_without_key(
     assert by_target["$.tracking.number"]["source_path"] == "$.shipment.trackingNumber"
     assert by_target["$.tracking.carrierCode"]["source_path"] == "$.shipment.carrier"
     assert by_target["$.event.city"]["confidence"] > 0.5
-    assert by_target["$.event.city"]["jsonata"] == "shipment.location.city"
 
 
 def test_rule_based_can_disable_ai_even_when_key_exists(
@@ -124,12 +123,10 @@ def test_openrouter_provider_parses_suggestions() -> None:
                                     "suggestions": [
                                         {
                                             "id": "ai_tracking",
-                                            "type": "field",
                                             "source_path": "$.shipment.trackingNumber",
                                             "target_path": "$.tracking.number",
                                             "required": True,
                                             "confidence": 0.91,
-                                            "jsonata": "shipment.trackingNumber",
                                             "explanation": "Tracking number fields match.",
                                         }
                                     ]
@@ -181,12 +178,10 @@ def test_api_uses_mocked_openrouter_when_key_exists(
                                     "suggestions": [
                                         {
                                             "id": "ai_city",
-                                            "type": "field",
                                             "source_path": "$.shipment.location.city",
                                             "target_path": "$.event.city",
                                             "required": True,
                                             "confidence": 0.99,
-                                            "jsonata": "shipment.location.city",
                                             "explanation": "City fields match.",
                                         }
                                     ]

@@ -1,9 +1,11 @@
 import type {
-  MappingRule,
+  MappingSpec,
   MappingTemplate,
   MappingCapabilities,
+  OutputDiffResponse,
   OutputFormat,
   ParseResponse,
+  ScriptDraftResponse,
   SourceFormat,
   SuggestResponse,
   TemplateCreateRequest,
@@ -69,12 +71,6 @@ export async function listSchemaArtifacts(params?: {
   )
 }
 
-export async function getSchemaArtifact(
-  schemaId: string
-): Promise<SchemaArtifact> {
-  return getJson<SchemaArtifact>(`/api/schemas/${encodeURIComponent(schemaId)}`)
-}
-
 export async function deleteSchemaArtifact(
   schemaId: string
 ): Promise<SchemaArtifact> {
@@ -100,15 +96,31 @@ export async function getMappingCapabilities(): Promise<MappingCapabilities> {
   return getJson<MappingCapabilities>("/api/mappings/capabilities")
 }
 
+export async function generateScriptDraft(params: {
+  sourceSample: unknown
+  targetSample: unknown
+  sourceSchema?: SchemaNode | null
+  targetSchema?: SchemaNode | null
+  useAi: boolean
+}): Promise<ScriptDraftResponse> {
+  return postJson<ScriptDraftResponse>("/api/mappings/script/draft", {
+    source_sample: params.sourceSample,
+    target_sample: params.targetSample,
+    source_schema: params.sourceSchema ?? null,
+    target_schema: params.targetSchema ?? null,
+    use_ai: params.useAi,
+  })
+}
+
 export async function transformPayload(params: {
   sourceData: unknown
-  rules: MappingRule[]
+  mappingSpec: MappingSpec
   outputFormat: OutputFormat
   targetSchema?: SchemaNode | null
 }): Promise<TransformResponse> {
   return postJson<TransformResponse>("/api/transform", {
     source_data: params.sourceData,
-    rules: params.rules,
+    mapping_spec: params.mappingSpec,
     output_format: params.outputFormat,
     root_element: "ShipmentEvent",
     target_schema: params.targetSchema ?? null,
@@ -118,15 +130,22 @@ export async function transformPayload(params: {
 export async function validatePayload(params: {
   sourceData: unknown
   output?: unknown
-  rules: MappingRule[]
+  mappingSpec: MappingSpec
   targetSchema?: SchemaNode | null
 }): Promise<{ valid: boolean; errors: ValidationErrorItem[] }> {
   return postJson("/api/validate", {
     source_data: params.sourceData,
     output: params.output ?? null,
-    rules: params.rules,
+    mapping_spec: params.mappingSpec,
     target_schema: params.targetSchema ?? null,
   })
+}
+
+export async function diffOutput(params: {
+  expected: unknown
+  actual: unknown
+}): Promise<OutputDiffResponse> {
+  return postJson<OutputDiffResponse>("/api/transform/diff", params)
 }
 
 export async function createTemplate(

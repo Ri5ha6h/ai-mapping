@@ -4,48 +4,10 @@ import type { ValidationErrorItem } from "./validation"
 export type SourceFormat = "json" | "xml" | "edi_214" | "edi_856"
 export type OutputFormat = "json" | "xml"
 
-export type RuleType =
-  | "field"
-  | "constant"
-  | "concat"
-  | "date_format"
-  | "condition"
-  | "loop"
-
-export type MappingCondition = {
-  source_path: string
-  equals: unknown
-  then: unknown
-  otherwise?: unknown
-}
-
-export type LoopRule = {
-  source_path: string
-  target_path: string
-  rules: MappingRule[]
-}
-
-export type MappingRule = {
-  id: string
-  type: RuleType
-  source_path?: string | null
-  target_path: string
-  required?: boolean
-  confidence?: number | null
-  jsonata?: string | null
-  value?: unknown
-  source_paths?: string[]
-  separator?: string
-  input_format?: string
-  output_format?: string
-  condition?: MappingCondition | null
-  loop?: LoopRule | null
-}
-
 export type MappingSpec = {
-  engine: string
-  rules: MappingRule[]
-  full_jsonata_expression?: string | null
+  engine: "script_js"
+  script_version?: number
+  script: string
 }
 
 export type TemplateVersion = {
@@ -94,11 +56,12 @@ export type TemplateListResponse = {
   templates: MappingTemplate[]
 }
 
-export type MappingSuggestion = MappingRule & {
+export type MappingSuggestion = {
+  id: string
   source_path: string
+  target_path: string
   required: boolean
   confidence: number
-  jsonata: string
   explanation: string
   source: "rule_based" | "openrouter"
 }
@@ -124,10 +87,44 @@ export type MappingCapabilities = {
   ai_provider?: string | null
 }
 
+export type OutputDiffItem = {
+  path: string
+  kind: "missing" | "extra" | "changed"
+  expected?: unknown
+  actual?: unknown
+}
+
+export type OutputDiffResponse = {
+  equal: boolean
+  diffs: OutputDiffItem[]
+}
+
+export type ScriptDraftResponse = {
+  mapping_spec: MappingSpec
+  explanation: string
+  unresolved_target_paths: string[]
+  used_ai: boolean
+  provider_errors: string[]
+}
+
+export type ScriptLogItem = {
+  level: "log" | "info" | "warn" | "error"
+  message: string
+  index: number
+}
+
 export type TransformResponse = {
   output_format: OutputFormat
   output: unknown
   validation_errors: ValidationErrorItem[]
+  logs: ScriptLogItem[]
+  trace?: Array<{
+    step_id: string
+    step_type: string
+    target_path?: string | null
+    status: "executed" | "failed" | "skipped"
+    message: string
+  }>
 }
 
 export type WorkbenchPayload = {

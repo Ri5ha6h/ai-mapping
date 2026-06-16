@@ -48,7 +48,7 @@ export function TemplateVersionPanel({
       <div className="panel-heading">
         <div>
           <p className="panel-kicker">Save</p>
-          <h2>Mapping templates</h2>
+          <h2>Script templates</h2>
         </div>
         <History size={18} className="text-muted-foreground" />
       </div>
@@ -60,7 +60,7 @@ export function TemplateVersionPanel({
             id="template-name"
             value={templateName}
             onChange={(event) => onTemplateNameChange(event.target.value)}
-            placeholder="Shipment status map"
+            placeholder="Shipment transform"
           />
         </label>
 
@@ -70,7 +70,7 @@ export function TemplateVersionPanel({
             id="template-description"
             value={templateDescription}
             onChange={(event) => onTemplateDescriptionChange(event.target.value)}
-            placeholder="Reusable partner mapping notes"
+            placeholder="Reusable transform notes"
             rows={3}
           />
         </label>
@@ -143,6 +143,9 @@ export function TemplateVersionPanel({
                       {version.source_format} to {version.target_format}
                       {version.sample_source_content ? " with samples" : ""}
                     </span>
+                    <span className="template-engine-note">
+                      JavaScript · {version.mapping_spec.script.length} chars
+                    </span>
                   </div>
                   <Button
                     type="button"
@@ -157,7 +160,7 @@ export function TemplateVersionPanel({
               ))}
           </div>
         ) : (
-          <p className="empty-line">Save a mapping or select an existing template.</p>
+          <p className="empty-line">Save a script or select an existing template.</p>
         )}
       </div>
     </section>

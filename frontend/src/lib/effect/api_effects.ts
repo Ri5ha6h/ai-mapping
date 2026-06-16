@@ -5,8 +5,9 @@ import {
   createTemplate,
   createTemplateVersion,
   deleteSchemaArtifact,
+  diffOutput,
+  generateScriptDraft,
   getMappingCapabilities,
-  getSchemaArtifact,
   getTemplate,
   inferSchema,
   listSchemaArtifacts,
@@ -17,7 +18,7 @@ import {
   validatePayload,
 } from "@/lib/api/client"
 import type {
-  MappingRule,
+  MappingSpec,
   OutputFormat,
   SourceFormat,
   TemplateCreateRequest,
@@ -58,12 +59,6 @@ export const listSchemaArtifactsEffect = (
     catch: (error) => error,
   })
 
-export const getSchemaArtifactEffect = (schemaId: string) =>
-  Effect.tryPromise({
-    try: () => getSchemaArtifact(schemaId),
-    catch: (error) => error,
-  })
-
 export const deleteSchemaArtifactEffect = (schemaId: string) =>
   Effect.tryPromise({
     try: () => deleteSchemaArtifact(schemaId),
@@ -86,25 +81,50 @@ export const getMappingCapabilitiesEffect = () =>
     catch: (error) => error,
   })
 
+export const generateScriptDraftEffect = (
+  sourceSample: unknown,
+  targetSample: unknown,
+  sourceSchema: SchemaNode | null,
+  targetSchema: SchemaNode | null,
+  useAi: boolean,
+) =>
+  Effect.tryPromise({
+    try: () =>
+      generateScriptDraft({
+        sourceSample,
+        targetSample,
+        sourceSchema,
+        targetSchema,
+        useAi,
+      }),
+    catch: (error) => error,
+  })
+
 export const transformEffect = (
   sourceData: unknown,
-  rules: MappingRule[],
+  mappingSpec: MappingSpec,
   outputFormat: OutputFormat,
   targetSchema: SchemaNode | null,
 ) =>
   Effect.tryPromise({
-    try: () => transformPayload({ sourceData, rules, outputFormat, targetSchema }),
+    try: () => transformPayload({ sourceData, mappingSpec, outputFormat, targetSchema }),
     catch: (error) => error,
   })
 
 export const validateEffect = (
   sourceData: unknown,
   output: unknown,
-  rules: MappingRule[],
+  mappingSpec: MappingSpec,
   targetSchema: SchemaNode | null,
 ) =>
   Effect.tryPromise({
-    try: () => validatePayload({ sourceData, output, rules, targetSchema }),
+    try: () => validatePayload({ sourceData, output, mappingSpec, targetSchema }),
+    catch: (error) => error,
+  })
+
+export const diffOutputEffect = (expected: unknown, actual: unknown) =>
+  Effect.tryPromise({
+    try: () => diffOutput({ expected, actual }),
     catch: (error) => error,
   })
 

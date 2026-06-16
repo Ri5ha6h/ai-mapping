@@ -85,18 +85,20 @@ export function SchemaLibraryPanel({ library }: Props) {
         </div>
 
         <div className="schema-form-grid">
-          <label className="field-stack">
+          <label className="field-stack" htmlFor="schema-artifact-name">
             <span>Name</span>
             <Input
+              id="schema-artifact-name"
               value={library.draft.name}
               onChange={(event) =>
                 library.updateDraft({ name: event.target.value })
               }
             />
           </label>
-          <label className="field-stack">
+          <label className="field-stack" htmlFor="schema-artifact-description">
             <span>Description</span>
             <Input
+              id="schema-artifact-description"
               value={library.draft.description}
               onChange={(event) =>
                 library.updateDraft({ description: event.target.value })
