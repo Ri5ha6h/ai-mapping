@@ -30,5 +30,10 @@ coverage/
 htmlcov/
 *.log
 .DS_Store
-docs/
+docs/*.html
+docs/*.md
+!docs/architecture-current.md
 samples/
+
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/
