@@ -223,6 +223,7 @@
   .scenario-panel,
   .mapping-schema-panel,
   .schema-workspace,
+  .workflow-stage-list,
   .schema-grid,
   .editor-grid,
   .result-grid {
@@ -349,8 +350,143 @@
   }
 
   .schema-workspace {
-    grid-template-columns: minmax(280px, 0.58fr) minmax(460px, 0.96fr) minmax(360px, 0.78fr);
+    grid-template-columns: minmax(460px, 1fr) minmax(360px, 0.78fr);
     align-items: start;
+  }
+
+  .workflow-stage-list {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-step {
+    display: grid;
+    gap: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--card) 94%, transparent);
+    box-shadow: 0 12px 24px oklch(0.2 0.02 240 / 7%);
+    padding: 14px;
+  }
+
+  .workflow-step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .workflow-step-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .workflow-step-title > span {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 13px;
+    font-weight: 780;
+  }
+
+  .workflow-step-title h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 760;
+    line-height: 1.1;
+  }
+
+  .workflow-step-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: end;
+    gap: 8px;
+    color: var(--muted-foreground);
+    font-size: 13px;
+  }
+
+  .workflow-step-meta strong {
+    color: var(--foreground);
+    font-weight: 720;
+  }
+
+  .workflow-step-blocker {
+    margin: 0;
+    border: 1px solid oklch(0.7 0.12 55);
+    border-radius: 8px;
+    background: oklch(0.95 0.05 77);
+    color: oklch(0.28 0.05 55);
+    font-size: 13px;
+    padding: 9px 10px;
+  }
+
+  .workflow-step-body,
+  .workflow-step-secondary {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .workflow-step .tool-panel {
+    box-shadow: none;
+  }
+
+  .workflow-step .mapping-schema-panel,
+  .workflow-step .schema-grid,
+  .workflow-step .editor-grid,
+  .workflow-step .result-grid {
+    max-width: none;
+    margin: 0;
+  }
+
+  .disclosure-panel {
+    min-width: 0;
+    border: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--muted) 28%, transparent);
+    padding: 9px 10px;
+  }
+
+  .schema-workspace > .disclosure-panel {
+    grid-column: 1 / -1;
+  }
+
+  .disclosure-panel summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    color: var(--foreground);
+    font-size: 13px;
+    font-weight: 730;
+  }
+
+  .disclosure-panel summary small {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    font-weight: 620;
+  }
+
+  .disclosure-panel-content {
+    display: grid;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .compact-detail-grid .tool-panel {
+    min-height: 220px;
+  }
+
+  .review-primary-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.55fr);
   }
 
   .schema-workspace > .issue-banner {
@@ -371,7 +507,7 @@
   .schema-create-panel,
   .schema-library-panel,
   .schema-detail-panel {
-    min-height: 520px;
+    min-height: 0;
   }
 
   .schema-meta-line,
@@ -1067,6 +1203,10 @@
     background: color-mix(in oklch, var(--muted) 34%, transparent);
   }
 
+  .script-reference.compact {
+    background: color-mix(in oklch, var(--muted) 24%, transparent);
+  }
+
   .script-reference summary {
     cursor: pointer;
     color: var(--foreground);
@@ -1216,6 +1356,7 @@
   .input-grid,
   .scenario-panel,
   .schema-workspace,
+  .workflow-stage-list,
   .schema-grid,
   .editor-grid,
   .result-grid {
@@ -1243,12 +1384,14 @@
   }
 
   .mapping-stage-toolbar,
+  .workflow-step-header,
   .script-action-row {
     align-items: stretch;
     flex-direction: column;
   }
 
   .script-toolbar,
+  .review-primary-grid,
   .script-reference-grid {
     grid-template-columns: 1fr;
   }

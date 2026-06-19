@@ -45,6 +45,15 @@ The supported lifecycle is one local SQLite database path. Schema artifacts stor
 
 This keeps the POC easy to run locally while preserving a future migration seam: workspace or SaaS scoping can be introduced later around the repository layer and API filters without changing the script mapping contract.
 
+## Frontend Workflow
+
+The frontend keeps the existing Schema and Mapping tabs, workbench shell, card language, and responsive behavior, but presents the primary user journey as guided stages:
+
+- The Schema tab prioritizes creating or uploading a schema sample and selecting saved source/target schemas. Selected schema inspection remains available as secondary detail for inferred fields and stored samples.
+- The Mapping tab is ordered as Setup, Author, Review, and Save. Setup selects source/target schemas and run input, Author keeps JavaScript editing plus generation controls prominent, Review shows output and validation first, and Save handles template lifecycle actions.
+- Power-user details remain reachable through disclosure panels: source/target field lists, provider field hints, helper references, JSON diff details, raw logs, and template/version context.
+- Validation failures, provider errors, and missing setup blockers stay inline with the relevant stage so progressive disclosure does not hide action-critical information.
+
 ## Historical And Superseded Paths
 
 Older documentation may mention visual rules, JSONata metadata, deterministic rule execution, native graph templates, or a future Java runtime. Those paths are historical or superseded for the current implementation. They should not be treated as active executable mapping contracts in this phase.
