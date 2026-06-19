@@ -35,17 +35,7 @@ export function MappingSchemaPanel({
         </Button>
       </div>
 
-      <div className="active-template-strip" aria-live="polite">
-        <Database size={16} />
-        <div>
-          <strong>{workbench.activeTemplate ? workbench.activeTemplate.name : "No template loaded"}</strong>
-          <span>
-            {workbench.activeTemplate
-              ? `Using version ${workbench.activeTemplate.active_version}; schema snapshots stay available even if library items are archived.`
-              : "Select schemas or load a saved template to begin."}
-          </span>
-        </div>
-      </div>
+      <MappingContextStrip workbench={workbench} />
 
       <div className="mapping-schema-grid">
         <SchemaSelect
@@ -73,6 +63,47 @@ export function MappingSchemaPanel({
       ) : null}
     </section>
   )
+}
+
+function MappingContextStrip({ workbench }: { workbench: ReturnType<typeof useMappingWorkbenchController> }) {
+  const sourceStatus = schemaContextStatus(
+    workbench.selectedSourceSchemaId,
+    Boolean(workbench.selectedSourceSchema),
+    Boolean(workbench.activeSourceSchema)
+  )
+  const targetStatus = schemaContextStatus(
+    workbench.selectedTargetSchemaId,
+    Boolean(workbench.selectedTargetSchema),
+    Boolean(workbench.activeTargetSchema)
+  )
+
+  return (
+    <div className="active-template-strip mapping-context-strip" aria-live="polite">
+      <Database size={16} />
+      <div>
+        <strong>
+          {workbench.activeTemplate
+            ? `${workbench.activeTemplate.name} v${workbench.activeTemplate.active_version}`
+            : "No template loaded"}
+        </strong>
+        <span>
+          {workbench.activeTemplate
+            ? "Loaded versions carry script, samples, schema snapshots, and field validation rules."
+            : "Select active schemas or load a saved template to begin."}
+        </span>
+        <span className="mapping-context-status">
+          Source: {sourceStatus} · Target: {targetStatus} · Rules: {workbench.fieldValidationRules.length}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function schemaContextStatus(schemaId: string, hasLiveSchema: boolean, hasSnapshot: boolean) {
+  if (hasLiveSchema) return "active library schema"
+  if (schemaId && hasSnapshot) return "detached snapshot fallback"
+  if (hasSnapshot) return "stored snapshot"
+  return "not selected"
 }
 
 function SchemaSelect({

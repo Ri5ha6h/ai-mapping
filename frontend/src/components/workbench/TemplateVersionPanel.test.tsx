@@ -37,6 +37,7 @@ describe("TemplateVersionPanel", () => {
 
     expect(screen.getByRole("group", { name: "Examples" })).toBeTruthy()
     expect(screen.getByRole("group", { name: "Saved" })).toBeTruthy()
+    expect(screen.getByText(/field validation rules so older versions remain reproducible/i)).toBeTruthy()
     expect(screen.getByText("Archived")).toBeTruthy()
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "seed" } })
     fireEvent.click(screen.getByRole("button", { name: /New version/i }))
@@ -58,6 +59,7 @@ const version = {
   target_schema_snapshot: null,
   mapping_spec: { engine: "script_js" as const, script_version: 1, script: "function transform() { return {}; }" },
   validation_rules: [],
+  field_validation_rules: [],
   sample_source_content: "{}",
   sample_target_content: "{}",
   created_at: "2026-06-19T00:00:00Z",

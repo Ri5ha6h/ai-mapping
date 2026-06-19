@@ -236,6 +236,82 @@ def test_template_versions_store_schema_links_and_snapshots(
     ]
 
 
+def test_template_versions_snapshot_field_validation_rules(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    db_path = tmp_path / "templates.sqlite3"
+    monkeypatch.setenv("TEMPLATE_DB_PATH", str(db_path))
+
+    rules = [
+        {
+            "path": "$.tracking.number",
+            "value_type": "string",
+            "required": True,
+            "min_length": 5,
+            "max_length": 20,
+            "description": "Tracking number constraints",
+        }
+    ]
+    create_response = client.post(
+        "/api/templates",
+        json={
+            "name": "Rules Snapshot",
+            "source_format": "json",
+            "target_format": "json",
+            "source_schema_id": "missing-source",
+            "target_schema_id": "missing-target",
+            "source_schema_snapshot": SOURCE_SCHEMA,
+            "target_schema_snapshot": TARGET_SCHEMA,
+            "mapping_spec": script_spec(),
+            "field_validation_rules": rules,
+        },
+    )
+
+    assert create_response.status_code == 200
+    first_version = create_response.json()["versions"][0]
+    assert first_version["field_validation_rules"] == rules
+
+    version_response = client.post(
+        "/api/templates/rules-snapshot/versions",
+        json={
+            "source_format": "json",
+            "target_format": "json",
+            "source_schema_id": "missing-source",
+            "target_schema_id": "missing-target",
+            "source_schema_snapshot": SOURCE_SCHEMA,
+            "target_schema_snapshot": TARGET_SCHEMA,
+            "mapping_spec": script_spec(),
+            "field_validation_rules": [
+                {
+                    "path": "$.tracking.weight",
+                    "value_type": "number",
+                    "required": False,
+                    "min_value": 0,
+                }
+            ],
+        },
+    )
+
+    assert version_response.status_code == 200
+    versions = version_response.json()["versions"]
+    assert versions[0]["field_validation_rules"] == rules
+    assert versions[1]["field_validation_rules"][0]["path"] == "$.tracking.weight"
+
+    with sqlite3.connect(db_path) as connection:
+        stored = connection.execute(
+            """
+            select field_validation_rules_json
+            from template_versions
+            where template_id = 'rules-snapshot'
+            order by version
+            """
+        ).fetchall()
+
+    assert len(stored) == 2
+
+
 def test_script_template_persists_and_executes(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

@@ -65,14 +65,14 @@ export function TemplateVersionPanel({
             <History size={16} />
             <div>
               <strong>{activeTemplate.name} v{activeTemplate.active_version} is in use</strong>
-              <span>Loading a version copies its script, samples, schema snapshots, and validation rules into the current mapping workspace.</span>
+              <span>Loading a version copies its script, samples, schema snapshots, validation results, and field validation rules into the current mapping workspace.</span>
             </div>
           </div>
         ) : null}
 
         <div className="template-note version-helper-note">
           <strong>How versions work</strong>
-          <span>Save template updates the selected template name and notes. New version keeps the same template but stores a new script snapshot so older versions can still be loaded.</span>
+          <span>Save template updates the selected template name and notes. New version stores a fresh script, samples, schema snapshots, and field validation rules so older versions remain reproducible.</span>
         </div>
 
         <label className="field-stack" htmlFor="template-name">

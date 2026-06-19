@@ -970,11 +970,24 @@
 
   .schema-row span,
   .suggestion-row span,
-  .validation-row span,
   .validation-row code {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .validation-row span,
+  .validation-row code,
+  .validation-row small {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .validation-row code {
+    max-width: 100%;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .schema-row span,

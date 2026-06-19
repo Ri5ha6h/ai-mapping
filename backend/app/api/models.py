@@ -266,6 +266,7 @@ class TemplateVersion(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     sample_source_content: str | None = None
     sample_target_content: str | None = None
     created_at: datetime
@@ -293,6 +294,7 @@ class TemplateCreateRequest(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     sample_source_content: str | None = None
     sample_target_content: str | None = None
 
@@ -306,6 +308,7 @@ class TemplateVersionCreateRequest(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     sample_source_content: str | None = None
     sample_target_content: str | None = None
 

@@ -45,7 +45,7 @@ export function RunReviewPanel({ workbench }: Props) {
               type="button"
               className={workbench.runMode === "override" ? "active" : ""}
               onClick={() => workbench.setRunMode("override")}
-              disabled={!workbench.selectedSourceSchema}
+              disabled={!workbench.activeSourceSchema}
             >
               Override here
             </button>

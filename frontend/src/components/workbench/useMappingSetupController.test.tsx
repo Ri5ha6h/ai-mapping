@@ -12,6 +12,7 @@ vi.mock("@/lib/effect/api_effects", async () => {
     parseEffect: (_format: string, content: string) => Effect.succeed({ canonical: JSON.parse(content) }),
     inferSchemaEffect: (canonical: unknown) =>
       Effect.succeed({ schema: schemaNode("$", typeof canonical === "object" ? "object" : "string") }),
+    listFieldValidationRulesEffect: () => Effect.succeed({ rules: [] }),
   }
 })
 
@@ -46,17 +47,31 @@ describe("useMappingSetupController", () => {
     act(() => screen.getByRole("button", { name: "reset" }).click())
     expect(screen.getByTestId("ready").textContent).toBe("waiting")
   })
+
+  it("uses override input with restored schema snapshots when live source is unavailable", async () => {
+    let resolved: unknown = null
+    render(<SetupProbe sourceSchemas={[]} onResolved={(value) => (resolved = value)} />)
+
+    act(() => screen.getByRole("button", { name: "restore source snapshot" }).click())
+    act(() => screen.getByRole("button", { name: "select target" }).click())
+    act(() => screen.getByRole("button", { name: "override mode" }).click())
+    await act(async () => screen.getByRole("button", { name: "resolve inputs" }).click())
+
+    expect(resolved).toEqual({ shipment: { id: "override" } })
+  })
 })
 
 function SetupProbe({
   onSetupChanged = vi.fn(),
   onResolved = vi.fn(),
+  sourceSchemas = [sourceArtifact],
 }: {
   onSetupChanged?: () => void
   onResolved?: (value: unknown) => void
+  sourceSchemas?: SchemaArtifact[]
 }) {
   const controller = useMappingSetupController({
-    sourceSchemas: [sourceArtifact],
+    sourceSchemas,
     targetSchemas: [targetArtifact],
     onSetupChanged,
   })
@@ -68,6 +83,17 @@ function SetupProbe({
       <span data-testid="target-format">{controller.activeTargetFormat}</span>
       <button onClick={() => controller.selectSourceSchema("source-1")}>select source</button>
       <button onClick={() => controller.selectTargetSchema("target-1")}>select target</button>
+      <button
+        onClick={() => {
+          controller.setSourceFormat("json")
+          controller.setSourceInput('{"shipment":{"id":"saved snapshot"}}')
+          controller.setOverrideSourceInput('{"shipment":{"id":"saved snapshot"}}')
+          controller.setSourceSchema(sourceSchema)
+          controller.setSelectedSourceSchemaId("archived-source")
+        }}
+      >
+        restore source snapshot
+      </button>
       <button onClick={() => controller.parseAndInfer()}>infer ad hoc</button>
       <button
         onClick={() => {

@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from app.api.models import (
+    FieldValidationRuleUpsertRequest,
     MappingSpec,
     MappingTemplate,
     OutputFormat,
@@ -213,6 +214,7 @@ class TemplateRepository:
                     target_schema_snapshot_json text,
                     mapping_spec_json text not null,
                     validation_rules_json text not null,
+                    field_validation_rules_json text not null default '[]',
                     sample_source_content text,
                     sample_target_content text,
                     created_at text not null,
@@ -256,6 +258,12 @@ class TemplateRepository:
                 "template_versions",
                 "sample_target_content",
                 "text",
+            )
+            self._ensure_column(
+                connection,
+                "template_versions",
+                "field_validation_rules_json",
+                "text not null default '[]'",
             )
             self._seed_templates(connection)
 
@@ -347,6 +355,7 @@ class TemplateRepository:
                     target_schema_snapshot_json,
                     mapping_spec_json,
                     validation_rules_json,
+                    field_validation_rules_json,
                     sample_source_content,
                     sample_target_content,
                     created_at
@@ -389,11 +398,12 @@ class TemplateRepository:
                 target_schema_snapshot_json,
                 mapping_spec_json,
                 validation_rules_json,
+                field_validation_rules_json,
                 sample_source_content,
                 sample_target_content,
                 created_at
             )
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 template_id,
@@ -409,6 +419,12 @@ class TemplateRepository:
                     [
                         validation_rule.model_dump(mode="json")
                         for validation_rule in version.validation_rules
+                    ]
+                ),
+                json.dumps(
+                    [
+                        field_rule.model_dump(mode="json")
+                        for field_rule in version.field_validation_rules
                     ]
                 ),
                 version.sample_source_content,
@@ -433,6 +449,7 @@ def _template_version_from_request(
         target_schema_snapshot=request.target_schema_snapshot,
         mapping_spec=request.mapping_spec,
         validation_rules=request.validation_rules,
+        field_validation_rules=request.field_validation_rules,
         sample_source_content=request.sample_source_content,
         sample_target_content=request.sample_target_content,
         created_at=datetime.now(UTC),
@@ -458,6 +475,10 @@ def _version_from_row(row: sqlite3.Row) -> TemplateVersion | None:
             validation_rules=[
                 ValidationErrorItem.model_validate(item)
                 for item in json.loads(row["validation_rules_json"])
+            ],
+            field_validation_rules=[
+                FieldValidationRuleUpsertRequest.model_validate(item)
+                for item in json.loads(row["field_validation_rules_json"] or "[]")
             ],
             sample_source_content=row["sample_source_content"],
             sample_target_content=row["sample_target_content"],

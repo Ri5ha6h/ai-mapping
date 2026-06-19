@@ -13,7 +13,7 @@ import { issueFromUnknown } from "@/lib/effect/errors"
 import type { FrontendIssue } from "@/lib/effect/errors"
 import type { MappingSpec, MappingTemplate, OutputFormat, SourceFormat } from "@/types/mapping"
 import type { SchemaArtifact, SchemaNode } from "@/types/schema"
-import type { ValidationErrorItem } from "@/types/validation"
+import type { FieldValidationRule, ValidationErrorItem } from "@/types/validation"
 import { DEFAULT_SCRIPT } from "./useScriptAuthoringController"
 
 type NewMappingPromptState = { open: boolean; pending: boolean }
@@ -29,6 +29,7 @@ export type TemplateLifecycleControllerArgs = {
   targetInput: string
   mappingSpec: MappingSpec
   validationErrors: ValidationErrorItem[]
+  fieldValidationRules: FieldValidationRule[]
   readyForTemplateSave: boolean
   hasRunResult: boolean
   setIssue: (issue: FrontendIssue | null) => void
@@ -39,8 +40,10 @@ export type TemplateLifecycleControllerArgs = {
   setSelectedTargetSchemaId: (schemaId: string) => void
   setSourceInput: (value: string) => void
   setTargetInput: (value: string) => void
+  setOverrideSourceInput: (value: string) => void
   setSourceSchema: (schema: SchemaNode | null) => void
   setTargetSchema: (schema: SchemaNode | null) => void
+  setFieldValidationRules: (rules: FieldValidationRule[]) => void
   setScriptRaw: (script: string) => void
   restoreValidationErrors: (errors: ValidationErrorItem[]) => void
   clearRunResults: () => void
@@ -115,10 +118,14 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
       args.setTargetFormat(version.target_format)
       args.setSelectedSourceSchemaId(version.source_schema_id ?? "")
       args.setSelectedTargetSchemaId(version.target_schema_id ?? "")
-      if (version.sample_source_content) args.setSourceInput(version.sample_source_content)
+      if (version.sample_source_content) {
+        args.setSourceInput(version.sample_source_content)
+        args.setOverrideSourceInput(version.sample_source_content)
+      }
       if (version.sample_target_content) args.setTargetInput(version.sample_target_content)
       args.setSourceSchema(version.source_schema_snapshot ?? null)
       args.setTargetSchema(version.target_schema_snapshot ?? null)
+      args.setFieldValidationRules(snapshotFieldRules(version.field_validation_rules ?? []))
       args.setScriptRaw(version.mapping_spec.script || DEFAULT_SCRIPT)
       args.restoreValidationErrors(version.validation_rules)
       args.clearAuthoringContext()
@@ -278,9 +285,24 @@ function templateRequest(args: TemplateLifecycleControllerArgs, name: string, de
     target_schema_snapshot: args.activeTargetSchema,
     mapping_spec: args.mappingSpec,
     validation_rules: args.validationErrors,
+    field_validation_rules: args.fieldValidationRules.map(
+      ({ created_at: _createdAt, updated_at: _updatedAt, schema_id: _schemaId, ...rule }) => rule
+    ),
     sample_source_content: args.selectedSourceSchema?.original_content ?? args.sourceInput,
     sample_target_content: args.selectedTargetSchema?.original_content ?? args.targetInput,
   }
+}
+
+function snapshotFieldRules(
+  rules: NonNullable<MappingTemplate["versions"][number]["field_validation_rules"]>
+): FieldValidationRule[] {
+  const timestamp = new Date().toISOString()
+  return rules.map((rule) => ({
+    schema_id: "template-snapshot",
+    created_at: timestamp,
+    updated_at: timestamp,
+    ...rule,
+  }))
 }
 
 export type TemplateLifecycleController = ReturnType<typeof useTemplateLifecycleController>
