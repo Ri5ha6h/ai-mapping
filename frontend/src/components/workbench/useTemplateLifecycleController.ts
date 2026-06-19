@@ -4,8 +4,10 @@ import { Effect } from "effect"
 import {
   createTemplateEffect,
   createTemplateVersionEffect,
+  deleteTemplateEffect,
   getTemplateEffect,
   listTemplatesEffect,
+  restoreTemplateEffect,
 } from "@/lib/effect/api_effects"
 import { issueFromUnknown } from "@/lib/effect/errors"
 import type { FrontendIssue } from "@/lib/effect/errors"
@@ -49,6 +51,7 @@ export type TemplateLifecycleControllerArgs = {
 
 export function useTemplateLifecycleController(args: TemplateLifecycleControllerArgs) {
   const [templates, setTemplates] = useState<MappingTemplate[]>([])
+  const [deletedTemplates, setDeletedTemplates] = useState<MappingTemplate[]>([])
   const [activeTemplate, setActiveTemplate] = useState<MappingTemplate | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [templateName, setTemplateName] = useState("Shipment transform")
@@ -58,10 +61,12 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
   async function refreshTemplates() {
     args.setBusyAction((current) => current ?? "Loading templates")
     try {
-      const response = await Effect.runPromise(listTemplatesEffect())
-      setTemplates(response.templates)
+      const response = await Effect.runPromise(listTemplatesEffect(true))
+      const activeTemplates = response.templates.filter((template) => !template.deleted_at)
+      setTemplates(activeTemplates)
+      setDeletedTemplates(response.templates.filter((template) => Boolean(template.deleted_at)))
       setActiveTemplate((current) =>
-        current ? response.templates.find((template) => template.template_id === current.template_id) ?? null : current
+        current ? activeTemplates.find((template) => template.template_id === current.template_id) ?? null : current
       )
     } catch (error) {
       args.setIssue(issueFromUnknown(error))
@@ -191,8 +196,29 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
     setSelectedTemplateId(template.template_id)
     setTemplateName(template.name)
     setTemplateDescription(template.description)
-    const response = await Effect.runPromise(listTemplatesEffect())
-    setTemplates(response.templates)
+    const response = await Effect.runPromise(listTemplatesEffect(true))
+    setTemplates(response.templates.filter((item) => !item.deleted_at))
+    setDeletedTemplates(response.templates.filter((item) => Boolean(item.deleted_at)))
+  }
+
+  async function deleteTemplate(templateId: string) {
+    await withTemplateBusy("Deleting template", async () => {
+      await Effect.runPromise(deleteTemplateEffect(templateId))
+      if (activeTemplate?.template_id === templateId) {
+        setActiveTemplate(null)
+        setSelectedTemplateId("")
+      }
+      await refreshTemplates()
+    })
+  }
+
+  async function restoreTemplate(templateId: string) {
+    await withTemplateBusy("Restoring template", async () => {
+      const template = await Effect.runPromise(restoreTemplateEffect(templateId))
+      await refreshTemplates()
+      setSelectedTemplateId(template.template_id)
+      setActiveTemplate(template)
+    })
   }
 
   function hasUnsavedMapping() {
@@ -218,6 +244,7 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
 
   return {
     templates,
+    deletedTemplates,
     activeTemplate,
     selectedTemplateId,
     templateName,
@@ -228,6 +255,8 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
     refreshTemplates,
     saveTemplate,
     saveTemplateVersion,
+    deleteTemplate,
+    restoreTemplate,
     loadTemplate,
     selectTemplate,
     startNewMapping,

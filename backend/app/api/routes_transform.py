@@ -28,6 +28,7 @@ def validate_payload(request: ValidateRequest) -> ValidateResponse:
         output=request.output,
         target_schema=request.target_schema,
         output_format=request.output_format,
+        field_validation_rules=request.field_validation_rules,
     )
     policy = validation_policy_for(request.output_format)
     return ValidateResponse(valid=not errors, errors=errors, policy=policy.message)

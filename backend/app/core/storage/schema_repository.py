@@ -158,6 +158,28 @@ class SchemaArtifactRepository:
 
             return self.get_schema(schema_id, include_deleted=True)
 
+    def restore_schema(self, schema_id: str) -> SchemaArtifact:
+        with closing(self._connect()) as connection:
+            self._initialize(connection)
+            row = connection.execute(
+                "select schema_id from schemas where schema_id = ?",
+                (schema_id,),
+            ).fetchone()
+            if row is None:
+                raise SchemaArtifactNotFoundError(schema_id)
+
+            with connection:
+                connection.execute(
+                    """
+                    update schemas
+                    set deleted_at = null
+                    where schema_id = ?
+                    """,
+                    (schema_id,),
+                )
+
+            return self.get_schema(schema_id, include_deleted=True)
+
     def _connect(self) -> sqlite3.Connection:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         connection = sqlite3.connect(self.db_path)

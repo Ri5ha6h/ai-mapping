@@ -51,12 +51,25 @@ export function useRunReviewController({
       const parsed = await currentMappingInputs()
       const validationSchema = outputFormat === "json" ? parsed.targetSchema : null
       const response = await Effect.runPromise(
-        transformEffect(parsed.sourceData, mappingSpec, outputFormat, validationSchema)
+        transformEffect(
+          parsed.sourceData,
+          mappingSpec,
+          outputFormat,
+          validationSchema,
+          parsed.fieldValidationRules
+        )
       )
       setTransformResult(response)
 
       const validation = await Effect.runPromise(
-        validateEffect(parsed.sourceData, response.output, mappingSpec, validationSchema, outputFormat)
+        validateEffect(
+          parsed.sourceData,
+          response.output,
+          mappingSpec,
+          validationSchema,
+          outputFormat,
+          parsed.fieldValidationRules
+        )
       )
       setValidationErrors([...response.validation_errors, ...validation.errors])
 

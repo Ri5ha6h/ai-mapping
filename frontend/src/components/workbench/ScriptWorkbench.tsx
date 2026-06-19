@@ -1,5 +1,5 @@
 import { Suspense, lazy, memo, useMemo } from "react"
-import { Bot, Braces, Loader2, Play, Wand2 } from "lucide-react"
+import { Bot, Braces, Loader2, Wand2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
@@ -16,11 +16,9 @@ type Props = {
   autoMapMode: AutoMapMode
   aiMappingAvailable: boolean
   canGenerate: boolean
-  canRun: boolean
   busyAction: string | null
   onScriptChange: (script: string) => void
   onGenerate: () => void
-  onRun: () => void
   onFieldHints: () => void
   onAutoMapModeChange: (mode: AutoMapMode) => void
 }
@@ -35,11 +33,9 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
   autoMapMode,
   aiMappingAvailable,
   canGenerate,
-  canRun,
   busyAction,
   onScriptChange,
   onGenerate,
-  onRun,
   onFieldHints,
   onAutoMapModeChange,
 }: Props) {
@@ -109,14 +105,6 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
               <Wand2 size={16} />
             )}
             Generate script
-          </Button>
-          <Button type="button" onClick={onRun} disabled={!canRun || Boolean(busyAction)}>
-            {busyAction === "Running script" ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <Play size={16} />
-            )}
-            Run script
           </Button>
         </div>
       </div>

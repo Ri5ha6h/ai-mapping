@@ -304,6 +304,66 @@ def test_template_conflict_and_missing_template_errors(
     )
 
 
+def test_template_soft_delete_and_restore(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TEMPLATE_DB_PATH", str(tmp_path / "templates.sqlite3"))
+    payload = {
+        "template_id": "shipment-status",
+        "name": "Shipment Status",
+        "source_format": "json",
+        "target_format": "json",
+        "mapping_spec": script_spec(),
+    }
+
+    assert client.post("/api/templates", json=payload).status_code == 200
+
+    delete_response = client.delete("/api/templates/shipment-status")
+    assert delete_response.status_code == 200
+    assert delete_response.json()["deleted_at"] is not None
+    active_user_templates = [
+        template
+        for template in client.get("/api/templates").json()["templates"]
+        if not template["is_seeded"]
+    ]
+    assert active_user_templates == []
+
+    all_templates = client.get("/api/templates?include_deleted=true")
+    assert all_templates.status_code == 200
+    deleted_user_template_ids = [
+        template["template_id"]
+        for template in all_templates.json()["templates"]
+        if not template["is_seeded"] and template["deleted_at"]
+    ]
+    assert deleted_user_template_ids == [
+        "shipment-status"
+    ]
+
+    version_response = client.post(
+        "/api/templates/shipment-status/versions",
+        json={
+            "source_format": "json",
+            "target_format": "json",
+            "mapping_spec": script_spec(),
+        },
+    )
+    assert version_response.status_code == 404
+
+    restore_response = client.post("/api/templates/shipment-status/restore")
+    assert restore_response.status_code == 200
+    assert restore_response.json()["deleted_at"] is None
+    restored_user_template_ids = [
+        template["template_id"]
+        for template in client.get("/api/templates").json()["templates"]
+        if not template["is_seeded"]
+    ]
+    assert restored_user_template_ids == [
+        "shipment-status"
+    ]
+
+
 def test_snapshot_only_template_versions_remain_compatible(
     client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

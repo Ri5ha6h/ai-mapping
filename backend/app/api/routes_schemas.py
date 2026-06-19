@@ -86,6 +86,17 @@ def delete_schema_artifact(schema_id: str) -> SchemaArtifact:
         ) from exc
 
 
+@router.post("/{schema_id}/restore", response_model=SchemaArtifact)
+def restore_schema_artifact(schema_id: str) -> SchemaArtifact:
+    try:
+        return _repository().restore_schema(schema_id)
+    except SchemaArtifactNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={"message": f"Schema {schema_id} was not found."},
+        ) from exc
+
+
 def _validate_schema_format(direction: SchemaDirection, source_format: SourceFormat) -> None:
     if direction == SchemaDirection.target and source_format not in {
         SourceFormat.json,

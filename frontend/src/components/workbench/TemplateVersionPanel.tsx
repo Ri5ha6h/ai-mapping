@@ -1,4 +1,4 @@
-import { Download, History, RefreshCw, Save, Split } from "lucide-react"
+import { Download, History, RefreshCw, RotateCcw, Save, Split, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -7,6 +7,7 @@ import type { MappingTemplate } from "@/types/mapping"
 
 type Props = {
   templates: MappingTemplate[]
+  deletedTemplates: MappingTemplate[]
   activeTemplate: MappingTemplate | null
   selectedTemplateId: string
   templateName: string
@@ -18,12 +19,15 @@ type Props = {
   onSelectedTemplateChange: (templateId: string) => void
   onSaveTemplate: () => void
   onCreateVersion: () => void
+  onDeleteTemplate: (templateId: string) => void
+  onRestoreTemplate: (templateId: string) => void
   onLoadTemplate: (templateId: string, version?: number) => void
   onRefreshTemplates: () => void
 }
 
 export function TemplateVersionPanel({
   templates,
+  deletedTemplates,
   activeTemplate,
   selectedTemplateId,
   templateName,
@@ -35,6 +39,8 @@ export function TemplateVersionPanel({
   onSelectedTemplateChange,
   onSaveTemplate,
   onCreateVersion,
+  onDeleteTemplate,
+  onRestoreTemplate,
   onLoadTemplate,
   onRefreshTemplates,
 }: Props) {
@@ -54,6 +60,21 @@ export function TemplateVersionPanel({
       </div>
 
       <div className="template-stack">
+        {activeTemplate ? (
+          <div className="active-template-strip">
+            <History size={16} />
+            <div>
+              <strong>{activeTemplate.name} v{activeTemplate.active_version} is in use</strong>
+              <span>Loading a version copies its script, samples, schema snapshots, and validation rules into the current mapping workspace.</span>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="template-note version-helper-note">
+          <strong>How versions work</strong>
+          <span>Save template updates the selected template name and notes. New version keeps the same template but stores a new script snapshot so older versions can still be loaded.</span>
+        </div>
+
         <label className="field-stack" htmlFor="template-name">
           <span>Name</span>
           <Input
@@ -91,6 +112,16 @@ export function TemplateVersionPanel({
           </Button>
           <Button type="button" variant="outline" onClick={onRefreshTemplates} disabled={busy} title="Refresh templates">
             <RefreshCw size={15} />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => selectedTemplate ? onDeleteTemplate(selectedTemplate.template_id) : undefined}
+            disabled={busy || !selectedTemplate || selectedTemplate.is_seeded}
+            title="Archive selected template"
+          >
+            <Trash2 size={15} />
+            Archive
           </Button>
         </div>
 
@@ -162,6 +193,36 @@ export function TemplateVersionPanel({
         ) : (
           <p className="empty-line">Save a script or select an existing template.</p>
         )}
+
+        <div className="archive-panel">
+          <div className="schema-list-heading">
+            <strong>Archive & Trash</strong>
+            <span>{deletedTemplates.length} archived templates</span>
+          </div>
+          {deletedTemplates.length === 0 ? (
+            <p className="empty-line">Archived mapping templates will appear here for restore.</p>
+          ) : (
+            <div className="archive-card-list">
+              {deletedTemplates.map((template) => (
+                <div className="archive-row" key={template.template_id}>
+                  <div>
+                    <strong>{template.name}</strong>
+                    <span>v{template.active_version} · {template.versions.length} version(s)</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onRestoreTemplate(template.template_id)}
+                    disabled={busy}
+                  >
+                    <RotateCcw size={14} />
+                    Restore
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </section>
   )

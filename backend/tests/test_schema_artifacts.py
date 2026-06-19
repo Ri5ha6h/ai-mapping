@@ -82,6 +82,16 @@ def test_create_list_read_and_soft_delete_schema_artifact(
         "shipment-source"
     ]
 
+    restore_response = client.post("/api/schemas/shipment-source/restore")
+    assert restore_response.status_code == 200
+    assert restore_response.json()["deleted_at"] is None
+
+    restored_list_response = client.get("/api/schemas")
+    assert restored_list_response.status_code == 200
+    assert [schema["schema_id"] for schema in restored_list_response.json()["schemas"]] == [
+        "shipment-source"
+    ]
+
     with sqlite3.connect(db_path) as connection:
         row = connection.execute(
             """
@@ -95,7 +105,7 @@ def test_create_list_read_and_soft_delete_schema_artifact(
     assert row[0] == content
     assert '"trackingNumber": "TRK123"' in row[1]
     assert '"type":"object"' in row[2]
-    assert row[3] is not None
+    assert row[3] is None
 
 
 def test_target_schema_rejects_edi_format_without_writing_row(
@@ -231,3 +241,6 @@ def test_missing_schema_artifact_returns_404(
 
     delete_response = client.delete("/api/schemas/missing")
     assert delete_response.status_code == 404
+
+    restore_response = client.post("/api/schemas/missing/restore")
+    assert restore_response.status_code == 404

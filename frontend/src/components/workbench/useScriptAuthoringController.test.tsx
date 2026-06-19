@@ -98,4 +98,5 @@ const baseInputs: CurrentMappingInputs = {
   targetData: { id: 1 },
   sourceSchema: { path: "$", type: "object", required: true, examples: [] },
   targetSchema: { path: "$", type: "object", required: true, examples: [] },
+  fieldValidationRules: [],
 }

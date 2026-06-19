@@ -31,6 +31,7 @@ export type MappingTemplate = {
   description: string
   active_version: number
   is_seeded: boolean
+  deleted_at?: string | null
   versions: TemplateVersion[]
 }
 

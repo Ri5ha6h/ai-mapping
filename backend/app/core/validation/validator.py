@@ -1,6 +1,12 @@
 from typing import Any
 
-from app.api.models import MappingSpec, OutputFormat, SchemaNode, ValidationErrorItem
+from app.api.models import (
+    FieldValidationRuleUpsertRequest,
+    MappingSpec,
+    OutputFormat,
+    SchemaNode,
+    ValidationErrorItem,
+)
 from app.core.mapping.path_utils import MISSING, get_path
 from app.core.validation.policy import validation_policy_for
 
@@ -11,6 +17,7 @@ def validate_script_mapping(
     output: Any | None,
     target_schema: SchemaNode | None,
     output_format: OutputFormat = OutputFormat.json,
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] | None = None,
 ) -> list[ValidationErrorItem]:
     errors: list[ValidationErrorItem] = []
     if mapping_spec is None or mapping_spec.engine != "script_js":
@@ -34,7 +41,74 @@ def validate_script_mapping(
     if policy.validates_target_schema and target_schema is not None and output is not None:
         errors.extend(_validate_required_output(output, target_schema))
         errors.extend(_validate_output_types(output, target_schema))
+        errors.extend(_validate_field_rules(output, field_validation_rules or []))
     return errors
+
+
+def _validate_field_rules(
+    output: Any,
+    rules: list[FieldValidationRuleUpsertRequest],
+) -> list[ValidationErrorItem]:
+    errors: list[ValidationErrorItem] = []
+    for rule in rules:
+        value = get_path(output, rule.path)
+        values = _flatten_values(value) if isinstance(value, list) else [value]
+        present_values = [item for item in values if item is not MISSING and item is not None and item != ""]
+        if rule.required and not present_values:
+            errors.append(
+                ValidationErrorItem(
+                    code="field_rule_required",
+                    path=rule.path,
+                    message=f"Field rule requires {rule.path} to be present.",
+                    rule_id=rule.path,
+                )
+            )
+            continue
+        if value is MISSING or not present_values:
+            continue
+        for item in present_values:
+            if not _matches_schema_type(item, rule.value_type):
+                errors.append(
+                    ValidationErrorItem(
+                        code="field_rule_type_mismatch",
+                        path=rule.path,
+                        message=f"Field rule expects {rule.path} to be {rule.value_type}.",
+                        rule_id=rule.path,
+                    )
+                )
+                break
+        errors.extend(_validate_rule_bounds(rule, present_values))
+    return errors
+
+
+def _validate_rule_bounds(
+    rule: FieldValidationRuleUpsertRequest,
+    values: list[Any],
+) -> list[ValidationErrorItem]:
+    errors: list[ValidationErrorItem] = []
+    for value in values:
+        if rule.min_length is not None and hasattr(value, "__len__") and len(value) < rule.min_length:
+            errors.append(_field_rule_error("field_rule_min_length", rule, f"Field rule expects {rule.path} length to be at least {rule.min_length}."))
+            break
+        if rule.max_length is not None and hasattr(value, "__len__") and len(value) > rule.max_length:
+            errors.append(_field_rule_error("field_rule_max_length", rule, f"Field rule expects {rule.path} length to be at most {rule.max_length}."))
+            break
+        if isinstance(value, int | float) and not isinstance(value, bool):
+            if rule.min_value is not None and value < rule.min_value:
+                errors.append(_field_rule_error("field_rule_min_value", rule, f"Field rule expects {rule.path} to be at least {rule.min_value}."))
+                break
+            if rule.max_value is not None and value > rule.max_value:
+                errors.append(_field_rule_error("field_rule_max_value", rule, f"Field rule expects {rule.path} to be at most {rule.max_value}."))
+                break
+    return errors
+
+
+def _field_rule_error(
+    code: str,
+    rule: FieldValidationRuleUpsertRequest,
+    message: str,
+) -> ValidationErrorItem:
+    return ValidationErrorItem(code=code, path=rule.path, message=message, rule_id=rule.path)
 
 
 def _validate_required_output(output: Any, target_schema: SchemaNode) -> list[ValidationErrorItem]:

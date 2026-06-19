@@ -16,6 +16,7 @@ describe("TemplateVersionPanel", () => {
     render(
       <TemplateVersionPanel
         templates={[seededTemplate, savedTemplate]}
+        deletedTemplates={[deletedTemplate]}
         activeTemplate={savedTemplate}
         selectedTemplateId="saved"
         templateName="Saved transform"
@@ -27,6 +28,8 @@ describe("TemplateVersionPanel", () => {
         onSelectedTemplateChange={onSelectedTemplateChange}
         onSaveTemplate={vi.fn()}
         onCreateVersion={onCreateVersion}
+        onDeleteTemplate={vi.fn()}
+        onRestoreTemplate={vi.fn()}
         onLoadTemplate={onLoadTemplate}
         onRefreshTemplates={vi.fn()}
       />
@@ -34,6 +37,7 @@ describe("TemplateVersionPanel", () => {
 
     expect(screen.getByRole("group", { name: "Examples" })).toBeTruthy()
     expect(screen.getByRole("group", { name: "Saved" })).toBeTruthy()
+    expect(screen.getByText("Archived")).toBeTruthy()
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "seed" } })
     fireEvent.click(screen.getByRole("button", { name: /New version/i }))
     fireEvent.click(screen.getByRole("button", { name: /Load/i }))
@@ -61,3 +65,4 @@ const version = {
 
 const seededTemplate = { template_id: "seed", name: "Example", description: "", active_version: 1, is_seeded: true, versions: [version] }
 const savedTemplate = { template_id: "saved", name: "Saved", description: "", active_version: 1, is_seeded: false, versions: [version] }
+const deletedTemplate = { template_id: "deleted", name: "Archived", description: "", active_version: 1, is_seeded: false, deleted_at: "2026-06-19T00:00:00Z", versions: [version] }

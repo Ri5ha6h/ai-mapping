@@ -9,7 +9,7 @@ import type { useMappingWorkbenchController } from "./useMappingWorkbenchControl
 afterEach(cleanup)
 
 describe("MappingSchemaPanel", () => {
-  it("keeps transform actions out of schema selection", () => {
+  it("keeps author and run actions out of schema selection", () => {
     render(
       <MappingSchemaPanel
         workbench={baseWorkbench as unknown as ReturnType<typeof useMappingWorkbenchController>}
@@ -19,7 +19,8 @@ describe("MappingSchemaPanel", () => {
       />
     )
 
-    expect(screen.getByRole("button", { name: "New Transform" })).toBeInstanceOf(HTMLButtonElement)
+    expect(screen.getByRole("button", { name: "New Mapping" })).toBeInstanceOf(HTMLButtonElement)
+    expect(screen.getByText("No template loaded")).toBeTruthy()
     expect(screen.queryByRole("button", { name: "AI-assisted" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Field hints" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Run script" })).toBeNull()

@@ -34,27 +34,31 @@ class TemplateRepository:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path
 
-    def list_templates(self) -> list[MappingTemplate]:
+    def list_templates(self, *, include_deleted: bool = False) -> list[MappingTemplate]:
         with closing(self._connect()) as connection:
             self._initialize(connection)
+            deleted_clause = "" if include_deleted else "where deleted_at is null"
             rows = connection.execute(
-                """
-                select template_id, name, description, active_version, is_seeded
+                f"""
+                select template_id, name, description, active_version, is_seeded, deleted_at
                 from templates
+                {deleted_clause}
                 order by lower(name)
                 """
             ).fetchall()
             templates = [self._template_from_row(connection, row) for row in rows]
             return [template for template in templates if template is not None]
 
-    def get_template(self, template_id: str) -> MappingTemplate:
+    def get_template(self, template_id: str, *, include_deleted: bool = True) -> MappingTemplate:
         with closing(self._connect()) as connection:
             self._initialize(connection)
+            deleted_clause = "" if include_deleted else "and deleted_at is null"
             row = connection.execute(
-                """
-                select template_id, name, description, active_version, is_seeded
+                f"""
+                select template_id, name, description, active_version, is_seeded, deleted_at
                 from templates
                 where template_id = ?
+                {deleted_clause}
                 """,
                 (template_id,),
             ).fetchone()
@@ -64,6 +68,51 @@ class TemplateRepository:
             if template is None:
                 raise TemplateNotFoundError(template_id)
             return template
+
+    def soft_delete_template(self, template_id: str) -> MappingTemplate:
+        with closing(self._connect()) as connection:
+            self._initialize(connection)
+            row = connection.execute(
+                "select template_id, is_seeded from templates where template_id = ?",
+                (template_id,),
+            ).fetchone()
+            if row is None or bool(row["is_seeded"]):
+                raise TemplateNotFoundError(template_id)
+
+            now = _timestamp()
+            with connection:
+                connection.execute(
+                    """
+                    update templates
+                    set deleted_at = coalesce(deleted_at, ?), updated_at = ?
+                    where template_id = ?
+                    """,
+                    (now, now, template_id),
+                )
+
+            return self.get_template(template_id, include_deleted=True)
+
+    def restore_template(self, template_id: str) -> MappingTemplate:
+        with closing(self._connect()) as connection:
+            self._initialize(connection)
+            row = connection.execute(
+                "select template_id from templates where template_id = ?",
+                (template_id,),
+            ).fetchone()
+            if row is None:
+                raise TemplateNotFoundError(template_id)
+
+            with connection:
+                connection.execute(
+                    """
+                    update templates
+                    set deleted_at = null, updated_at = ?
+                    where template_id = ?
+                    """,
+                    (_timestamp(), template_id),
+                )
+
+            return self.get_template(template_id, include_deleted=True)
 
     def create_template(self, request: TemplateCreateRequest) -> MappingTemplate:
         template_id = request.template_id or _slugify(request.name)
@@ -97,7 +146,7 @@ class TemplateRepository:
         with closing(self._connect()) as connection:
             self._initialize(connection)
             current = connection.execute(
-                "select active_version from templates where template_id = ?",
+                "select active_version from templates where template_id = ? and deleted_at is null",
                 (template_id,),
             ).fetchone()
             if current is None:
@@ -145,6 +194,7 @@ class TemplateRepository:
                     description text not null default '',
                     active_version integer not null,
                     is_seeded integer not null default 0,
+                    deleted_at text,
                     created_at text not null,
                     updated_at text not null
                 )
@@ -176,6 +226,12 @@ class TemplateRepository:
                 "templates",
                 "is_seeded",
                 "integer not null default 0",
+            )
+            self._ensure_column(
+                connection,
+                "templates",
+                "deleted_at",
+                "text",
             )
             self._ensure_column(
                 connection,
@@ -310,6 +366,7 @@ class TemplateRepository:
             description=row["description"],
             active_version=row["active_version"],
             is_seeded=bool(row["is_seeded"]),
+            deleted_at=_datetime_or_none(row["deleted_at"]),
             versions=versions,
         )
 
@@ -424,3 +481,9 @@ def _model_json_or_none(value: Any) -> str | None:
 
 def _timestamp() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _datetime_or_none(value: str | None) -> datetime | None:
+    if value is None:
+        return None
+    return datetime.fromisoformat(value)

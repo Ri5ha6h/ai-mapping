@@ -1,7 +1,6 @@
-import { Database, FilePlus2, PlaySquare } from "lucide-react"
+import { Database, FilePlus2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import type { SchemaArtifact } from "@/types/schema"
 import type { useMappingWorkbenchController } from "./useMappingWorkbenchController"
 
@@ -25,7 +24,27 @@ export function MappingSchemaPanel({
           <p className="panel-kicker">Script transform</p>
           <h2>Schema selection</h2>
         </div>
-        <Database size={18} className="text-muted-foreground" />
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void workbench.startNewMapping()}
+          disabled={Boolean(workbench.busyAction)}
+        >
+          <FilePlus2 />
+          New Mapping
+        </Button>
+      </div>
+
+      <div className="active-template-strip" aria-live="polite">
+        <Database size={16} />
+        <div>
+          <strong>{workbench.activeTemplate ? workbench.activeTemplate.name : "No template loaded"}</strong>
+          <span>
+            {workbench.activeTemplate
+              ? `Using version ${workbench.activeTemplate.active_version}; schema snapshots stay available even if library items are archived.`
+              : "Select schemas or load a saved template to begin."}
+          </span>
+        </div>
       </div>
 
       <div className="mapping-schema-grid">
@@ -43,18 +62,6 @@ export function MappingSchemaPanel({
         />
       </div>
 
-      <div className="mapping-stage-toolbar" aria-label="Mapping stage toolbar">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void workbench.startNewMapping()}
-          disabled={Boolean(workbench.busyAction)}
-        >
-          <FilePlus2 />
-          New Transform
-        </Button>
-      </div>
-
       {!workbench.readyForMapping ? (
         <div className="template-note">
           <strong>Schema pair required</strong>
@@ -64,48 +71,6 @@ export function MappingSchemaPanel({
           </Button>
         </div>
       ) : null}
-
-      <div className="run-mode-panel">
-        <div className="field-stack">
-          <span>Run input</span>
-          <div className="schema-segmented-control">
-            <button
-              type="button"
-              className={workbench.runMode === "saved-sample" ? "active" : ""}
-              onClick={() => workbench.setRunMode("saved-sample")}
-            >
-              Saved sample
-            </button>
-            <button
-              type="button"
-              className={workbench.runMode === "override" ? "active" : ""}
-              onClick={() => workbench.setRunMode("override")}
-              disabled={!workbench.selectedSourceSchema}
-            >
-              Override
-            </button>
-          </div>
-        </div>
-        {workbench.runMode === "override" ? (
-          <Textarea
-            className="code-input min-h-48"
-            value={workbench.overrideSourceInput}
-            onChange={(event) =>
-              workbench.setOverrideSourceInput(event.target.value)
-            }
-            spellCheck={false}
-          />
-        ) : (
-          <div className="run-sample-summary">
-            <PlaySquare size={16} />
-            <span>
-              {workbench.selectedSourceSchema
-                ? `${workbench.selectedSourceSchema.name} saved sample`
-                : "Loaded template sample"}
-            </span>
-          </div>
-        )}
-      </div>
     </section>
   )
 }

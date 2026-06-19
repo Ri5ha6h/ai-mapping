@@ -103,13 +103,14 @@ def generate_script(request: ScriptDraftRequest) -> ScriptDraftResponse:
             local_script=local_script,
         )
 
+    rule_context = _field_rule_context(request)
     mapping_spec, explanation, unresolved, used_ai, provider_errors = generate_script_draft(
         source_sample=request.source_sample,
         target_sample=request.target_sample,
         source_schema=request.source_schema,
         target_schema=request.target_schema,
         field_hints=field_hints,
-        domain_context=request.domain_context,
+        domain_context="\n".join(part for part in [request.domain_context, rule_context] if part),
         use_ai=request.use_ai,
         ai_available=provider is not None,
         ai_generator=ai_generator,
@@ -121,6 +122,26 @@ def generate_script(request: ScriptDraftRequest) -> ScriptDraftResponse:
         used_ai=used_ai,
         provider_errors=provider_errors,
     )
+
+
+def _field_rule_context(request: ScriptDraftRequest) -> str:
+    if not request.field_validation_rules:
+        return ""
+    lines = ["Target field validation rules to satisfy:"]
+    for rule in request.field_validation_rules:
+        constraints = [f"type={rule.value_type}"]
+        if rule.required:
+            constraints.append("required")
+        if rule.min_value is not None:
+            constraints.append(f"min={rule.min_value}")
+        if rule.max_value is not None:
+            constraints.append(f"max={rule.max_value}")
+        if rule.min_length is not None:
+            constraints.append(f"min_length={rule.min_length}")
+        if rule.max_length is not None:
+            constraints.append(f"max_length={rule.max_length}")
+        lines.append(f"- {rule.path}: {', '.join(constraints)}")
+    return "\n".join(lines)
 
 
 def _merge_suggestions(

@@ -2,9 +2,10 @@ import { useCallback, useMemo, useState } from "react"
 import { Effect } from "effect"
 
 import { SAMPLE_SOURCE_JSON, SAMPLE_TARGET_JSON } from "@/components/workbench/constants"
-import { inferSchemaEffect, parseEffect } from "@/lib/effect/api_effects"
+import { inferSchemaEffect, listFieldValidationRulesEffect, parseEffect } from "@/lib/effect/api_effects"
 import type { OutputFormat, SourceFormat } from "@/types/mapping"
 import type { SchemaArtifact, SchemaNode } from "@/types/schema"
+import type { FieldValidationRule } from "@/types/validation"
 
 export type RunMode = "saved-sample" | "override"
 
@@ -19,6 +20,7 @@ export type CurrentMappingInputs = {
   targetData: unknown
   sourceSchema: SchemaNode
   targetSchema: SchemaNode
+  fieldValidationRules: FieldValidationRule[]
 }
 
 export function useMappingSetupController({
@@ -96,7 +98,16 @@ export function useMappingSetupController({
     setTargetFormat(activeTargetFormat)
     setSourceSchema(nextSourceSchema)
     setTargetSchema(nextTargetSchema)
-    return { sourceData, targetData, sourceSchema: nextSourceSchema, targetSchema: nextTargetSchema }
+    const fieldValidationRules = selectedTargetSchema
+      ? (await Effect.runPromise(listFieldValidationRulesEffect(selectedTargetSchema.schema_id))).rules
+      : []
+    return {
+      sourceData,
+      targetData,
+      sourceSchema: nextSourceSchema,
+      targetSchema: nextTargetSchema,
+      fieldValidationRules,
+    }
   }, [
     activeSourceFormat,
     activeTargetFormat,

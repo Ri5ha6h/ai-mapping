@@ -33,7 +33,13 @@ describe("useRunReviewController", () => {
     render(<RunReviewProbe />)
     await act(async () => screen.getByRole("button", { name: "run" }).click())
 
-    expect(transformEffect).toHaveBeenCalledWith(baseInputs.sourceData, mappingSpec, "json", baseInputs.targetSchema)
+    expect(transformEffect).toHaveBeenCalledWith(
+      baseInputs.sourceData,
+      mappingSpec,
+      "json",
+      baseInputs.targetSchema,
+      baseInputs.fieldValidationRules
+    )
     expect(validateEffect).toHaveBeenCalled()
     expect(diffOutputEffect).toHaveBeenCalledWith(baseInputs.targetData, { id: 2 }, "json")
     expect(screen.getByTestId("output").textContent).toContain("2")
@@ -51,7 +57,13 @@ describe("useRunReviewController", () => {
     await act(async () => screen.getByRole("button", { name: "run" }).click())
     act(() => screen.getByRole("button", { name: "clear" }).click())
 
-    expect(transformEffect).toHaveBeenCalledWith(baseInputs.sourceData, mappingSpec, "xml", null)
+    expect(transformEffect).toHaveBeenCalledWith(
+      baseInputs.sourceData,
+      mappingSpec,
+      "xml",
+      null,
+      baseInputs.fieldValidationRules
+    )
     expect(diffOutputEffect).not.toHaveBeenCalled()
     expect(screen.getByTestId("output").textContent).toBe("none")
     expect(screen.getByTestId("status").textContent).toBe("Ready to run script")
@@ -87,6 +99,7 @@ const baseInputs: CurrentMappingInputs = {
   targetData: { id: 1 },
   sourceSchema: { path: "$", type: "object", required: true, examples: [] },
   targetSchema: { path: "$", type: "object", required: true, examples: [] },
+  fieldValidationRules: [],
 }
 
 function transformResponse(output: unknown) {

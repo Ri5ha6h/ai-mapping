@@ -7,6 +7,7 @@ import { MappingSuggestionPanel } from "@/components/workbench/MappingSuggestion
 import { OutputDiffPanel } from "@/components/workbench/OutputDiffPanel"
 import { OutputPreview } from "@/components/workbench/OutputPreview"
 import { RunLogsPanel } from "@/components/workbench/RunLogsPanel"
+import { RunReviewPanel } from "@/components/workbench/RunReviewPanel"
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
 import { SchemaLibraryPanel } from "@/components/workbench/SchemaLibraryPanel"
 import { ScriptWorkbench } from "@/components/workbench/ScriptWorkbench"
@@ -175,11 +176,9 @@ function MappingWorkbench() {
               autoMapMode={workbench.autoMapMode}
               aiMappingAvailable={workbench.aiMappingAvailable}
               canGenerate={workbench.readyForMapping}
-              canRun={workbench.readyForTransform}
               busyAction={workbench.busyAction}
               onScriptChange={workbench.setScript}
               onGenerate={() => void workbench.generateScript()}
-              onRun={() => void workbench.runTransform()}
               onFieldHints={() => void workbench.autoMap()}
               onAutoMapModeChange={workbench.setAutoMapMode}
             />
@@ -204,6 +203,7 @@ function MappingWorkbench() {
             }
           >
             <div className="result-grid review-primary-grid">
+              <RunReviewPanel workbench={workbench} />
               <OutputPreview result={workbench.transformResult} />
               <ValidationPanel errors={workbench.validationErrors} outputFormat={workbench.targetFormat} />
             </div>
@@ -216,6 +216,7 @@ function MappingWorkbench() {
           >
             <TemplateVersionPanel
               templates={workbench.templates}
+              deletedTemplates={workbench.deletedTemplates}
               activeTemplate={workbench.activeTemplate}
               selectedTemplateId={workbench.selectedTemplateId}
               templateName={workbench.templateName}
@@ -227,6 +228,8 @@ function MappingWorkbench() {
               onSelectedTemplateChange={workbench.selectTemplate}
               onSaveTemplate={() => void workbench.saveTemplate()}
               onCreateVersion={() => void workbench.saveTemplateVersion()}
+              onDeleteTemplate={(templateId) => void workbench.deleteTemplate(templateId)}
+              onRestoreTemplate={(templateId) => void workbench.restoreTemplate(templateId)}
               onLoadTemplate={(templateId, version) => void workbench.loadTemplate(templateId, version)}
               onRefreshTemplates={() => void workbench.refreshTemplates()}
             />

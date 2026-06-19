@@ -24,11 +24,10 @@ vi.mock("@monaco-editor/react", () => ({
 afterEach(cleanup)
 
 describe("ScriptWorkbench", () => {
-  it("contains mode, hint, generate, run, reference, and editable script controls", async () => {
+  it("contains mode, hint, generate, reference, and editable script controls", async () => {
     const onAutoMapModeChange = vi.fn()
     const onFieldHints = vi.fn()
     const onGenerate = vi.fn()
-    const onRun = vi.fn()
     const onScriptChange = vi.fn()
 
     render(
@@ -42,11 +41,9 @@ describe("ScriptWorkbench", () => {
         autoMapMode="local"
         aiMappingAvailable={false}
         canGenerate
-        canRun
         busyAction={null}
         onScriptChange={onScriptChange}
         onGenerate={onGenerate}
-        onRun={onRun}
         onFieldHints={onFieldHints}
         onAutoMapModeChange={onAutoMapModeChange}
       />
@@ -55,7 +52,6 @@ describe("ScriptWorkbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "AI-assisted" }))
     fireEvent.click(screen.getByRole("button", { name: "Field hints" }))
     fireEvent.click(screen.getByRole("button", { name: "Generate script" }))
-    fireEvent.click(screen.getByRole("button", { name: "Run script" }))
     fireEvent.change(await screen.findByLabelText("Monaco script editor"), {
       target: { value: "function transform(source, helpers) { return source; }" },
     })
@@ -63,7 +59,6 @@ describe("ScriptWorkbench", () => {
     expect(onAutoMapModeChange).toHaveBeenCalledWith("ai")
     expect(onFieldHints).toHaveBeenCalled()
     expect(onGenerate).toHaveBeenCalled()
-    expect(onRun).toHaveBeenCalled()
     expect(onScriptChange).toHaveBeenCalledWith(
       "function transform(source, helpers) { return source; }"
     )
