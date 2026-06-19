@@ -10,6 +10,7 @@ from app.api.models import (
 )
 from app.core.mapping.output_diff import diff_values
 from app.core.mapping.run_service import MappingRunService
+from app.core.validation.policy import diff_policy_for, validation_policy_for
 from app.core.validation.validator import validate_script_mapping
 
 router = APIRouter(tags=["transform"])
@@ -26,11 +27,16 @@ def validate_payload(request: ValidateRequest) -> ValidateResponse:
         mapping_spec=request.mapping_spec,
         output=request.output,
         target_schema=request.target_schema,
+        output_format=request.output_format,
     )
-    return ValidateResponse(valid=not errors, errors=errors)
+    policy = validation_policy_for(request.output_format)
+    return ValidateResponse(valid=not errors, errors=errors, policy=policy.message)
 
 
 @router.post("/transform/diff", response_model=OutputDiffResponse)
 def diff_output(request: OutputDiffRequest) -> OutputDiffResponse:
+    policy = diff_policy_for(request.output_format)
+    if not policy.supported:
+        return OutputDiffResponse(equal=False, diffs=[], supported=False, message=policy.message)
     diffs = diff_values(request.expected, request.actual)
-    return OutputDiffResponse(equal=not diffs, diffs=diffs)
+    return OutputDiffResponse(equal=not diffs, diffs=diffs, supported=True, message=policy.message)

@@ -116,15 +116,16 @@ export const validateEffect = (
   output: unknown,
   mappingSpec: MappingSpec,
   targetSchema: SchemaNode | null,
+  outputFormat: OutputFormat,
 ) =>
   Effect.tryPromise({
-    try: () => validatePayload({ sourceData, output, mappingSpec, targetSchema }),
+    try: () => validatePayload({ sourceData, output, mappingSpec, targetSchema, outputFormat }),
     catch: (error) => error,
   })
 
-export const diffOutputEffect = (expected: unknown, actual: unknown) =>
+export const diffOutputEffect = (expected: unknown, actual: unknown, outputFormat: OutputFormat) =>
   Effect.tryPromise({
-    try: () => diffOutput({ expected, actual }),
+    try: () => diffOutput({ expected, actual, outputFormat }),
     catch: (error) => error,
   })
 

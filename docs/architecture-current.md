@@ -29,6 +29,16 @@ FastAPI routes are API boundaries, not the owner of mapping business rules. Core
 
 Full transform execution is orchestrated by `MappingRunService`, which normalizes missing mapping specs, executes the script runtime, validates the output, serializes JSON or XML output, and returns the stable `/api/transform` response contract.
 
+## Validation And Diff Policy
+
+Mapping correctness is output-format specific:
+
+- JSON outputs are JSON-shaped Python values. When a target schema is available, validation checks required target leaf fields and scalar types. `/api/transform/diff` supports path-level JSON comparison for missing, extra, and changed values.
+- XML outputs are produced by serializing the script-returned JSON-shaped value with the requested root element. Validation confirms the script run can produce serializable output; JSON-shaped target-schema required-field and type checks are intentionally not applied to XML output.
+- XML target samples are parsed into canonical JSON for schema inference and field hints, but the current runtime does not guarantee XML canonical structural parity against an XML sample.
+- XML diff parity is intentionally unavailable in the current workbench. The API returns an unsupported diff response for `output_format: "xml"`, and the frontend presents this as a limitation rather than a failed mapping.
+- EDI inputs are source formats only in the current schema artifact lifecycle. They can feed script transforms after canonical parsing, but target correctness still follows the selected JSON or XML output policy.
+
 ## Persistence Lifecycle
 
 The supported lifecycle is one local SQLite database path. Schema artifacts store original content, canonical samples, inferred schemas, metadata, and soft-delete state. Templates store versioned script mapping specs, schema links, schema snapshots, validation rules, and sample source/target content.

@@ -245,11 +245,11 @@ export function useMappingWorkbenchController(options: MappingWorkbenchOptions) 
       )
       setTransformResult(response)
       const validation = await Effect.runPromise(
-        validateEffect(parsed.sourceData, response.output, mappingSpec, validationSchema)
+        validateEffect(parsed.sourceData, response.output, mappingSpec, validationSchema, activeTargetFormat)
       )
       setValidationErrors([...response.validation_errors, ...validation.errors])
       if (activeTargetFormat === "json") {
-        const diff = await Effect.runPromise(diffOutputEffect(parsed.targetData, response.output))
+        const diff = await Effect.runPromise(diffOutputEffect(parsed.targetData, response.output, activeTargetFormat))
         setOutputDiff(diff.diffs)
       } else {
         setOutputDiff([])

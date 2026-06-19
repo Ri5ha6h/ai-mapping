@@ -13,6 +13,7 @@ class MappingRunService:
             mapping_spec=mapping_spec,
             output=script_result.output,
             target_schema=request.target_schema,
+            output_format=request.output_format,
         )
         errors = script_result.errors + validation_errors
 

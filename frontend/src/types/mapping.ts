@@ -97,6 +97,8 @@ export type OutputDiffItem = {
 export type OutputDiffResponse = {
   equal: boolean
   diffs: OutputDiffItem[]
+  supported: boolean
+  message?: string | null
 }
 
 export type ScriptDraftResponse = {

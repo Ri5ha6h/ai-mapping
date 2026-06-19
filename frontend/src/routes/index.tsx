@@ -171,8 +171,12 @@ function MappingWorkbench() {
           <div className="result-grid">
             <OutputPreview result={workbench.transformResult} />
             <RunLogsPanel logs={workbench.transformResult?.logs ?? []} />
-            <OutputDiffPanel diffs={workbench.outputDiff} />
-            <ValidationPanel errors={workbench.validationErrors} />
+            <OutputDiffPanel
+              diffs={workbench.outputDiff}
+              outputFormat={workbench.targetFormat}
+              hasRun={Boolean(workbench.transformResult)}
+            />
+            <ValidationPanel errors={workbench.validationErrors} outputFormat={workbench.targetFormat} />
             <TemplateVersionPanel
               templates={workbench.templates}
               activeTemplate={workbench.activeTemplate}
