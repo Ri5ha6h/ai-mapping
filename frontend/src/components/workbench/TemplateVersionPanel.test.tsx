@@ -16,6 +16,7 @@ describe("TemplateVersionPanel", () => {
     render(
       <TemplateVersionPanel
         templates={[seededTemplate, savedTemplate]}
+        deletedTemplates={[deletedTemplate]}
         activeTemplate={savedTemplate}
         selectedTemplateId="saved"
         templateName="Saved transform"
@@ -27,6 +28,8 @@ describe("TemplateVersionPanel", () => {
         onSelectedTemplateChange={onSelectedTemplateChange}
         onSaveTemplate={vi.fn()}
         onCreateVersion={onCreateVersion}
+        onDeleteTemplate={vi.fn()}
+        onRestoreTemplate={vi.fn()}
         onLoadTemplate={onLoadTemplate}
         onRefreshTemplates={vi.fn()}
       />
@@ -34,6 +37,13 @@ describe("TemplateVersionPanel", () => {
 
     expect(screen.getByRole("group", { name: "Examples" })).toBeTruthy()
     expect(screen.getByRole("group", { name: "Saved" })).toBeTruthy()
+    expect(screen.getAllByText("Save template").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("New version").length).toBeGreaterThan(0)
+    expect(screen.getByText(/Versions preserve script, samples, schema snapshots/i)).toBeTruthy()
+    expect(screen.getByText(/Version 1 · current/i)).toBeTruthy()
+    expect(screen.getByText(/0 field rules/i)).toBeTruthy()
+    expect(screen.getByText("Archived")).toBeTruthy()
+    expect(screen.getAllByText(/archived template/i).length).toBeGreaterThan(0)
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "seed" } })
     fireEvent.click(screen.getByRole("button", { name: /New version/i }))
     fireEvent.click(screen.getByRole("button", { name: /Load/i }))
@@ -41,6 +51,32 @@ describe("TemplateVersionPanel", () => {
     expect(onSelectedTemplateChange).toHaveBeenCalledWith("seed")
     expect(onCreateVersion).toHaveBeenCalled()
     expect(onLoadTemplate).toHaveBeenCalledWith("saved", 1)
+  })
+
+  it("uses restore-focused empty archive copy", () => {
+    render(
+      <TemplateVersionPanel
+        templates={[seededTemplate]}
+        deletedTemplates={[]}
+        activeTemplate={null}
+        selectedTemplateId=""
+        templateName=""
+        templateDescription=""
+        canSave={false}
+        busyAction={null}
+        onTemplateNameChange={vi.fn()}
+        onTemplateDescriptionChange={vi.fn()}
+        onSelectedTemplateChange={vi.fn()}
+        onSaveTemplate={vi.fn()}
+        onCreateVersion={vi.fn()}
+        onDeleteTemplate={vi.fn()}
+        onRestoreTemplate={vi.fn()}
+        onLoadTemplate={vi.fn()}
+        onRefreshTemplates={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText("Archived mapping templates will appear here with restore controls.")).toBeTruthy()
   })
 })
 
@@ -54,6 +90,7 @@ const version = {
   target_schema_snapshot: null,
   mapping_spec: { engine: "script_js" as const, script_version: 1, script: "function transform() { return {}; }" },
   validation_rules: [],
+  field_validation_rules: [],
   sample_source_content: "{}",
   sample_target_content: "{}",
   created_at: "2026-06-19T00:00:00Z",
@@ -61,3 +98,4 @@ const version = {
 
 const seededTemplate = { template_id: "seed", name: "Example", description: "", active_version: 1, is_seeded: true, versions: [version] }
 const savedTemplate = { template_id: "saved", name: "Saved", description: "", active_version: 1, is_seeded: false, versions: [version] }
+const deletedTemplate = { template_id: "deleted", name: "Archived", description: "", active_version: 1, is_seeded: false, deleted_at: "2026-06-19T00:00:00Z", versions: [version] }

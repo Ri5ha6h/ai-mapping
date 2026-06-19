@@ -20,7 +20,12 @@ import type {
   SchemaDirection,
   SchemaNode,
 } from "@/types/schema"
-import type { ValidationErrorItem } from "@/types/validation"
+import type {
+  FieldValidationRule,
+  FieldValidationRuleListResponse,
+  FieldValidationRuleUpsertRequest,
+  ValidationErrorItem,
+} from "@/types/validation"
 
 type SchemaInferResponse = {
   schema: SchemaNode
@@ -80,6 +85,37 @@ export async function deleteSchemaArtifact(
   )
 }
 
+export async function restoreSchemaArtifact(
+  schemaId: string
+): Promise<SchemaArtifact> {
+  return postJson<SchemaArtifact>(
+    `/api/schemas/${encodeURIComponent(schemaId)}/restore`,
+    {}
+  )
+}
+
+export async function listFieldValidationRules(
+  schemaId: string
+): Promise<FieldValidationRuleListResponse> {
+  return getJson<FieldValidationRuleListResponse>(
+    `/api/schemas/${encodeURIComponent(schemaId)}/field-rules`
+  )
+}
+
+export async function upsertFieldValidationRule(
+  schemaId: string,
+  request: FieldValidationRuleUpsertRequest
+): Promise<FieldValidationRule> {
+  return requestJson<FieldValidationRule>(
+    `/api/schemas/${encodeURIComponent(schemaId)}/field-rules/${encodeURIComponent(request.path)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }
+  )
+}
+
 export async function suggestMappings(params: {
   sourceSchema: SchemaNode
   targetSchema: SchemaNode
@@ -101,6 +137,7 @@ export async function generateScriptDraft(params: {
   targetSample: unknown
   sourceSchema?: SchemaNode | null
   targetSchema?: SchemaNode | null
+  fieldValidationRules?: FieldValidationRule[]
   useAi: boolean
 }): Promise<ScriptDraftResponse> {
   return postJson<ScriptDraftResponse>("/api/mappings/script/draft", {
@@ -108,6 +145,7 @@ export async function generateScriptDraft(params: {
     target_sample: params.targetSample,
     source_schema: params.sourceSchema ?? null,
     target_schema: params.targetSchema ?? null,
+    field_validation_rules: params.fieldValidationRules ?? [],
     use_ai: params.useAi,
   })
 }
@@ -117,6 +155,7 @@ export async function transformPayload(params: {
   mappingSpec: MappingSpec
   outputFormat: OutputFormat
   targetSchema?: SchemaNode | null
+  fieldValidationRules?: FieldValidationRule[]
 }): Promise<TransformResponse> {
   return postJson<TransformResponse>("/api/transform", {
     source_data: params.sourceData,
@@ -124,6 +163,7 @@ export async function transformPayload(params: {
     output_format: params.outputFormat,
     root_element: "ShipmentEvent",
     target_schema: params.targetSchema ?? null,
+    field_validation_rules: params.fieldValidationRules ?? [],
   })
 }
 
@@ -132,6 +172,7 @@ export async function validatePayload(params: {
   output?: unknown
   mappingSpec: MappingSpec
   targetSchema?: SchemaNode | null
+  fieldValidationRules?: FieldValidationRule[]
   outputFormat?: OutputFormat
 }): Promise<{ valid: boolean; errors: ValidationErrorItem[]; policy?: string | null }> {
   return postJson("/api/validate", {
@@ -139,6 +180,7 @@ export async function validatePayload(params: {
     output: params.output ?? null,
     mapping_spec: params.mappingSpec,
     target_schema: params.targetSchema ?? null,
+    field_validation_rules: params.fieldValidationRules ?? [],
     output_format: params.outputFormat ?? "json",
   })
 }
@@ -161,8 +203,15 @@ export async function createTemplate(
   return postJson<MappingTemplate>("/api/templates", request)
 }
 
-export async function listTemplates(): Promise<TemplateListResponse> {
-  return getJson<TemplateListResponse>("/api/templates")
+export async function listTemplates(params?: {
+  includeDeleted?: boolean
+}): Promise<TemplateListResponse> {
+  const search = new URLSearchParams()
+  if (params?.includeDeleted) search.set("include_deleted", "true")
+  const query = search.toString()
+  return getJson<TemplateListResponse>(
+    query ? `/api/templates?${query}` : "/api/templates"
+  )
 }
 
 export async function getTemplate(
@@ -180,6 +229,24 @@ export async function createTemplateVersion(
   return postJson<MappingTemplate>(
     `/api/templates/${encodeURIComponent(templateId)}/versions`,
     request
+  )
+}
+
+export async function deleteTemplate(
+  templateId: string
+): Promise<MappingTemplate> {
+  return requestJson<MappingTemplate>(
+    `/api/templates/${encodeURIComponent(templateId)}`,
+    { method: "DELETE" }
+  )
+}
+
+export async function restoreTemplate(
+  templateId: string
+): Promise<MappingTemplate> {
+  return postJson<MappingTemplate>(
+    `/api/templates/${encodeURIComponent(templateId)}/restore`,
+    {}
   )
 }
 

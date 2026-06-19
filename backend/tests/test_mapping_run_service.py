@@ -1,4 +1,4 @@
-from app.api.models import MappingSpec, OutputFormat, SchemaNode, TransformRequest
+from app.api.models import FieldValidationRuleUpsertRequest, MappingSpec, OutputFormat, SchemaNode, TransformRequest
 from app.core.mapping.run_service import MappingRunService
 
 
@@ -91,6 +91,29 @@ def test_mapping_run_service_reports_validation_errors() -> None:
     codes = {error.code for error in response.validation_errors}
     assert "missing_required_output_field" in codes
     assert "type_mismatch" in codes
+
+
+def test_mapping_run_service_reports_field_rule_validation_errors() -> None:
+    response = MappingRunService().run(
+        TransformRequest(
+            source_data={},
+            field_validation_rules=[
+                FieldValidationRuleUpsertRequest(
+                    path="$.tracking.pieces",
+                    value_type="integer",
+                    required=True,
+                    min_value=1,
+                )
+            ],
+            mapping_spec=_script_spec(
+                "function transform(source, helpers) { return { tracking: { pieces: 0 } }; }"
+            ),
+        )
+    )
+
+    assert response.validation_errors[0].code == "field_rule_min_value"
+    assert response.validation_errors[0].path == "$.tracking.pieces"
+    assert response.validation_errors[0].rule_id == "$.tracking.pieces"
 
 
 def test_mapping_run_service_preserves_logs_and_trace() -> None:

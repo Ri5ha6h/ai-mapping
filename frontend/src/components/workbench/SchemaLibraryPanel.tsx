@@ -1,12 +1,13 @@
-import { Clipboard, Database, FileText, Loader2, RefreshCw, Trash2, Upload } from "lucide-react"
+import { Clipboard, Database, FileText, Loader2, RefreshCw, RotateCcw, Trash2, Upload } from "lucide-react"
 
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
-import { DisclosurePanel } from "@/components/workbench/DisclosurePanel"
+import { WorkflowStep } from "@/components/workbench/WorkflowStep"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { flattenSchema } from "@/lib/effect/schemas"
 import type { SourceFormat } from "@/types/mapping"
-import type { SchemaArtifact } from "@/types/schema"
+import type { SchemaArtifact, SchemaNode } from "@/types/schema"
 import type { useSchemaLibraryController } from "./useSchemaLibraryController"
 
 type Props = {
@@ -29,7 +30,7 @@ export function SchemaLibraryPanel({ library }: Props) {
     library.draft.direction === "target" ? targetFormats : sourceFormats
 
   return (
-    <div className="schema-workspace">
+    <div className="workflow-stage-list schema-workflow">
       {library.issue ? (
         <div className="issue-banner">
           <FileText size={18} />
@@ -40,126 +41,178 @@ export function SchemaLibraryPanel({ library }: Props) {
         </div>
       ) : null}
 
-      <section className="tool-panel schema-create-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-kicker">Create</p>
-            <h2>Schema artifact</h2>
+      <WorkflowStep
+        step={1}
+        title="Create"
+        status={library.canCreateSchema ? "Ready to create schema" : "Paste or upload a schema sample"}
+      >
+        <section className="tool-panel schema-create-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="panel-kicker">Create</p>
+              <h2>Schema artifact</h2>
+            </div>
           </div>
-        </div>
 
-        <div className="schema-form-grid">
-          <label className="field-stack" htmlFor="schema-artifact-name">
-            <span>Name</span>
-            <Input
-              id="schema-artifact-name"
-              value={library.draft.name}
-              onChange={(event) =>
-                library.updateDraft({ name: event.target.value })
-              }
+          <div className="schema-form-grid">
+            <label className="field-stack" htmlFor="schema-artifact-name">
+              <span>Name</span>
+              <Input
+                id="schema-artifact-name"
+                value={library.draft.name}
+                onChange={(event) =>
+                  library.updateDraft({ name: event.target.value })
+                }
+              />
+            </label>
+            <label className="field-stack" htmlFor="schema-artifact-description">
+              <span>Description</span>
+              <Input
+                id="schema-artifact-description"
+                value={library.draft.description}
+                onChange={(event) =>
+                  library.updateDraft({ description: event.target.value })
+                }
+              />
+            </label>
+          </div>
+
+          <div className="schema-control-grid">
+            <SegmentedSchemaControl
+              label="Direction"
+              value={library.draft.direction}
+              options={[
+                { value: "source", label: "Source" },
+                { value: "target", label: "Target" },
+              ]}
+              onChange={(direction) => library.updateDraft({ direction })}
             />
-          </label>
-          <label className="field-stack" htmlFor="schema-artifact-description">
-            <span>Description</span>
-            <Input
-              id="schema-artifact-description"
-              value={library.draft.description}
-              onChange={(event) =>
-                library.updateDraft({ description: event.target.value })
-              }
+            <SegmentedSchemaControl
+              label="Format"
+              value={library.draft.format}
+              options={formatOptions}
+              onChange={(format) => library.updateDraft({ format })}
             />
-          </label>
-        </div>
+          </div>
 
-        <div className="schema-control-grid">
-          <SegmentedSchemaControl
-            label="Direction"
-            value={library.draft.direction}
-            options={[
-              { value: "source", label: "Source" },
-              { value: "target", label: "Target" },
-            ]}
-            onChange={(direction) => library.updateDraft({ direction })}
-          />
-          <SegmentedSchemaControl
-            label="Format"
-            value={library.draft.format}
-            options={formatOptions}
-            onChange={(format) => library.updateDraft({ format })}
-          />
-        </div>
+          <InputModeControl library={library} />
 
-        <InputModeControl library={library} />
-
-        {library.draft.inputMethod === "upload" ? (
-          <UploadDraftPanel library={library} />
-        ) : (
-          <Textarea
-            className="code-input schema-content-editor"
-            value={library.draft.content}
-            onChange={(event) => library.usePastedContent(event.target.value)}
-            spellCheck={false}
-          />
-        )}
-
-        <SchemaDraftMeta library={library} />
-
-        <Button
-          type="button"
-          className="schema-create-action"
-          onClick={() => void library.createSchema()}
-          disabled={!library.canCreateSchema}
-        >
-          {library.busyAction === "Creating schema" ? (
-            <Loader2 className="animate-spin" />
+          {library.draft.inputMethod === "upload" ? (
+            <UploadDraftPanel library={library} />
           ) : (
-            <Database />
+            <Textarea
+              className="code-input schema-content-editor"
+              value={library.draft.content}
+              onChange={(event) => library.usePastedContent(event.target.value)}
+              spellCheck={false}
+            />
           )}
-          Create schema
-        </Button>
-      </section>
 
-      <section className="tool-panel schema-library-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-kicker">Library</p>
-            <h2>Saved schemas</h2>
-          </div>
+          <SchemaDraftMeta library={library} />
+
           <Button
             type="button"
-            variant="outline"
-            size="icon"
-            title="Refresh schemas"
-            onClick={() => void library.refreshSchemas()}
-            disabled={Boolean(library.busyAction)}
+            className="schema-create-action"
+            onClick={() => void library.createSchema()}
+            disabled={!library.canCreateSchema}
           >
-            {library.busyAction === "Loading schemas" ? (
+            {library.busyAction === "Creating schema" ? (
               <Loader2 className="animate-spin" />
             ) : (
-              <RefreshCw />
+              <Database />
             )}
+            Create schema
           </Button>
-        </div>
-        <div className="schema-library-columns">
-          <SchemaList
-            title="Source"
-            schemas={library.sourceSchemas}
-            selectedSchemaId={library.selectedSchemaId}
-            onSelect={library.setSelectedSchemaId}
-          />
-          <SchemaList
-            title="Target"
-            schemas={library.targetSchemas}
-            selectedSchemaId={library.selectedSchemaId}
-            onSelect={library.setSelectedSchemaId}
-          />
-        </div>
-      </section>
+        </section>
+      </WorkflowStep>
 
-      <DisclosurePanel title="Selected schema details" summary="Inspect inferred fields and stored samples">
-        <SchemaDetailPanel library={library} />
-      </DisclosurePanel>
+      <WorkflowStep
+        step={2}
+        title="Library & Detail"
+        status={library.selectedSchema ? `Selected ${library.selectedSchema.name}` : "Select a saved schema to inspect"}
+      >
+        <div className="schema-library-detail-grid">
+          <section className="tool-panel schema-library-panel">
+            <div className="panel-heading">
+              <div>
+                <p className="panel-kicker">Library</p>
+                <h2>Saved schemas</h2>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                title="Refresh schemas"
+                onClick={() => void library.refreshSchemas()}
+                disabled={Boolean(library.busyAction)}
+              >
+                {library.busyAction === "Loading schemas" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <RefreshCw />
+                )}
+              </Button>
+            </div>
+            <SegmentedSchemaControl
+              label="Schema type"
+              value={library.selectedLibraryDirection}
+              options={[
+                { value: "source", label: "Source" },
+                { value: "target", label: "Target" },
+              ]}
+              onChange={library.setSelectedLibraryDirection}
+            />
+            <SchemaList
+              title={library.selectedLibraryDirection === "source" ? "Source" : "Target"}
+              schemas={library.selectedLibraryDirection === "source" ? library.sourceSchemas : library.targetSchemas}
+              selectedSchemaId={library.selectedSchemaId}
+              onSelect={library.setSelectedSchemaId}
+            />
+          </section>
+
+          <SchemaDetailPanel library={library} />
+        </div>
+        <SchemaArchivePanel library={library} />
+      </WorkflowStep>
     </div>
+  )
+}
+
+function SchemaArchivePanel({ library }: Props) {
+  return (
+    <section className="archive-panel">
+      <div className="schema-list-heading">
+        <strong>Archive & Trash</strong>
+        <span>{library.deletedSchemas.length} archived schemas</span>
+      </div>
+      {library.deletedSchemas.length === 0 ? (
+        <p className="empty-line">Archived schemas will appear here with restore controls.</p>
+      ) : (
+        <div className="archive-card-list">
+          {library.deletedSchemas.map((schema) => (
+            <div className="archive-row" key={schema.schema_id}>
+              <div>
+                <strong>{schema.name}</strong>
+                <span>{schema.direction} · {schema.format.toUpperCase()} · archived schema</span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void library.restoreSchema(schema.schema_id)}
+                disabled={Boolean(library.busyAction)}
+              >
+                {library.busyAction === "Restoring schema" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <RotateCcw />
+                )}
+                Restore
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -301,9 +354,12 @@ function SchemaList({
               }
               onClick={() => onSelect(schema.schema_id)}
             >
-              <strong>{schema.name}</strong>
+              <span className="schema-card-title-row">
+                <strong>{schema.name}</strong>
+                {selectedSchemaId === schema.schema_id ? <em>Selected</em> : <em>Open</em>}
+              </span>
               <span>
-                {schema.format.toUpperCase()} · {formatBytes(schema.original_size)}
+                {schema.format.toUpperCase()} · {formatBytes(schema.original_size)} · click to inspect
               </span>
             </button>
           ))
@@ -325,7 +381,7 @@ function SchemaDetailPanel({ library }: Props) {
             <h2>Schema detail</h2>
           </div>
         </div>
-        <p className="empty-line">Select a saved schema to inspect it.</p>
+        <p className="empty-line">Select an active schema card from the library to inspect fields, samples, and saved rules.</p>
       </section>
     )
   }
@@ -355,12 +411,19 @@ function SchemaDetailPanel({ library }: Props) {
       {schema.description ? (
         <p className="schema-description">{schema.description}</p>
       ) : null}
+      <p className="schema-detail-status">
+        <strong>Active library schema</strong>
+        <span>{schema.direction === "target" ? "Target detail can store field validation rules for mapping runs." : "Source detail is read-only and provides sample context for mapping setup."}</span>
+      </p>
       <div className="schema-detail-stats">
         <span>{schema.format.toUpperCase()}</span>
         <span>{formatBytes(schema.original_size)}</span>
         <span>{schema.input_method}</span>
       </div>
       <SchemaViewer title="Inferred fields" schema={schema.inferred_schema} />
+      {schema.direction === "target" ? (
+        <TargetValidationRules library={library} schema={schema.inferred_schema} />
+      ) : null}
       <div className="schema-preview-grid">
         <PreviewBlock
           title="Canonical sample"
@@ -371,6 +434,159 @@ function SchemaDetailPanel({ library }: Props) {
     </section>
   )
 }
+
+function TargetValidationRules({ library, schema }: Props & { schema: SchemaNode }) {
+  const fields = flattenSchema(schema).filter((field) => field.path !== "$")
+
+  if (fields.length === 0) return null
+
+  return (
+    <section className="target-validation-draft">
+      <div className="schema-list-heading">
+        <strong>Target field validation rules</strong>
+        <span>
+          {library.selectedTargetRules.length} saved rules
+          {library.dirtyTargetRulePaths.length > 0 ? ` · ${library.dirtyTargetRulePaths.length} unsaved` : ""}
+        </span>
+      </div>
+      <div className="validation-draft-list">
+        {fields.slice(0, 12).map((field) => (
+          <FieldRuleRow
+            key={field.path}
+            field={field}
+            savedRule={library.selectedTargetRules.find((rule) => rule.path === field.path)}
+            draftRule={library.targetRuleDrafts[field.path]}
+            dirty={library.dirtyTargetRulePaths.includes(field.path)}
+            saving={library.busyAction === "Saving field rule"}
+            onUpdate={(patch) => void library.updateFieldRule(field.path, patch)}
+          />
+        ))}
+      </div>
+      <Button
+        type="button"
+        className="target-validation-save"
+        onClick={() => void library.saveFieldRules()}
+        disabled={library.dirtyTargetRulePaths.length === 0 || Boolean(library.busyAction)}
+      >
+        {library.busyAction === "Saving field rule" ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <Database />
+        )}
+        Save validation rules
+      </Button>
+      <p className="schema-meta-line">
+        Edits stay local until saved. Saved rules are used by mapping runs for this target schema.
+      </p>
+    </section>
+  )
+}
+
+function FieldRuleRow({
+  field,
+  savedRule,
+  draftRule,
+  dirty,
+  saving,
+  onUpdate,
+}: {
+  field: ReturnType<typeof flattenSchema>[number]
+  savedRule: Props["library"]["selectedTargetRules"][number] | undefined
+  draftRule: Props["library"]["targetRuleDrafts"][string] | undefined
+  dirty: boolean
+  saving: boolean
+  onUpdate: (patch: Parameters<Props["library"]["updateFieldRule"]>[1]) => void
+}) {
+  const valueType = draftRule?.value_type ?? savedRule?.value_type ?? field.type
+  const required = draftRule?.required ?? savedRule?.required ?? false
+  const minValue = ruleBoundValue(draftRule, savedRule, "min")
+  const maxValue = ruleBoundValue(draftRule, savedRule, "max")
+
+  return (
+    <div className="validation-draft-row">
+      <span title={field.path}>{field.path}</span>
+      <select
+        value={valueType}
+        aria-label={`${field.path} type`}
+        disabled={saving}
+        onChange={(event) => onUpdate({ ...draftBase(field.path, event.target.value, required), value_type: event.target.value })}
+      >
+              {validationTypes.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+      </select>
+      <label>
+        <input
+          type="checkbox"
+          checked={required}
+          disabled={saving}
+          onChange={(event) => onUpdate({ ...draftBase(field.path, valueType, event.target.checked), required: event.target.checked })}
+        />
+        Required
+      </label>
+      <Input
+        aria-label={`${field.path} min`}
+        placeholder="Min"
+        value={minValue}
+        disabled={saving}
+        onChange={(event) => onUpdate({ ...draftBase(field.path, valueType, required), ...minPatch(valueType, event.target.value) })}
+      />
+      <Input
+        aria-label={`${field.path} max`}
+        placeholder="Max"
+        value={maxValue}
+        disabled={saving}
+        onChange={(event) => onUpdate({ ...draftBase(field.path, valueType, required), ...maxPatch(valueType, event.target.value) })}
+      />
+      <span className="schema-meta-line">{dirty ? "Unsaved" : savedRule ? "Saved" : "Default"}</span>
+    </div>
+  )
+}
+
+function ruleBoundValue(
+  draftRule: Props["library"]["targetRuleDrafts"][string] | undefined,
+  savedRule: Props["library"]["selectedTargetRules"][number] | undefined,
+  bound: "min" | "max"
+) {
+  const valueKey = bound === "min" ? "min_value" : "max_value"
+  const lengthKey = bound === "min" ? "min_length" : "max_length"
+  if (draftRule) return draftRule[valueKey] ?? draftRule[lengthKey] ?? ""
+  return savedRule?.[valueKey] ?? savedRule?.[lengthKey] ?? ""
+}
+
+function draftBase(path: string, valueType: string, required: boolean) {
+  return {
+    path,
+    value_type: valueType,
+    required,
+  }
+}
+
+function minPatch(valueType: string, value: string) {
+  const parsed = parseOptionalNumber(value)
+  return usesLength(valueType)
+    ? { min_length: parsed === null ? null : Math.max(0, Math.trunc(parsed)), min_value: null }
+    : { min_value: parsed, min_length: null }
+}
+
+function maxPatch(valueType: string, value: string) {
+  const parsed = parseOptionalNumber(value)
+  return usesLength(valueType)
+    ? { max_length: parsed === null ? null : Math.max(0, Math.trunc(parsed)), max_value: null }
+    : { max_value: parsed, max_length: null }
+}
+
+function usesLength(valueType: string) {
+  return valueType === "string" || valueType === "array"
+}
+
+function parseOptionalNumber(value: string) {
+  if (value.trim() === "") return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const validationTypes = ["string", "date", "number", "integer", "boolean", "object", "array", "mixed"]
 
 function PreviewBlock({ title, value }: { title: string; value: string }) {
   return (

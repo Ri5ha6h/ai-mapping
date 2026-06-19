@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes_field_rules import router as field_rules_router
 from app.api.routes_mapping import router as mapping_router
 from app.api.routes_parse import router as parse_router
 from app.api.routes_schema import router as schema_router
@@ -22,6 +23,7 @@ def create_app() -> FastAPI:
     )
     app.include_router(mapping_router, prefix=settings.api_prefix)
     app.include_router(parse_router, prefix=settings.api_prefix)
+    app.include_router(field_rules_router, prefix=settings.api_prefix)
     app.include_router(schema_router, prefix=settings.api_prefix)
     app.include_router(schemas_router, prefix=settings.api_prefix)
     app.include_router(templates_router, prefix=settings.api_prefix)

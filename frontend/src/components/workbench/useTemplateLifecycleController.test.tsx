@@ -9,6 +9,8 @@ const listTemplatesEffect = vi.fn()
 const createTemplateEffect = vi.fn()
 const createTemplateVersionEffect = vi.fn()
 const getTemplateEffect = vi.fn()
+const deleteTemplateEffect = vi.fn()
+const restoreTemplateEffect = vi.fn()
 
 vi.mock("@/lib/effect/api_effects", async () => {
   return {
@@ -16,6 +18,8 @@ vi.mock("@/lib/effect/api_effects", async () => {
     createTemplateEffect: (...args: unknown[]) => createTemplateEffect(...args),
     createTemplateVersionEffect: (...args: unknown[]) => createTemplateVersionEffect(...args),
     getTemplateEffect: (...args: unknown[]) => getTemplateEffect(...args),
+    deleteTemplateEffect: (...args: unknown[]) => deleteTemplateEffect(...args),
+    restoreTemplateEffect: (...args: unknown[]) => restoreTemplateEffect(...args),
   }
 })
 
@@ -36,7 +40,12 @@ describe("useTemplateLifecycleController", () => {
     await act(async () => screen.getByRole("button", { name: "save" }).click())
     await act(async () => screen.getByRole("button", { name: "version" }).click())
 
-    expect(createTemplateEffect).toHaveBeenCalledWith(expect.objectContaining({ name: "Shipment transform" }))
+    expect(createTemplateEffect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Shipment transform",
+        field_validation_rules: [expect.objectContaining({ path: "$.id", value_type: "string" })],
+      })
+    )
     expect(createTemplateVersionEffect).toHaveBeenCalledWith("saved", expect.objectContaining({ mapping_spec: mappingSpec }))
     expect(screen.getByTestId("selected").textContent).toBe("saved")
   })
@@ -46,6 +55,8 @@ describe("useTemplateLifecycleController", () => {
     const setSourceSchema = vi.fn()
     const setTargetSchema = vi.fn()
     const setScriptRaw = vi.fn()
+    const setFieldValidationRules = vi.fn()
+    const setOverrideSourceInput = vi.fn()
     const restoreValidationErrors = vi.fn()
     listTemplatesEffect.mockReturnValue(Effect.succeed({ templates: [savedTemplate] }))
     getTemplateEffect.mockReturnValue(Effect.succeed(savedTemplate))
@@ -55,6 +66,8 @@ describe("useTemplateLifecycleController", () => {
         setSourceSchema={setSourceSchema}
         setTargetSchema={setTargetSchema}
         setScriptRaw={setScriptRaw}
+        setFieldValidationRules={setFieldValidationRules}
+        setOverrideSourceInput={setOverrideSourceInput}
         restoreValidationErrors={restoreValidationErrors}
       />
     )
@@ -66,6 +79,10 @@ describe("useTemplateLifecycleController", () => {
     expect(setSourceSchema).toHaveBeenCalledWith(schema)
     expect(setTargetSchema).toHaveBeenCalledWith(schema)
     expect(setScriptRaw).toHaveBeenCalledWith(mappingSpec.script)
+    expect(setOverrideSourceInput).toHaveBeenCalledWith("{\"id\":1}")
+    expect(setFieldValidationRules).toHaveBeenCalledWith([
+      expect.objectContaining({ path: "$.id", value_type: "string", required: true })
+    ])
     expect(restoreValidationErrors).toHaveBeenCalledWith([{ path: "$.id", message: "Required" }])
     expect(screen.getByTestId("prompt").textContent).toBe("closed")
   })
@@ -83,6 +100,7 @@ function TemplateLifecycleProbe(overrides: Partial<Parameters<typeof useTemplate
     targetInput: "{}",
     mappingSpec,
     validationErrors: [],
+    fieldValidationRules: [fieldRule],
     readyForTemplateSave: true,
     hasRunResult: false,
     setIssue: vi.fn(),
@@ -93,8 +111,10 @@ function TemplateLifecycleProbe(overrides: Partial<Parameters<typeof useTemplate
     setSelectedTargetSchemaId: vi.fn(),
     setSourceInput: vi.fn(),
     setTargetInput: vi.fn(),
+    setOverrideSourceInput: vi.fn(),
     setSourceSchema: vi.fn(),
     setTargetSchema: vi.fn(),
+    setFieldValidationRules: vi.fn(),
     setScriptRaw: vi.fn(),
     restoreValidationErrors: vi.fn(),
     clearRunResults: vi.fn(),
@@ -131,9 +151,23 @@ const templateVersion = {
   target_schema_snapshot: schema,
   mapping_spec: mappingSpec,
   validation_rules: [{ path: "$.id", message: "Required" }],
+  field_validation_rules: [{ path: "$.id", value_type: "string", required: true }],
   sample_source_content: "{\"id\":1}",
   sample_target_content: "{\"id\":1}",
   created_at: "2026-06-19T00:00:00Z",
 }
 const savedTemplate = { template_id: "saved", name: "Saved", description: "", active_version: 1, is_seeded: false, versions: [templateVersion] }
 const versionedTemplate = { ...savedTemplate, active_version: 2, versions: [templateVersion, { ...templateVersion, version: 2 }] }
+const fieldRule = {
+  schema_id: "target-live",
+  path: "$.id",
+  value_type: "string",
+  required: true,
+  min_value: null,
+  max_value: null,
+  min_length: 1,
+  max_length: null,
+  description: null,
+  created_at: "2026-06-19T00:00:00Z",
+  updated_at: "2026-06-19T00:00:00Z",
+}

@@ -4,14 +4,16 @@ import { Effect } from "effect"
 import {
   createTemplateEffect,
   createTemplateVersionEffect,
+  deleteTemplateEffect,
   getTemplateEffect,
   listTemplatesEffect,
+  restoreTemplateEffect,
 } from "@/lib/effect/api_effects"
 import { issueFromUnknown } from "@/lib/effect/errors"
 import type { FrontendIssue } from "@/lib/effect/errors"
 import type { MappingSpec, MappingTemplate, OutputFormat, SourceFormat } from "@/types/mapping"
 import type { SchemaArtifact, SchemaNode } from "@/types/schema"
-import type { ValidationErrorItem } from "@/types/validation"
+import type { FieldValidationRule, ValidationErrorItem } from "@/types/validation"
 import { DEFAULT_SCRIPT } from "./useScriptAuthoringController"
 
 type NewMappingPromptState = { open: boolean; pending: boolean }
@@ -27,6 +29,7 @@ export type TemplateLifecycleControllerArgs = {
   targetInput: string
   mappingSpec: MappingSpec
   validationErrors: ValidationErrorItem[]
+  fieldValidationRules: FieldValidationRule[]
   readyForTemplateSave: boolean
   hasRunResult: boolean
   setIssue: (issue: FrontendIssue | null) => void
@@ -37,8 +40,10 @@ export type TemplateLifecycleControllerArgs = {
   setSelectedTargetSchemaId: (schemaId: string) => void
   setSourceInput: (value: string) => void
   setTargetInput: (value: string) => void
+  setOverrideSourceInput: (value: string) => void
   setSourceSchema: (schema: SchemaNode | null) => void
   setTargetSchema: (schema: SchemaNode | null) => void
+  setFieldValidationRules: (rules: FieldValidationRule[]) => void
   setScriptRaw: (script: string) => void
   restoreValidationErrors: (errors: ValidationErrorItem[]) => void
   clearRunResults: () => void
@@ -49,6 +54,7 @@ export type TemplateLifecycleControllerArgs = {
 
 export function useTemplateLifecycleController(args: TemplateLifecycleControllerArgs) {
   const [templates, setTemplates] = useState<MappingTemplate[]>([])
+  const [deletedTemplates, setDeletedTemplates] = useState<MappingTemplate[]>([])
   const [activeTemplate, setActiveTemplate] = useState<MappingTemplate | null>(null)
   const [selectedTemplateId, setSelectedTemplateId] = useState("")
   const [templateName, setTemplateName] = useState("Shipment transform")
@@ -58,10 +64,12 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
   async function refreshTemplates() {
     args.setBusyAction((current) => current ?? "Loading templates")
     try {
-      const response = await Effect.runPromise(listTemplatesEffect())
-      setTemplates(response.templates)
+      const response = await Effect.runPromise(listTemplatesEffect(true))
+      const activeTemplates = response.templates.filter((template) => !template.deleted_at)
+      setTemplates(activeTemplates)
+      setDeletedTemplates(response.templates.filter((template) => Boolean(template.deleted_at)))
       setActiveTemplate((current) =>
-        current ? response.templates.find((template) => template.template_id === current.template_id) ?? null : current
+        current ? activeTemplates.find((template) => template.template_id === current.template_id) ?? null : current
       )
     } catch (error) {
       args.setIssue(issueFromUnknown(error))
@@ -72,8 +80,6 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
 
   useEffect(() => {
     void refreshTemplates()
-    // Template lists load once on mount; manual refresh handles later changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function saveTemplate() {
@@ -110,10 +116,14 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
       args.setTargetFormat(version.target_format)
       args.setSelectedSourceSchemaId(version.source_schema_id ?? "")
       args.setSelectedTargetSchemaId(version.target_schema_id ?? "")
-      if (version.sample_source_content) args.setSourceInput(version.sample_source_content)
+      if (version.sample_source_content) {
+        args.setSourceInput(version.sample_source_content)
+        args.setOverrideSourceInput(version.sample_source_content)
+      }
       if (version.sample_target_content) args.setTargetInput(version.sample_target_content)
       args.setSourceSchema(version.source_schema_snapshot ?? null)
       args.setTargetSchema(version.target_schema_snapshot ?? null)
+      args.setFieldValidationRules(snapshotFieldRules(version.field_validation_rules))
       args.setScriptRaw(version.mapping_spec.script || DEFAULT_SCRIPT)
       args.restoreValidationErrors(version.validation_rules)
       args.clearAuthoringContext()
@@ -191,8 +201,29 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
     setSelectedTemplateId(template.template_id)
     setTemplateName(template.name)
     setTemplateDescription(template.description)
-    const response = await Effect.runPromise(listTemplatesEffect())
-    setTemplates(response.templates)
+    const response = await Effect.runPromise(listTemplatesEffect(true))
+    setTemplates(response.templates.filter((item) => !item.deleted_at))
+    setDeletedTemplates(response.templates.filter((item) => Boolean(item.deleted_at)))
+  }
+
+  async function deleteTemplate(templateId: string) {
+    await withTemplateBusy("Deleting template", async () => {
+      await Effect.runPromise(deleteTemplateEffect(templateId))
+      if (activeTemplate?.template_id === templateId) {
+        setActiveTemplate(null)
+        setSelectedTemplateId("")
+      }
+      await refreshTemplates()
+    })
+  }
+
+  async function restoreTemplate(templateId: string) {
+    await withTemplateBusy("Restoring template", async () => {
+      const template = await Effect.runPromise(restoreTemplateEffect(templateId))
+      await refreshTemplates()
+      setSelectedTemplateId(template.template_id)
+      setActiveTemplate(template)
+    })
   }
 
   function hasUnsavedMapping() {
@@ -218,6 +249,7 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
 
   return {
     templates,
+    deletedTemplates,
     activeTemplate,
     selectedTemplateId,
     templateName,
@@ -228,6 +260,8 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
     refreshTemplates,
     saveTemplate,
     saveTemplateVersion,
+    deleteTemplate,
+    restoreTemplate,
     loadTemplate,
     selectTemplate,
     startNewMapping,
@@ -249,9 +283,24 @@ function templateRequest(args: TemplateLifecycleControllerArgs, name: string, de
     target_schema_snapshot: args.activeTargetSchema,
     mapping_spec: args.mappingSpec,
     validation_rules: args.validationErrors,
+    field_validation_rules: args.fieldValidationRules.map(
+      ({ created_at: _createdAt, updated_at: _updatedAt, schema_id: _schemaId, ...rule }) => rule
+    ),
     sample_source_content: args.selectedSourceSchema?.original_content ?? args.sourceInput,
     sample_target_content: args.selectedTargetSchema?.original_content ?? args.targetInput,
   }
+}
+
+function snapshotFieldRules(
+  rules: NonNullable<MappingTemplate["versions"][number]["field_validation_rules"]>
+): FieldValidationRule[] {
+  const timestamp = new Date().toISOString()
+  return rules.map((rule) => ({
+    schema_id: "template-snapshot",
+    created_at: timestamp,
+    updated_at: timestamp,
+    ...rule,
+  }))
 }
 
 export type TemplateLifecycleController = ReturnType<typeof useTemplateLifecycleController>

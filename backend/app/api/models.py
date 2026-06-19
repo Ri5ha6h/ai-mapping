@@ -92,6 +92,35 @@ class SchemaArtifactListResponse(BaseModel):
     schemas: list[SchemaArtifact]
 
 
+class FieldValidationRule(BaseModel):
+    schema_id: str
+    path: str = Field(min_length=1)
+    value_type: str = "mixed"
+    required: bool = False
+    min_value: float | None = None
+    max_value: float | None = None
+    min_length: int | None = Field(default=None, ge=0)
+    max_length: int | None = Field(default=None, ge=0)
+    description: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class FieldValidationRuleUpsertRequest(BaseModel):
+    path: str = Field(min_length=1)
+    value_type: str = "mixed"
+    required: bool = False
+    min_value: float | None = None
+    max_value: float | None = None
+    min_length: int | None = Field(default=None, ge=0)
+    max_length: int | None = Field(default=None, ge=0)
+    description: str | None = None
+
+
+class FieldValidationRuleListResponse(BaseModel):
+    rules: list[FieldValidationRule]
+
+
 class SuggestionSource(StrEnum):
     rule_based = "rule_based"
     openrouter = "openrouter"
@@ -163,6 +192,7 @@ class TransformRequest(BaseModel):
     output_format: OutputFormat = OutputFormat.json
     root_element: str = "Output"
     target_schema: SchemaNode | None = None
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
 
 
 class TransformResponse(BaseModel):
@@ -178,6 +208,7 @@ class ValidateRequest(BaseModel):
     output: JsonValue | None = None
     mapping_spec: MappingSpec | None = None
     target_schema: SchemaNode | None = None
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     output_format: OutputFormat = OutputFormat.json
 
 
@@ -212,6 +243,7 @@ class ScriptDraftRequest(BaseModel):
     target_sample: JsonValue
     source_schema: SchemaNode | None = None
     target_schema: SchemaNode | None = None
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     domain_context: str = ""
     use_ai: bool = False
 
@@ -234,6 +266,7 @@ class TemplateVersion(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     sample_source_content: str | None = None
     sample_target_content: str | None = None
     created_at: datetime
@@ -245,6 +278,7 @@ class MappingTemplate(BaseModel):
     description: str = ""
     active_version: int
     is_seeded: bool = False
+    deleted_at: datetime | None = None
     versions: list[TemplateVersion]
 
 
@@ -260,6 +294,7 @@ class TemplateCreateRequest(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     sample_source_content: str | None = None
     sample_target_content: str | None = None
 
@@ -273,6 +308,7 @@ class TemplateVersionCreateRequest(BaseModel):
     target_schema_snapshot: SchemaNode | None = None
     mapping_spec: MappingSpec
     validation_rules: list[ValidationErrorItem] = Field(default_factory=list)
+    field_validation_rules: list[FieldValidationRuleUpsertRequest] = Field(default_factory=list)
     sample_source_content: str | None = None
     sample_target_content: str | None = None
 

@@ -66,6 +66,55 @@ def test_xml_validation_policy_skips_json_shaped_schema_checks(client: TestClien
     assert "XML outputs are validated as serializable XML" in payload["policy"]
 
 
+def test_json_validation_policy_applies_field_rules_without_target_schema(client: TestClient) -> None:
+    response = client.post(
+        "/api/validate",
+        json={
+            "output_format": "json",
+            "output": {"tracking": {"number": "A", "pieces": 0}},
+            "mapping_spec": script_spec(),
+            "field_validation_rules": [
+                {"path": "$.tracking.carrier", "value_type": "string", "required": True},
+                {"path": "$.tracking.number", "value_type": "string", "min_length": 2},
+                {"path": "$.tracking.pieces", "value_type": "integer", "min_value": 1},
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["valid"] is False
+    assert {error["code"] for error in payload["errors"]} == {
+        "field_rule_required",
+        "field_rule_min_length",
+        "field_rule_min_value",
+    }
+    assert {error["rule_id"] for error in payload["errors"]} == {
+        "$.tracking.carrier",
+        "$.tracking.number",
+        "$.tracking.pieces",
+    }
+
+
+def test_xml_validation_policy_skips_field_rules(client: TestClient) -> None:
+    response = client.post(
+        "/api/validate",
+        json={
+            "output_format": "xml",
+            "output": {"tracking": {}},
+            "mapping_spec": script_spec(),
+            "field_validation_rules": [
+                {"path": "$.tracking.number", "value_type": "string", "required": True},
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["valid"] is True
+    assert payload["errors"] == []
+
+
 def test_xml_transform_serializes_output_without_json_schema_diff_guarantee(client: TestClient) -> None:
     response = client.post(
         "/api/transform",

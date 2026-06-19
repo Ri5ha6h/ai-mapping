@@ -1,5 +1,5 @@
 import type { SchemaNode } from "./schema"
-import type { ValidationErrorItem } from "./validation"
+import type { FieldValidationRuleUpsertRequest, ValidationErrorItem } from "./validation"
 
 export type SourceFormat = "json" | "xml" | "edi_214" | "edi_856"
 export type OutputFormat = "json" | "xml"
@@ -20,6 +20,7 @@ export type TemplateVersion = {
   target_schema_snapshot?: SchemaNode | null
   mapping_spec: MappingSpec
   validation_rules: ValidationErrorItem[]
+  field_validation_rules: FieldValidationRuleUpsertRequest[]
   sample_source_content?: string | null
   sample_target_content?: string | null
   created_at: string
@@ -31,6 +32,7 @@ export type MappingTemplate = {
   description: string
   active_version: number
   is_seeded: boolean
+  deleted_at?: string | null
   versions: TemplateVersion[]
 }
 
@@ -46,6 +48,7 @@ export type TemplateCreateRequest = {
   target_schema_snapshot?: SchemaNode | null
   mapping_spec: MappingSpec
   validation_rules?: ValidationErrorItem[]
+  field_validation_rules?: FieldValidationRuleUpsertRequest[]
   sample_source_content?: string | null
   sample_target_content?: string | null
 }

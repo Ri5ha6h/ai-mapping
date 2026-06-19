@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Effect } from "effect"
 
 import { SAMPLE_SOURCE_JSON, SAMPLE_TARGET_JSON } from "@/components/workbench/constants"
-import { inferSchemaEffect, parseEffect } from "@/lib/effect/api_effects"
+import { inferSchemaEffect, listFieldValidationRulesEffect, parseEffect } from "@/lib/effect/api_effects"
 import type { OutputFormat, SourceFormat } from "@/types/mapping"
 import type { SchemaArtifact, SchemaNode } from "@/types/schema"
+import type { FieldValidationRule } from "@/types/validation"
 
 export type RunMode = "saved-sample" | "override"
 
@@ -19,6 +20,7 @@ export type CurrentMappingInputs = {
   targetData: unknown
   sourceSchema: SchemaNode
   targetSchema: SchemaNode
+  fieldValidationRules: FieldValidationRule[]
 }
 
 export function useMappingSetupController({
@@ -36,6 +38,7 @@ export function useMappingSetupController({
   const [overrideSourceInput, setOverrideSourceInput] = useState("")
   const [sourceSchema, setSourceSchema] = useState<SchemaNode | null>(null)
   const [targetSchema, setTargetSchema] = useState<SchemaNode | null>(null)
+  const [fieldValidationRules, setFieldValidationRules] = useState<FieldValidationRule[]>([])
 
   const selectedSourceSchema = useMemo(
     () => sourceSchemas.find((schema) => schema.schema_id === selectedSourceSchemaId) ?? null,
@@ -53,6 +56,25 @@ export function useMappingSetupController({
     : targetFormat
   const readyForMapping = Boolean(activeSourceSchema && activeTargetSchema)
   const sourceReference = selectedSourceSchema?.canonical_sample ?? parseReferenceSource(sourceInput)
+
+  useEffect(() => {
+    let ignore = false
+    if (!selectedTargetSchema) {
+      return
+    }
+
+    Effect.runPromise(listFieldValidationRulesEffect(selectedTargetSchema.schema_id))
+      .then((response) => {
+        if (!ignore) setFieldValidationRules(response.rules)
+      })
+      .catch(() => {
+        if (!ignore) setFieldValidationRules([])
+      })
+
+    return () => {
+      ignore = true
+    }
+  }, [selectedTargetSchema])
 
   const parseAndInfer = useCallback(async () => {
     const parsedSource = await Effect.runPromise(parseEffect(sourceFormat, sourceInput))
@@ -74,9 +96,9 @@ export function useMappingSetupController({
     }
 
     let sourceData: unknown
-    if (runMode === "override" && selectedSourceSchema) {
+    if (runMode === "override") {
       const parsedOverride = await Effect.runPromise(
-        parseEffect(selectedSourceSchema.format, overrideSourceInput)
+        parseEffect(activeSourceFormat, overrideSourceInput)
       )
       sourceData = parsedOverride.canonical
       setSourceInput(overrideSourceInput)
@@ -96,10 +118,21 @@ export function useMappingSetupController({
     setTargetFormat(activeTargetFormat)
     setSourceSchema(nextSourceSchema)
     setTargetSchema(nextTargetSchema)
-    return { sourceData, targetData, sourceSchema: nextSourceSchema, targetSchema: nextTargetSchema }
+    const nextFieldValidationRules = selectedTargetSchema
+      ? (await Effect.runPromise(listFieldValidationRulesEffect(selectedTargetSchema.schema_id))).rules
+      : fieldValidationRules
+    setFieldValidationRules(nextFieldValidationRules)
+    return {
+      sourceData,
+      targetData,
+      sourceSchema: nextSourceSchema,
+      targetSchema: nextTargetSchema,
+      fieldValidationRules: nextFieldValidationRules,
+    }
   }, [
     activeSourceFormat,
     activeTargetFormat,
+    fieldValidationRules,
     overrideSourceInput,
     runMode,
     selectedSourceSchema,
@@ -135,6 +168,7 @@ export function useMappingSetupController({
       setTargetSchema(schema.inferred_schema)
     } else {
       setTargetSchema(null)
+      setFieldValidationRules([])
     }
     onSetupChanged()
   }
@@ -150,6 +184,7 @@ export function useMappingSetupController({
     setTargetInput("")
     setSourceSchema(null)
     setTargetSchema(null)
+    setFieldValidationRules([])
   }
 
   return {
@@ -170,6 +205,7 @@ export function useMappingSetupController({
     activeTargetSchema,
     activeSourceFormat,
     activeTargetFormat,
+    fieldValidationRules,
     readyForMapping,
     setSourceFormat,
     setTargetFormat,
@@ -181,6 +217,7 @@ export function useMappingSetupController({
     setSelectedTargetSchemaId,
     setSourceSchema,
     setTargetSchema,
+    setFieldValidationRules,
     selectSourceSchema,
     selectTargetSchema,
     parseAndInfer,

@@ -82,6 +82,7 @@ export function useScriptAuthoringController({
         parsed.targetData,
         parsed.sourceSchema,
         parsed.targetSchema,
+        parsed.fieldValidationRules,
         autoMapMode === "ai"
       )
     )

@@ -1,7 +1,6 @@
-import { Database, FilePlus2, PlaySquare } from "lucide-react"
+import { Database } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
 import type { SchemaArtifact } from "@/types/schema"
 import type { useMappingWorkbenchController } from "./useMappingWorkbenchController"
 
@@ -22,11 +21,12 @@ export function MappingSchemaPanel({
     <section className="tool-panel mapping-schema-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Script transform</p>
-          <h2>Schema selection</h2>
+          <p className="panel-kicker">Mapping context</p>
+          <h2>Schema and template setup</h2>
         </div>
-        <Database size={18} className="text-muted-foreground" />
       </div>
+
+      <MappingContextStrip workbench={workbench} />
 
       <div className="mapping-schema-grid">
         <SchemaSelect
@@ -43,18 +43,6 @@ export function MappingSchemaPanel({
         />
       </div>
 
-      <div className="mapping-stage-toolbar" aria-label="Mapping stage toolbar">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void workbench.startNewMapping()}
-          disabled={Boolean(workbench.busyAction)}
-        >
-          <FilePlus2 />
-          New Transform
-        </Button>
-      </div>
-
       {!workbench.readyForMapping ? (
         <div className="template-note">
           <strong>Schema pair required</strong>
@@ -64,50 +52,49 @@ export function MappingSchemaPanel({
           </Button>
         </div>
       ) : null}
-
-      <div className="run-mode-panel">
-        <div className="field-stack">
-          <span>Run input</span>
-          <div className="schema-segmented-control">
-            <button
-              type="button"
-              className={workbench.runMode === "saved-sample" ? "active" : ""}
-              onClick={() => workbench.setRunMode("saved-sample")}
-            >
-              Saved sample
-            </button>
-            <button
-              type="button"
-              className={workbench.runMode === "override" ? "active" : ""}
-              onClick={() => workbench.setRunMode("override")}
-              disabled={!workbench.selectedSourceSchema}
-            >
-              Override
-            </button>
-          </div>
-        </div>
-        {workbench.runMode === "override" ? (
-          <Textarea
-            className="code-input min-h-48"
-            value={workbench.overrideSourceInput}
-            onChange={(event) =>
-              workbench.setOverrideSourceInput(event.target.value)
-            }
-            spellCheck={false}
-          />
-        ) : (
-          <div className="run-sample-summary">
-            <PlaySquare size={16} />
-            <span>
-              {workbench.selectedSourceSchema
-                ? `${workbench.selectedSourceSchema.name} saved sample`
-                : "Loaded template sample"}
-            </span>
-          </div>
-        )}
-      </div>
     </section>
   )
+}
+
+function MappingContextStrip({ workbench }: { workbench: ReturnType<typeof useMappingWorkbenchController> }) {
+  const sourceStatus = schemaContextStatus(
+    workbench.selectedSourceSchemaId,
+    Boolean(workbench.selectedSourceSchema),
+    Boolean(workbench.activeSourceSchema)
+  )
+  const targetStatus = schemaContextStatus(
+    workbench.selectedTargetSchemaId,
+    Boolean(workbench.selectedTargetSchema),
+    Boolean(workbench.activeTargetSchema)
+  )
+
+  return (
+    <div className="active-template-strip mapping-context-strip" aria-live="polite">
+      <Database size={16} />
+      <div>
+        <strong>
+          {workbench.activeTemplate
+            ? `${workbench.activeTemplate.name} v${workbench.activeTemplate.active_version}`
+            : "No template loaded"}
+        </strong>
+        <span>
+          {workbench.activeTemplate
+            ? "Loaded versions carry script, samples, schema snapshots, and field validation rules."
+            : "Select active schemas or load a saved template to begin."}
+        </span>
+        <span className="mapping-context-status">
+          Source: {sourceStatus} · Target: {targetStatus} · Rules: {workbench.fieldValidationRules.length}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function schemaContextStatus(schemaId: string, hasLiveSchema: boolean, hasSnapshot: boolean) {
+  if (hasLiveSchema) return "active library schema"
+  if (schemaId && hasSnapshot) return "detached snapshot fallback"
+  if (hasSnapshot) return "stored snapshot"
+  return "not selected"
 }
 
 function SchemaSelect({
