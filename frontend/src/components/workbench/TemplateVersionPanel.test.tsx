@@ -37,8 +37,13 @@ describe("TemplateVersionPanel", () => {
 
     expect(screen.getByRole("group", { name: "Examples" })).toBeTruthy()
     expect(screen.getByRole("group", { name: "Saved" })).toBeTruthy()
-    expect(screen.getByText(/field validation rules so older versions remain reproducible/i)).toBeTruthy()
+    expect(screen.getAllByText("Save template").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("New version").length).toBeGreaterThan(0)
+    expect(screen.getByText(/Versions preserve script, samples, schema snapshots/i)).toBeTruthy()
+    expect(screen.getByText(/Version 1 · current/i)).toBeTruthy()
+    expect(screen.getByText(/0 field rules/i)).toBeTruthy()
     expect(screen.getByText("Archived")).toBeTruthy()
+    expect(screen.getAllByText(/archived template/i).length).toBeGreaterThan(0)
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "seed" } })
     fireEvent.click(screen.getByRole("button", { name: /New version/i }))
     fireEvent.click(screen.getByRole("button", { name: /Load/i }))
@@ -46,6 +51,32 @@ describe("TemplateVersionPanel", () => {
     expect(onSelectedTemplateChange).toHaveBeenCalledWith("seed")
     expect(onCreateVersion).toHaveBeenCalled()
     expect(onLoadTemplate).toHaveBeenCalledWith("saved", 1)
+  })
+
+  it("uses restore-focused empty archive copy", () => {
+    render(
+      <TemplateVersionPanel
+        templates={[seededTemplate]}
+        deletedTemplates={[]}
+        activeTemplate={null}
+        selectedTemplateId=""
+        templateName=""
+        templateDescription=""
+        canSave={false}
+        busyAction={null}
+        onTemplateNameChange={vi.fn()}
+        onTemplateDescriptionChange={vi.fn()}
+        onSelectedTemplateChange={vi.fn()}
+        onSaveTemplate={vi.fn()}
+        onCreateVersion={vi.fn()}
+        onDeleteTemplate={vi.fn()}
+        onRestoreTemplate={vi.fn()}
+        onLoadTemplate={vi.fn()}
+        onRefreshTemplates={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText("Archived mapping templates will appear here with restore controls.")).toBeTruthy()
   })
 })
 

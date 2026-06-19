@@ -186,14 +186,14 @@ function SchemaArchivePanel({ library }: Props) {
         <span>{library.deletedSchemas.length} archived schemas</span>
       </div>
       {library.deletedSchemas.length === 0 ? (
-        <p className="empty-line">Deleted schemas will appear here for restore.</p>
+        <p className="empty-line">Archived schemas will appear here with restore controls.</p>
       ) : (
         <div className="archive-card-list">
           {library.deletedSchemas.map((schema) => (
             <div className="archive-row" key={schema.schema_id}>
               <div>
                 <strong>{schema.name}</strong>
-                <span>{schema.direction} · {schema.format.toUpperCase()}</span>
+                <span>{schema.direction} · {schema.format.toUpperCase()} · archived schema</span>
               </div>
               <Button
                 type="button"
@@ -354,9 +354,12 @@ function SchemaList({
               }
               onClick={() => onSelect(schema.schema_id)}
             >
-              <strong>{schema.name}</strong>
+              <span className="schema-card-title-row">
+                <strong>{schema.name}</strong>
+                {selectedSchemaId === schema.schema_id ? <em>Selected</em> : <em>Open</em>}
+              </span>
               <span>
-                {schema.format.toUpperCase()} · {formatBytes(schema.original_size)}
+                {schema.format.toUpperCase()} · {formatBytes(schema.original_size)} · click to inspect
               </span>
             </button>
           ))
@@ -378,7 +381,7 @@ function SchemaDetailPanel({ library }: Props) {
             <h2>Schema detail</h2>
           </div>
         </div>
-        <p className="empty-line">Select a saved schema to inspect it.</p>
+        <p className="empty-line">Select an active schema card from the library to inspect fields, samples, and saved rules.</p>
       </section>
     )
   }
@@ -408,6 +411,10 @@ function SchemaDetailPanel({ library }: Props) {
       {schema.description ? (
         <p className="schema-description">{schema.description}</p>
       ) : null}
+      <p className="schema-detail-status">
+        <strong>Active library schema</strong>
+        <span>{schema.direction === "target" ? "Target detail can store field validation rules for mapping runs." : "Source detail is read-only and provides sample context for mapping setup."}</span>
+      </p>
       <div className="schema-detail-stats">
         <span>{schema.format.toUpperCase()}</span>
         <span>{formatBytes(schema.original_size)}</span>

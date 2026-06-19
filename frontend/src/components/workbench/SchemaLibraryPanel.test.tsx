@@ -106,6 +106,9 @@ describe("SchemaLibraryPanel", () => {
     expect(screen.getByRole("heading", { name: "Schema artifact" })).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Saved schemas" })).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Shipment source" })).toBeTruthy()
+    expect(screen.getByText("Active library schema")).toBeTruthy()
+    expect(screen.getByText(/click to inspect/i)).toBeTruthy()
+    expect(screen.getByText("Selected")).toBeTruthy()
   })
 
   it("shows controlled target field rules and saves edits", () => {
@@ -226,5 +229,25 @@ describe("SchemaLibraryPanel", () => {
     expect(screen.queryByText("Target field validation rules")).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: /Shipment source/i }))
     expect(library.setSelectedSchemaId).toHaveBeenCalledWith("schema-1")
+  })
+
+  it("shows aligned archive copy and restore controls", () => {
+    const library = {
+      ...makeLibrary(),
+      deletedSchemas: [{ ...targetSchema, deleted_at: "2026-06-19T00:00:00Z" }],
+    }
+
+    render(<SchemaLibraryPanel library={library as never} />)
+
+    expect(screen.getByText("Archive & Trash")).toBeTruthy()
+    expect(screen.getAllByText(/archived schema/i).length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole("button", { name: /Restore/i }))
+    expect(library.restoreSchema).toHaveBeenCalledWith("target-1")
+  })
+
+  it("uses restore-focused empty archive copy", () => {
+    render(<SchemaLibraryPanel library={makeLibrary() as never} />)
+
+    expect(screen.getByText("Archived schemas will appear here with restore controls.")).toBeTruthy()
   })
 })

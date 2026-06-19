@@ -70,9 +70,20 @@ export function TemplateVersionPanel({
           </div>
         ) : null}
 
+        <div className="template-save-mode-grid" aria-label="Template save options">
+          <div>
+            <strong>Save template</strong>
+            <span>Updates the selected template name, notes, and current workspace snapshot.</span>
+          </div>
+          <div>
+            <strong>New version</strong>
+            <span>Adds a numbered snapshot while keeping older versions loadable.</span>
+          </div>
+        </div>
+
         <div className="template-note version-helper-note">
           <strong>How versions work</strong>
-          <span>Save template updates the selected template name and notes. New version stores a fresh script, samples, schema snapshots, and field validation rules so older versions remain reproducible.</span>
+          <span>Versions preserve script, samples, schema snapshots, validation results, and field validation rules so archive/restore or schema changes do not break prior mappings.</span>
         </div>
 
         <label className="field-stack" htmlFor="template-name">
@@ -167,15 +178,15 @@ export function TemplateVersionPanel({
               .slice()
               .sort((left, right) => right.version - left.version)
               .map((version) => (
-                <div className="version-row" key={`${selectedTemplate.template_id}-${version.version}`}>
+                <div className={version.version === selectedTemplate.active_version ? "version-row active" : "version-row"} key={`${selectedTemplate.template_id}-${version.version}`}>
                   <div>
-                    <strong>Version {version.version}</strong>
+                    <strong>Version {version.version}{version.version === selectedTemplate.active_version ? " · current" : ""}</strong>
                     <span>
                       {version.source_format} to {version.target_format}
                       {version.sample_source_content ? " with samples" : ""}
                     </span>
                     <span className="template-engine-note">
-                      JavaScript · {version.mapping_spec.script.length} chars
+                      JavaScript · {version.mapping_spec.script.length} chars · {version.field_validation_rules.length} field rules
                     </span>
                   </div>
                   <Button
@@ -200,14 +211,14 @@ export function TemplateVersionPanel({
             <span>{deletedTemplates.length} archived templates</span>
           </div>
           {deletedTemplates.length === 0 ? (
-            <p className="empty-line">Archived mapping templates will appear here for restore.</p>
+            <p className="empty-line">Archived mapping templates will appear here with restore controls.</p>
           ) : (
             <div className="archive-card-list">
               {deletedTemplates.map((template) => (
                 <div className="archive-row" key={template.template_id}>
                   <div>
                     <strong>{template.name}</strong>
-                    <span>v{template.active_version} · {template.versions.length} version(s)</span>
+                    <span>v{template.active_version} · {template.versions.length} version(s) · archived template</span>
                   </div>
                   <Button
                     type="button"

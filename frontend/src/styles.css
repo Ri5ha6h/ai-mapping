@@ -705,6 +705,11 @@
     padding: 8px;
   }
 
+  .archive-row:hover {
+    border-color: color-mix(in oklch, var(--primary) 34%, var(--border));
+    background: color-mix(in oklch, var(--secondary) 28%, var(--card));
+  }
+
   .archive-row div {
     min-width: 0;
     display: grid;
@@ -774,9 +779,34 @@
     text-align: left;
   }
 
+  .schema-card:hover {
+    border-color: color-mix(in oklch, var(--primary) 42%, var(--border));
+    transform: translateY(-1px);
+  }
+
   .schema-card.active {
     border-color: color-mix(in oklch, var(--primary) 58%, var(--border));
     background: color-mix(in oklch, var(--secondary) 48%, var(--card));
+  }
+
+  .schema-card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .schema-card-title-row em {
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in oklch, var(--primary) 32%, var(--border));
+    border-radius: 999px;
+    color: var(--primary);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 760;
+    padding: 1px 6px;
+    text-transform: uppercase;
   }
 
   .schema-card strong,
@@ -800,6 +830,27 @@
     flex-wrap: wrap;
     gap: 6px;
     margin: 10px 0;
+  }
+
+  .schema-detail-status {
+    display: grid;
+    gap: 2px;
+    margin: 10px 0 0;
+    border: 1px solid color-mix(in oklch, var(--primary) 30%, var(--border));
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--secondary) 34%, var(--card));
+    padding: 9px 10px;
+  }
+
+  .schema-detail-status strong {
+    color: var(--foreground);
+    font-size: 12px;
+  }
+
+  .schema-detail-status span {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .schema-detail-stats span {
@@ -1314,6 +1365,31 @@
     padding: 8px;
   }
 
+  .template-save-mode-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .template-save-mode-grid div {
+    display: grid;
+    gap: 2px;
+    border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--muted) 30%, transparent);
+    padding: 8px;
+  }
+
+  .template-save-mode-grid strong {
+    font-size: 12px;
+  }
+
+  .template-save-mode-grid span {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   .template-note strong {
     color: var(--primary);
     font-size: 12px;
@@ -1340,6 +1416,11 @@
     border: 1px solid color-mix(in oklch, var(--border) 70%, transparent);
     border-radius: 7px;
     padding: 8px;
+  }
+
+  .version-row.active {
+    border-color: color-mix(in oklch, var(--primary) 42%, var(--border));
+    background: color-mix(in oklch, var(--secondary) 30%, var(--card));
   }
 
   .version-row div {
