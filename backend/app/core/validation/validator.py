@@ -38,9 +38,10 @@ def validate_script_mapping(
         )
 
     policy = validation_policy_for(output_format)
-    if policy.validates_target_schema and target_schema is not None and output is not None:
-        errors.extend(_validate_required_output(output, target_schema))
-        errors.extend(_validate_output_types(output, target_schema))
+    if policy.validates_target_schema and output is not None:
+        if target_schema is not None:
+            errors.extend(_validate_required_output(output, target_schema))
+            errors.extend(_validate_output_types(output, target_schema))
         errors.extend(_validate_field_rules(output, field_validation_rules or []))
     return errors
 

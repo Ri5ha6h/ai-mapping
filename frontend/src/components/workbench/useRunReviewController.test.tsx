@@ -99,7 +99,16 @@ const baseInputs: CurrentMappingInputs = {
   targetData: { id: 1 },
   sourceSchema: { path: "$", type: "object", required: true, examples: [] },
   targetSchema: { path: "$", type: "object", required: true, examples: [] },
-  fieldValidationRules: [],
+  fieldValidationRules: [
+    {
+      schema_id: "target-orders",
+      path: "$.id",
+      value_type: "integer",
+      required: true,
+      created_at: "2026-06-19T00:00:00Z",
+      updated_at: "2026-06-19T00:00:00Z",
+    },
+  ],
 }
 
 function transformResponse(output: unknown) {
