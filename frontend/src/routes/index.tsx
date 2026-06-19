@@ -12,6 +12,8 @@ import { SchemaLibraryPanel } from "@/components/workbench/SchemaLibraryPanel"
 import { ScriptWorkbench } from "@/components/workbench/ScriptWorkbench"
 import { TemplateVersionPanel } from "@/components/workbench/TemplateVersionPanel"
 import { ValidationPanel } from "@/components/workbench/ValidationPanel"
+import { DisclosurePanel } from "@/components/workbench/DisclosurePanel"
+import { WorkflowStep } from "@/components/workbench/WorkflowStep"
 import { useMappingWorkbenchController } from "@/components/workbench/useMappingWorkbenchController"
 import { useSchemaLibraryController } from "@/components/workbench/useSchemaLibraryController"
 import { Button } from "@/components/ui/button"
@@ -128,26 +130,41 @@ function MappingWorkbench() {
       {activeTab === "schema" ? (
         <SchemaLibraryPanel library={schemaLibrary} />
       ) : (
-        <>
-          <MappingSchemaPanel
-            workbench={workbench}
-            sourceSchemas={schemaLibrary.sourceSchemas}
-            targetSchemas={schemaLibrary.targetSchemas}
-            onOpenSchemaTab={() => setActiveTab("schema")}
-          />
-
-          <div className="schema-grid">
-            <SchemaViewer title="Source fields" schema={workbench.sourceSchema} />
-            <SchemaViewer title="Target fields" schema={workbench.targetSchema} />
-            <MappingSuggestionPanel
-              suggestions={workbench.suggestions}
-              usedAi={workbench.usedAi}
-              statusText={workbench.autoMapStatusText}
-              providerErrors={workbench.providerErrors}
+        <div className="workflow-stage-list">
+          <WorkflowStep
+            step={1}
+            title="Setup"
+            status={workbench.readyForMapping ? "Schema pair ready" : "Choose source and target schemas"}
+            blocker={workbench.readyForMapping ? null : "Select or create a source and target schema before generating hints or scripts."}
+          >
+            <MappingSchemaPanel
+              workbench={workbench}
+              sourceSchemas={schemaLibrary.sourceSchemas}
+              targetSchemas={schemaLibrary.targetSchemas}
+              onOpenSchemaTab={() => setActiveTab("schema")}
             />
-          </div>
+          </WorkflowStep>
 
-          <div className="editor-grid">
+          <WorkflowStep
+            step={2}
+            title="Author"
+            status={workbench.readyForTransform ? "Script ready to run" : workbench.autoMapStatusText}
+            blocker={workbench.providerErrors.length > 0 ? workbench.providerErrors[0] : null}
+            secondary={
+              <DisclosurePanel title="Field hints and schema fields" summary="Source, target, and provider details">
+                <div className="schema-grid compact-detail-grid">
+                  <SchemaViewer title="Source fields" schema={workbench.sourceSchema} />
+                  <SchemaViewer title="Target fields" schema={workbench.targetSchema} />
+                  <MappingSuggestionPanel
+                    suggestions={workbench.suggestions}
+                    usedAi={workbench.usedAi}
+                    statusText={workbench.autoMapStatusText}
+                    providerErrors={workbench.providerErrors}
+                  />
+                </div>
+              </DisclosurePanel>
+            }
+          >
             <ScriptWorkbench
               script={workbench.script}
               explanation={workbench.draftExplanation}
@@ -166,13 +183,37 @@ function MappingWorkbench() {
               onFieldHints={() => void workbench.autoMap()}
               onAutoMapModeChange={workbench.setAutoMapMode}
             />
-          </div>
+          </WorkflowStep>
 
-          <div className="result-grid">
-            <OutputPreview result={workbench.transformResult} />
-            <RunLogsPanel logs={workbench.transformResult?.logs ?? []} />
-            <OutputDiffPanel diffs={workbench.outputDiff} />
-            <ValidationPanel errors={workbench.validationErrors} />
+          <WorkflowStep
+            step={3}
+            title="Review"
+            status={workbench.transformResult ? "Output ready for validation" : "Run the script to review output"}
+            blocker={workbench.validationErrors.length > 0 ? `${workbench.validationErrors.length} validation issue(s) need review.` : null}
+            secondary={
+              <DisclosurePanel title="Diff and raw logs" summary="Secondary run diagnostics">
+                <div className="result-grid compact-detail-grid">
+                  <OutputDiffPanel
+                    diffs={workbench.outputDiff}
+                    outputFormat={workbench.targetFormat}
+                    hasRun={Boolean(workbench.transformResult)}
+                  />
+                  <RunLogsPanel logs={workbench.transformResult?.logs ?? []} />
+                </div>
+              </DisclosurePanel>
+            }
+          >
+            <div className="result-grid review-primary-grid">
+              <OutputPreview result={workbench.transformResult} />
+              <ValidationPanel errors={workbench.validationErrors} outputFormat={workbench.targetFormat} />
+            </div>
+          </WorkflowStep>
+
+          <WorkflowStep
+            step={4}
+            title="Save"
+            status={workbench.readyForTemplateSave ? "Template can be saved" : "Run a valid script before saving"}
+          >
             <TemplateVersionPanel
               templates={workbench.templates}
               activeTemplate={workbench.activeTemplate}
@@ -189,8 +230,8 @@ function MappingWorkbench() {
               onLoadTemplate={(templateId, version) => void workbench.loadTemplate(templateId, version)}
               onRefreshTemplates={() => void workbench.refreshTemplates()}
             />
-          </div>
-        </>
+          </WorkflowStep>
+        </div>
       )}
     </main>
   )

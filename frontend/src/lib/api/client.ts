@@ -132,20 +132,27 @@ export async function validatePayload(params: {
   output?: unknown
   mappingSpec: MappingSpec
   targetSchema?: SchemaNode | null
-}): Promise<{ valid: boolean; errors: ValidationErrorItem[] }> {
+  outputFormat?: OutputFormat
+}): Promise<{ valid: boolean; errors: ValidationErrorItem[]; policy?: string | null }> {
   return postJson("/api/validate", {
     source_data: params.sourceData,
     output: params.output ?? null,
     mapping_spec: params.mappingSpec,
     target_schema: params.targetSchema ?? null,
+    output_format: params.outputFormat ?? "json",
   })
 }
 
 export async function diffOutput(params: {
   expected: unknown
   actual: unknown
+  outputFormat?: OutputFormat
 }): Promise<OutputDiffResponse> {
-  return postJson<OutputDiffResponse>("/api/transform/diff", params)
+  return postJson<OutputDiffResponse>("/api/transform/diff", {
+    expected: params.expected,
+    actual: params.actual,
+    output_format: params.outputFormat ?? "json",
+  })
 }
 
 export async function createTemplate(

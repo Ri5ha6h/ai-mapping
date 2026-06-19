@@ -4,8 +4,9 @@ This repository contains a local proof of concept for mapping inbound JSON, XML,
 EDI 214, and EDI 856 payloads into JSON or XML outputs.
 
 The backend owns parsing, schema artifact persistence, schema inference, mapping
-suggestions, deterministic transformation, validation, and template versioning.
+suggestions, JavaScript transform execution, validation, and template versioning.
 The frontend is a TanStack Start workbench that calls the FastAPI backend directly.
+See `docs/architecture-current.md` for the current script-first architecture.
 
 ## Local Startup
 
@@ -86,8 +87,8 @@ Set `API_BASE_URL` if the backend is not on `http://127.0.0.1:8000`.
 3. Create a target schema from pasted JSON/XML or an uploaded file.
 4. Open the `Mapping` tab.
 5. Select the saved source and target schemas.
-6. Click `Auto map`.
-7. Review or edit rules and JSONata metadata.
+6. Generate field hints and a JavaScript transform draft.
+7. Review or edit the `function transform(source, helpers)` script.
 8. Click `Run` using the saved source sample or switch to override input.
 9. Save the mapping template.
 10. Load a linked saved template or seeded snapshot-only example.

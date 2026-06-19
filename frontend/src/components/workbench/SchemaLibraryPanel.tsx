@@ -1,6 +1,7 @@
 import { Clipboard, Database, FileText, Loader2, RefreshCw, Trash2, Upload } from "lucide-react"
 
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
+import { DisclosurePanel } from "@/components/workbench/DisclosurePanel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -38,43 +39,6 @@ export function SchemaLibraryPanel({ library }: Props) {
           </div>
         </div>
       ) : null}
-
-      <section className="tool-panel schema-library-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-kicker">Library</p>
-            <h2>Saved schemas</h2>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            title="Refresh schemas"
-            onClick={() => void library.refreshSchemas()}
-            disabled={Boolean(library.busyAction)}
-          >
-            {library.busyAction === "Loading schemas" ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              <RefreshCw />
-            )}
-          </Button>
-        </div>
-        <div className="schema-library-columns">
-          <SchemaList
-            title="Source"
-            schemas={library.sourceSchemas}
-            selectedSchemaId={library.selectedSchemaId}
-            onSelect={library.setSelectedSchemaId}
-          />
-          <SchemaList
-            title="Target"
-            schemas={library.targetSchemas}
-            selectedSchemaId={library.selectedSchemaId}
-            onSelect={library.setSelectedSchemaId}
-          />
-        </div>
-      </section>
 
       <section className="tool-panel schema-create-panel">
         <div className="panel-heading">
@@ -155,7 +119,46 @@ export function SchemaLibraryPanel({ library }: Props) {
         </Button>
       </section>
 
-      <SchemaDetailPanel library={library} />
+      <section className="tool-panel schema-library-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-kicker">Library</p>
+            <h2>Saved schemas</h2>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            title="Refresh schemas"
+            onClick={() => void library.refreshSchemas()}
+            disabled={Boolean(library.busyAction)}
+          >
+            {library.busyAction === "Loading schemas" ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <RefreshCw />
+            )}
+          </Button>
+        </div>
+        <div className="schema-library-columns">
+          <SchemaList
+            title="Source"
+            schemas={library.sourceSchemas}
+            selectedSchemaId={library.selectedSchemaId}
+            onSelect={library.setSelectedSchemaId}
+          />
+          <SchemaList
+            title="Target"
+            schemas={library.targetSchemas}
+            selectedSchemaId={library.selectedSchemaId}
+            onSelect={library.setSelectedSchemaId}
+          />
+        </div>
+      </section>
+
+      <DisclosurePanel title="Selected schema details" summary="Inspect inferred fields and stored samples">
+        <SchemaDetailPanel library={library} />
+      </DisclosurePanel>
     </div>
   )
 }

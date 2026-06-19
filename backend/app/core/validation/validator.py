@@ -1,7 +1,8 @@
 from typing import Any
 
-from app.api.models import MappingSpec, SchemaNode, ValidationErrorItem
+from app.api.models import MappingSpec, OutputFormat, SchemaNode, ValidationErrorItem
 from app.core.mapping.path_utils import MISSING, get_path
+from app.core.validation.policy import validation_policy_for
 
 
 def validate_script_mapping(
@@ -9,6 +10,7 @@ def validate_script_mapping(
     mapping_spec: MappingSpec | None,
     output: Any | None,
     target_schema: SchemaNode | None,
+    output_format: OutputFormat = OutputFormat.json,
 ) -> list[ValidationErrorItem]:
     errors: list[ValidationErrorItem] = []
     if mapping_spec is None or mapping_spec.engine != "script_js":
@@ -28,7 +30,8 @@ def validate_script_mapping(
             )
         )
 
-    if target_schema is not None and output is not None:
+    policy = validation_policy_for(output_format)
+    if policy.validates_target_schema and target_schema is not None and output is not None:
         errors.extend(_validate_required_output(output, target_schema))
         errors.extend(_validate_output_types(output, target_schema))
     return errors

@@ -178,11 +178,13 @@ class ValidateRequest(BaseModel):
     output: JsonValue | None = None
     mapping_spec: MappingSpec | None = None
     target_schema: SchemaNode | None = None
+    output_format: OutputFormat = OutputFormat.json
 
 
 class ValidateResponse(BaseModel):
     valid: bool
     errors: list[ValidationErrorItem] = Field(default_factory=list)
+    policy: str | None = None
 
 
 class OutputDiffItem(BaseModel):
@@ -195,11 +197,14 @@ class OutputDiffItem(BaseModel):
 class OutputDiffRequest(BaseModel):
     expected: JsonValue
     actual: JsonValue
+    output_format: OutputFormat = OutputFormat.json
 
 
 class OutputDiffResponse(BaseModel):
     equal: bool
     diffs: list[OutputDiffItem] = Field(default_factory=list)
+    supported: bool = True
+    message: str | None = None
 
 
 class ScriptDraftRequest(BaseModel):

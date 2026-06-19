@@ -1,12 +1,16 @@
 import { GitCompareArrows } from "lucide-react"
 
-import type { OutputDiffItem } from "@/types/mapping"
+import type { OutputDiffItem, OutputFormat } from "@/types/mapping"
 
 type Props = {
   diffs: OutputDiffItem[]
+  outputFormat?: OutputFormat
+  hasRun?: boolean
 }
 
-export function OutputDiffPanel({ diffs }: Props) {
+export function OutputDiffPanel({ diffs, outputFormat = "json", hasRun = false }: Props) {
+  const diffUnavailable = outputFormat === "xml"
+
   return (
     <section className="tool-panel diff-panel">
       <div className="panel-heading">
@@ -16,8 +20,10 @@ export function OutputDiffPanel({ diffs }: Props) {
         </div>
         <GitCompareArrows size={18} className="text-muted-foreground" />
       </div>
-      {diffs.length === 0 ? (
-        <p className="empty-note">No output differences after the last run.</p>
+      {diffUnavailable ? (
+        <p className="empty-note">Diff is not available for XML output. Review the serialized XML preview or compare it externally.</p>
+      ) : diffs.length === 0 ? (
+        <p className="empty-note">{hasRun ? "No output differences after the last JSON run." : "Run a JSON transform to compare target output."}</p>
       ) : (
         <div className="diff-list">
           {diffs.slice(0, 20).map((diff) => (
