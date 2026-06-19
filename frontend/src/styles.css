@@ -300,6 +300,11 @@
     line-height: 1.35;
   }
 
+  .compact-workflow-action {
+    min-height: 32px;
+    padding-inline: 10px;
+  }
+
   .mapping-stage-status {
     min-height: 36px;
     display: inline-grid;
@@ -351,6 +356,39 @@
     color: var(--muted-foreground);
     font-size: 13px;
     padding: 8px 10px;
+  }
+
+  .review-context-card,
+  .review-run-summary {
+    display: flex;
+    align-items: start;
+    gap: 8px;
+    border: 1px solid color-mix(in oklch, var(--primary) 30%, var(--border));
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--secondary) 34%, var(--card));
+    padding: 9px 10px;
+  }
+
+  .review-context-card div {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  .review-context-card strong {
+    color: var(--foreground);
+    font-size: 13px;
+  }
+
+  .review-context-card span,
+  .review-run-summary span {
+    color: var(--muted-foreground);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .review-override-stack {
+    gap: 6px;
   }
 
   .workbench-tabs {
@@ -515,7 +553,8 @@
   }
 
   .review-primary-grid {
-    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1fr) minmax(320px, 0.55fr);
+    grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.05fr) minmax(300px, 0.58fr);
+    align-items: stretch;
   }
 
   .schema-workspace > .issue-banner {
@@ -1162,11 +1201,14 @@
 
   .confirm-dialog {
     gap: 18px;
-    width: min(520px, 100%);
+    width: min(520px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    margin: auto;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--card);
     box-shadow: 0 24px 60px oklch(0.18 0.018 232 / 24%);
+    overflow: auto;
     padding: 18px;
   }
 
@@ -1287,7 +1329,7 @@
   }
 
   .review-input-editor {
-    min-height: 250px;
+    min-height: 300px;
   }
 
   .version-row {

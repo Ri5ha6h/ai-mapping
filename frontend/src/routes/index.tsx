@@ -137,6 +137,17 @@ function MappingWorkbench() {
             title="Setup"
             status={workbench.readyForMapping ? "Schema pair ready" : "Choose source and target schemas"}
             blocker={workbench.readyForMapping ? null : "Select or create a source and target schema before generating hints or scripts."}
+            action={
+              <Button
+                type="button"
+                variant="outline"
+                className="compact-workflow-action"
+                onClick={() => void workbench.startNewMapping()}
+                disabled={Boolean(workbench.busyAction)}
+              >
+                New Mapping
+              </Button>
+            }
           >
             <MappingSchemaPanel
               workbench={workbench}

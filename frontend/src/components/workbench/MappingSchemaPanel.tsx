@@ -1,4 +1,4 @@
-import { Database, FilePlus2 } from "lucide-react"
+import { Database } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import type { SchemaArtifact } from "@/types/schema"
@@ -21,18 +21,9 @@ export function MappingSchemaPanel({
     <section className="tool-panel mapping-schema-panel">
       <div className="panel-heading">
         <div>
-          <p className="panel-kicker">Script transform</p>
-          <h2>Schema selection</h2>
+          <p className="panel-kicker">Mapping context</p>
+          <h2>Schema and template setup</h2>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void workbench.startNewMapping()}
-          disabled={Boolean(workbench.busyAction)}
-        >
-          <FilePlus2 />
-          New Mapping
-        </Button>
       </div>
 
       <MappingContextStrip workbench={workbench} />

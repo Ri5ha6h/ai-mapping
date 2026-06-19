@@ -9,7 +9,7 @@ import type { useMappingWorkbenchController } from "./useMappingWorkbenchControl
 afterEach(cleanup)
 
 describe("MappingSchemaPanel", () => {
-  it("keeps author and run actions out of schema selection", () => {
+  it("keeps reset, author, and run actions out of schema selection", () => {
     render(
       <MappingSchemaPanel
         workbench={baseWorkbench as unknown as ReturnType<typeof useMappingWorkbenchController>}
@@ -19,11 +19,11 @@ describe("MappingSchemaPanel", () => {
       />
     )
 
-    expect(screen.getByRole("button", { name: "New Mapping" })).toBeInstanceOf(HTMLButtonElement)
     expect(screen.getByText("No template loaded")).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "New Mapping" })).toBeNull()
     expect(screen.queryByRole("button", { name: "AI-assisted" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Field hints" })).toBeNull()
-    expect(screen.queryByRole("button", { name: "Run script" })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Run Script/i })).toBeNull()
   })
 
   it("keeps selectors active-only while showing detached snapshot context", () => {

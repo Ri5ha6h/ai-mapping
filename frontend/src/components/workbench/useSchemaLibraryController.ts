@@ -227,8 +227,8 @@ export function useSchemaLibraryController() {
     try {
       const savedRules = await Promise.all(
         dirtyTargetRulePaths.map((path) => {
-          const draft = targetRuleDrafts[path]
-          return Effect.runPromise(upsertFieldValidationRuleEffect(schema.schema_id, draft))
+          const ruleDraft = targetRuleDrafts[path]
+          return Effect.runPromise(upsertFieldValidationRuleEffect(schema.schema_id, ruleDraft))
         })
       )
       setSelectedTargetRules((rules) => mergeSavedRules(rules, savedRules))
@@ -351,7 +351,7 @@ function valueFromPatch<TKey extends keyof FieldValidationRuleUpsertRequest>(
   if (Object.prototype.hasOwnProperty.call(patch, key)) {
     return patch[key] as FieldValidationRuleUpsertRequest[TKey]
   }
-  return (current?.[key] ?? fallback) as FieldValidationRuleUpsertRequest[TKey]
+  return current?.[key] ?? fallback
 }
 
 function mergeSavedRules(current: FieldValidationRule[], saved: FieldValidationRule[]) {

@@ -205,8 +205,8 @@ describe("SchemaLibraryPanel", () => {
 
     render(<SchemaLibraryPanel library={library as never} />)
 
-    expect((screen.getByLabelText("$.shipment.weight min") as HTMLInputElement).value).toBe("")
-    expect((screen.getByLabelText("$.shipment.weight max") as HTMLInputElement).value).toBe("")
+    expect(screen.getByLabelText<HTMLInputElement>("$.shipment.weight min").value).toBe("")
+    expect(screen.getByLabelText<HTMLInputElement>("$.shipment.weight max").value).toBe("")
     expect(screen.getByText("Unsaved")).toBeTruthy()
   })
 

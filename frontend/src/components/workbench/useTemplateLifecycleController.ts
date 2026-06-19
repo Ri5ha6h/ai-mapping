@@ -80,8 +80,6 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
 
   useEffect(() => {
     void refreshTemplates()
-    // Template lists load once on mount; manual refresh handles later changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function saveTemplate() {
@@ -125,7 +123,7 @@ export function useTemplateLifecycleController(args: TemplateLifecycleController
       if (version.sample_target_content) args.setTargetInput(version.sample_target_content)
       args.setSourceSchema(version.source_schema_snapshot ?? null)
       args.setTargetSchema(version.target_schema_snapshot ?? null)
-      args.setFieldValidationRules(snapshotFieldRules(version.field_validation_rules ?? []))
+      args.setFieldValidationRules(snapshotFieldRules(version.field_validation_rules))
       args.setScriptRaw(version.mapping_spec.script || DEFAULT_SCRIPT)
       args.restoreValidationErrors(version.validation_rules)
       args.clearAuthoringContext()
