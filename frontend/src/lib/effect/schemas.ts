@@ -10,4 +10,3 @@ export function flattenSchema(schema: SchemaNode | null): SchemaNode[] {
   }
   return [schema]
 }
-

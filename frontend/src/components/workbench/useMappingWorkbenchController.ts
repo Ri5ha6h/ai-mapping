@@ -13,9 +13,13 @@ type MappingWorkbenchOptions = {
   targetSchemas: SchemaArtifact[]
 }
 
-export function useMappingWorkbenchController(options: MappingWorkbenchOptions) {
+export function useMappingWorkbenchController(
+  options: MappingWorkbenchOptions
+) {
   const [issue, setIssue] = useState<FrontendIssue | null>(null)
-  const [busyAction, setBusyAction] = useState<string | null>("Loading templates")
+  const [busyAction, setBusyAction] = useState<string | null>(
+    "Loading templates"
+  )
 
   async function withBusy(label: string, action: () => Promise<void>) {
     setBusyAction(label)

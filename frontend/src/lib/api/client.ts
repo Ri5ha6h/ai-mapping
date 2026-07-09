@@ -174,7 +174,11 @@ export async function validatePayload(params: {
   targetSchema?: SchemaNode | null
   fieldValidationRules?: FieldValidationRule[]
   outputFormat?: OutputFormat
-}): Promise<{ valid: boolean; errors: ValidationErrorItem[]; policy?: string | null }> {
+}): Promise<{
+  valid: boolean
+  errors: ValidationErrorItem[]
+  policy?: string | null
+}> {
   return postJson("/api/validate", {
     source_data: params.sourceData,
     output: params.output ?? null,

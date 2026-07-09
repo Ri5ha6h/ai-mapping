@@ -23,7 +23,9 @@ export function SchemaViewer({ title, schema }: Props) {
     >
       <ScrollArea className="max-h-72 pr-2">
         {fields.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No inferred fields yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No inferred fields yet.
+          </p>
         ) : (
           <div className="grid gap-2">
             {fields.map((field) => (

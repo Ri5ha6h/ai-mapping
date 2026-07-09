@@ -18,7 +18,8 @@ export function RunReviewPanel({ workbench }: Props) {
     : workbench.activeTemplate
       ? "Loaded template sample"
       : "Current setup sample"
-  const runDisabled = !workbench.readyForTransform || Boolean(workbench.busyAction)
+  const runDisabled =
+    !workbench.readyForTransform || Boolean(workbench.busyAction)
 
   return (
     <WorkbenchCard
@@ -40,7 +41,6 @@ export function RunReviewPanel({ workbench }: Props) {
         </Button>
       }
     >
-
       <StatusAlert
         icon={<Database size={16} />}
         title={activeTemplateLabel}
@@ -68,7 +68,10 @@ export function RunReviewPanel({ workbench }: Props) {
         </Field>
 
         {workbench.runMode === "override" ? (
-          <Field label="Override source payload" htmlFor="override-source-payload">
+          <Field
+            label="Override source payload"
+            htmlFor="override-source-payload"
+          >
             <Textarea
               id="override-source-payload"
               className="code-input review-input-editor"

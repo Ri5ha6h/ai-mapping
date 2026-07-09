@@ -47,7 +47,10 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
   onFieldHints,
   onAutoMapModeChange,
 }: Props) {
-  const sourcePreview = useMemo(() => formatPreview(sourceReference), [sourceReference])
+  const sourcePreview = useMemo(
+    () => formatPreview(sourceReference),
+    [sourceReference]
+  )
 
   return (
     <WorkbenchCard
@@ -57,7 +60,11 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
       className="script-workbench-panel"
     >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <Badge variant="outline" className="h-auto min-h-9 rounded-lg px-3 py-1.5" aria-live="polite">
+        <Badge
+          variant="outline"
+          className="h-auto min-h-9 rounded-lg px-3 py-1.5"
+          aria-live="polite"
+        >
           Stage: {statusText}
         </Badge>
         <div className="flex flex-wrap items-center gap-2">
@@ -107,7 +114,9 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
       </div>
 
       <div className="monaco-frame script-editor-frame">
-        <Suspense fallback={<div className="editor-loading">Loading editor...</div>}>
+        <Suspense
+          fallback={<div className="editor-loading">Loading editor...</div>}
+        >
           <MonacoEditor
             height="460px"
             defaultLanguage="javascript"
@@ -136,39 +145,55 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
         <AccordionItem value="reference" className="border-0">
           <AccordionTrigger>Reference</AccordionTrigger>
           <AccordionContent className="pb-3">
-        <div className="script-reference-grid">
-          <div>
-            <strong>source sample</strong>
-            <pre>{sourcePreview}</pre>
-          </div>
-          <div>
-            <strong>helpers</strong>
-            <ul>
-              <li>helpers.get(source, "$.path", "")</li>
-              <li>helpers.default(value, fallback)</li>
-              <li>helpers.clean(value)</li>
-              <li>helpers.regexReplace(value, pattern, replacement)</li>
-              <li>helpers.parseNumber(value, 0)</li>
-              <li>helpers.formatDate(value, "YYYYMMDD", "YYYY-MM-DD")</li>
-              <li>helpers.lookup(table, key, "")</li>
-              <li>helpers.countryCode(value, "")</li>
-              <li>helpers.omitEmpty(object)</li>
-            </ul>
-            <p>Current input format: {sourceFormat}. XML and EDI run as canonical JSON.</p>
-          </div>
-        </div>
+            <div className="script-reference-grid">
+              <div>
+                <strong>source sample</strong>
+                <pre>{sourcePreview}</pre>
+              </div>
+              <div>
+                <strong>helpers</strong>
+                <ul>
+                  <li>helpers.get(source, "$.path", "")</li>
+                  <li>helpers.default(value, fallback)</li>
+                  <li>helpers.clean(value)</li>
+                  <li>helpers.regexReplace(value, pattern, replacement)</li>
+                  <li>helpers.parseNumber(value, 0)</li>
+                  <li>helpers.formatDate(value, "YYYYMMDD", "YYYY-MM-DD")</li>
+                  <li>helpers.lookup(table, key, "")</li>
+                  <li>helpers.countryCode(value, "")</li>
+                  <li>helpers.omitEmpty(object)</li>
+                </ul>
+                <p>
+                  Current input format: {sourceFormat}. XML and EDI run as
+                  canonical JSON.
+                </p>
+              </div>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
 
-      {explanation ? <p className="rounded-lg border bg-secondary/35 px-3 py-2 text-sm text-muted-foreground">{explanation}</p> : null}
+      {explanation ? (
+        <p className="rounded-lg border bg-secondary/35 px-3 py-2 text-sm text-muted-foreground">
+          {explanation}
+        </p>
+      ) : null}
       {unresolvedPaths.length > 0 ? (
         <div className="grid gap-2 rounded-lg border bg-muted/30 px-3 py-2">
           <strong>Review these target paths</strong>
           {unresolvedPaths.slice(0, 12).map((path) => (
-            <span className="rounded bg-card px-2 py-1 font-mono text-xs text-muted-foreground" key={path}>{path}</span>
+            <span
+              className="rounded bg-card px-2 py-1 font-mono text-xs text-muted-foreground"
+              key={path}
+            >
+              {path}
+            </span>
           ))}
-          {unresolvedPaths.length > 12 ? <span className="text-sm text-muted-foreground">+{unresolvedPaths.length - 12} more</span> : null}
+          {unresolvedPaths.length > 12 ? (
+            <span className="text-sm text-muted-foreground">
+              +{unresolvedPaths.length - 12} more
+            </span>
+          ) : null}
         </div>
       ) : null}
     </WorkbenchCard>
@@ -176,6 +201,7 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
 })
 
 function formatPreview(value: unknown) {
-  const text = typeof value === "string" ? value : JSON.stringify(value, null, 2)
+  const text =
+    typeof value === "string" ? value : JSON.stringify(value, null, 2)
   return text.length > 2_400 ? `${text.slice(0, 2_400)}\n...` : text
 }

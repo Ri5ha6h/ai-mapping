@@ -2,9 +2,9 @@ packages: []
 
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
-  - '@csstools/*'
-  - '@tanstack/*'
-  - '@types/*'
+  - "@csstools/*"
+  - "@tanstack/*"
+  - "@types/*"
   - baseline-browser-mapping
   - caniuse-lite
   - effect

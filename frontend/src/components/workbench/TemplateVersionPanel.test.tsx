@@ -37,14 +37,18 @@ describe("TemplateVersionPanel", () => {
 
     expect(screen.getAllByText("Save template").length).toBeGreaterThan(0)
     expect(screen.getAllByText("New version").length).toBeGreaterThan(0)
-    expect(screen.getByText(/Versions preserve script, samples, schema snapshots/i)).toBeTruthy()
+    expect(
+      screen.getByText(/Versions preserve script, samples, schema snapshots/i)
+    ).toBeTruthy()
     expect(screen.getByText("Version 1")).toBeTruthy()
     expect(screen.getByText("current")).toBeTruthy()
     expect(screen.getByText(/0 field rules/i)).toBeTruthy()
     expect(screen.getByText("Archived")).toBeTruthy()
     expect(screen.getAllByText(/archived template/i).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole("combobox", { name: "Templates" }))
-    expect(screen.getByRole("option", { name: "Example: Example v1" })).toBeTruthy()
+    expect(
+      screen.getByRole("option", { name: "Example: Example v1" })
+    ).toBeTruthy()
     expect(screen.getByRole("option", { name: "Saved: Saved v1" })).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: /New version/i }))
     fireEvent.click(screen.getByRole("button", { name: /Load/i }))
@@ -76,7 +80,11 @@ describe("TemplateVersionPanel", () => {
       />
     )
 
-    expect(screen.getByText("Archived mapping templates will appear here with restore controls.")).toBeTruthy()
+    expect(
+      screen.getByText(
+        "Archived mapping templates will appear here with restore controls."
+      )
+    ).toBeTruthy()
   })
 })
 
@@ -88,7 +96,11 @@ const version = {
   target_schema_id: null,
   source_schema_snapshot: null,
   target_schema_snapshot: null,
-  mapping_spec: { engine: "script_js" as const, script_version: 1, script: "function transform() { return {}; }" },
+  mapping_spec: {
+    engine: "script_js" as const,
+    script_version: 1,
+    script: "function transform() { return {}; }",
+  },
   validation_rules: [],
   field_validation_rules: [],
   sample_source_content: "{}",
@@ -96,6 +108,28 @@ const version = {
   created_at: "2026-06-19T00:00:00Z",
 }
 
-const seededTemplate = { template_id: "seed", name: "Example", description: "", active_version: 1, is_seeded: true, versions: [version] }
-const savedTemplate = { template_id: "saved", name: "Saved", description: "", active_version: 1, is_seeded: false, versions: [version] }
-const deletedTemplate = { template_id: "deleted", name: "Archived", description: "", active_version: 1, is_seeded: false, deleted_at: "2026-06-19T00:00:00Z", versions: [version] }
+const seededTemplate = {
+  template_id: "seed",
+  name: "Example",
+  description: "",
+  active_version: 1,
+  is_seeded: true,
+  versions: [version],
+}
+const savedTemplate = {
+  template_id: "saved",
+  name: "Saved",
+  description: "",
+  active_version: 1,
+  is_seeded: false,
+  versions: [version],
+}
+const deletedTemplate = {
+  template_id: "deleted",
+  name: "Archived",
+  description: "",
+  active_version: 1,
+  is_seeded: false,
+  deleted_at: "2026-06-19T00:00:00Z",
+  versions: [version],
+}

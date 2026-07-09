@@ -30,11 +30,8 @@ coverage/
 htmlcov/
 *.log
 .DS_Store
-docs/*.html
-docs/*.md
-!docs/architecture-current.md
-!docs/adr-shadcn-base-ui-standardization.md
-!docs/ui-glossary.md
+docs/backend-workflow.html
+docs/frontend-workflow.html
 samples/
 
 # Riptide artifacts (cloud-synced)

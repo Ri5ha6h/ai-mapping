@@ -18,7 +18,9 @@ describe("workbench route composition", () => {
     expect(save).toBeGreaterThan(review)
     expect(source).toContain('title="Field hints and schema fields"')
     expect(source).toContain('title="Diff and raw logs"')
-    expect(source.indexOf('title="Review"')).toBeLessThan(source.indexOf("<RunReviewPanel"))
+    expect(source.indexOf('title="Review"')).toBeLessThan(
+      source.indexOf("<RunReviewPanel")
+    )
     expect(source).toContain("<Tabs")
     expect(source).toContain("<Dialog")
     expect(source).toContain("<RunReviewPanel workbench={workbench} />")

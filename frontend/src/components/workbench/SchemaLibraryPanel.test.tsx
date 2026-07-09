@@ -102,10 +102,16 @@ describe("SchemaLibraryPanel", () => {
     render(<SchemaLibraryPanel library={makeLibrary() as never} />)
 
     expect(screen.getByRole("heading", { name: "Create" })).toBeTruthy()
-    expect(screen.getByRole("heading", { name: "Library & Detail" })).toBeTruthy()
-    expect(screen.getByRole("heading", { name: "Schema artifact" })).toBeTruthy()
+    expect(
+      screen.getByRole("heading", { name: "Library & Detail" })
+    ).toBeTruthy()
+    expect(
+      screen.getByRole("heading", { name: "Schema artifact" })
+    ).toBeTruthy()
     expect(screen.getByRole("heading", { name: "Saved schemas" })).toBeTruthy()
-    expect(screen.getByRole("heading", { name: "Shipment source" })).toBeTruthy()
+    expect(
+      screen.getByRole("heading", { name: "Shipment source" })
+    ).toBeTruthy()
     expect(screen.getByText("Active library schema")).toBeTruthy()
     expect(screen.getByText(/click to inspect/i)).toBeTruthy()
     expect(screen.getByText("Selected")).toBeTruthy()
@@ -139,9 +145,15 @@ describe("SchemaLibraryPanel", () => {
 
     expect(screen.getByText("Target field validation rules")).toBeTruthy()
     expect(screen.getByText("Saved")).toBeTruthy()
-    expect(screen.getByRole("button", { name: /Save validation rules/i }).hasAttribute("disabled")).toBe(true)
+    expect(
+      screen
+        .getByRole("button", { name: /Save validation rules/i })
+        .hasAttribute("disabled")
+    ).toBe(true)
 
-    fireEvent.click(screen.getByRole("combobox", { name: "$.shipment.weight type" }))
+    fireEvent.click(
+      screen.getByRole("combobox", { name: "$.shipment.weight type" })
+    )
     expect(screen.getByRole("option", { name: "integer" })).toBeTruthy()
     fireEvent.click(screen.getByRole("checkbox", { name: "Required" }))
     fireEvent.change(screen.getByLabelText("$.shipment.weight min"), {
@@ -151,17 +163,26 @@ describe("SchemaLibraryPanel", () => {
       target: { value: "" },
     })
 
-    expect(library.updateFieldRule).toHaveBeenCalledWith("$.shipment.weight", expect.objectContaining({
-      required: false,
-    }))
-    expect(library.updateFieldRule).toHaveBeenCalledWith("$.shipment.weight", expect.objectContaining({
-      min_value: 2,
-      min_length: null,
-    }))
-    expect(library.updateFieldRule).toHaveBeenCalledWith("$.shipment.weight", expect.objectContaining({
-      max_value: null,
-      max_length: null,
-    }))
+    expect(library.updateFieldRule).toHaveBeenCalledWith(
+      "$.shipment.weight",
+      expect.objectContaining({
+        required: false,
+      })
+    )
+    expect(library.updateFieldRule).toHaveBeenCalledWith(
+      "$.shipment.weight",
+      expect.objectContaining({
+        min_value: 2,
+        min_length: null,
+      })
+    )
+    expect(library.updateFieldRule).toHaveBeenCalledWith(
+      "$.shipment.weight",
+      expect.objectContaining({
+        max_value: null,
+        max_length: null,
+      })
+    )
   })
 
   it("keeps cleared min and max fields empty before save", () => {
@@ -204,8 +225,12 @@ describe("SchemaLibraryPanel", () => {
 
     render(<SchemaLibraryPanel library={library as never} />)
 
-    expect(screen.getByLabelText<HTMLInputElement>("$.shipment.weight min").value).toBe("")
-    expect(screen.getByLabelText<HTMLInputElement>("$.shipment.weight max").value).toBe("")
+    expect(
+      screen.getByLabelText<HTMLInputElement>("$.shipment.weight min").value
+    ).toBe("")
+    expect(
+      screen.getByLabelText<HTMLInputElement>("$.shipment.weight max").value
+    ).toBe("")
     expect(screen.getByText("Unsaved")).toBeTruthy()
   })
 
@@ -244,6 +269,10 @@ describe("SchemaLibraryPanel", () => {
   it("uses restore-focused empty archive copy", () => {
     render(<SchemaLibraryPanel library={makeLibrary() as never} />)
 
-    expect(screen.getByText("Archived schemas will appear here with restore controls.")).toBeTruthy()
+    expect(
+      screen.getByText(
+        "Archived schemas will appear here with restore controls."
+      )
+    ).toBeTruthy()
   })
 })

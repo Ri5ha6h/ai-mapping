@@ -12,7 +12,11 @@ describe("MappingSchemaPanel", () => {
   it("keeps reset, author, and run actions out of schema selection", () => {
     render(
       <MappingSchemaPanel
-        workbench={baseWorkbench as unknown as ReturnType<typeof useMappingWorkbenchController>}
+        workbench={
+          baseWorkbench as unknown as ReturnType<
+            typeof useMappingWorkbenchController
+          >
+        }
         sourceSchemas={[]}
         targetSchemas={[]}
         onOpenSchemaTab={vi.fn()}
@@ -29,7 +33,11 @@ describe("MappingSchemaPanel", () => {
   it("keeps selectors active-only while showing detached snapshot context", () => {
     render(
       <MappingSchemaPanel
-        workbench={detachedWorkbench as unknown as ReturnType<typeof useMappingWorkbenchController>}
+        workbench={
+          detachedWorkbench as unknown as ReturnType<
+            typeof useMappingWorkbenchController
+          >
+        }
         sourceSchemas={[activeSourceSchema]}
         targetSchemas={[activeTargetSchema]}
         onOpenSchemaTab={vi.fn()}
@@ -80,7 +88,12 @@ const baseWorkbench = {
   setOverrideSourceInput: vi.fn(),
 }
 
-const schemaNode = { path: "$", type: "object" as const, required: true, examples: [] }
+const schemaNode = {
+  path: "$",
+  type: "object" as const,
+  required: true,
+  examples: [],
+}
 const activeSourceSchema = {
   schema_id: "active-source",
   name: "Active Source",
@@ -95,7 +108,12 @@ const activeSourceSchema = {
   parse_metadata: {},
   created_at: "2026-06-19T00:00:00Z",
 }
-const activeTargetSchema = { ...activeSourceSchema, schema_id: "active-target", name: "Active Target", direction: "target" as const }
+const activeTargetSchema = {
+  ...activeSourceSchema,
+  schema_id: "active-target",
+  name: "Active Target",
+  direction: "target" as const,
+}
 const detachedWorkbench = {
   ...baseWorkbench,
   selectedSourceSchemaId: "archived-source",
@@ -103,7 +121,9 @@ const detachedWorkbench = {
   activeSourceSchema: schemaNode,
   activeTargetSchema: schemaNode,
   readyForMapping: true,
-  fieldValidationRules: [{ path: "$.id", value_type: "string", required: true }],
+  fieldValidationRules: [
+    { path: "$.id", value_type: "string", required: true },
+  ],
   activeTemplate: {
     template_id: "loaded",
     name: "Loaded template",

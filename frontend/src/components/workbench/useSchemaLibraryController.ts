@@ -17,7 +17,10 @@ import type {
   SchemaDirection,
   SchemaInputMethod,
 } from "@/types/schema"
-import type { FieldValidationRule, FieldValidationRuleUpsertRequest } from "@/types/validation"
+import type {
+  FieldValidationRule,
+  FieldValidationRuleUpsertRequest,
+} from "@/types/validation"
 
 type SchemaDraft = {
   name: string
@@ -48,9 +51,14 @@ export function useSchemaLibraryController() {
   const [targetSchemas, setTargetSchemas] = useState<SchemaArtifact[]>([])
   const [deletedSchemas, setDeletedSchemas] = useState<SchemaArtifact[]>([])
   const [selectedSchemaId, setSelectedSchemaId] = useState("")
-  const [selectedLibraryDirection, setSelectedLibraryDirection] = useState<SchemaDirection>("source")
-  const [selectedTargetRules, setSelectedTargetRules] = useState<FieldValidationRule[]>([])
-  const [targetRuleDrafts, setTargetRuleDrafts] = useState<Record<string, FieldValidationRuleUpsertRequest>>({})
+  const [selectedLibraryDirection, setSelectedLibraryDirection] =
+    useState<SchemaDirection>("source")
+  const [selectedTargetRules, setSelectedTargetRules] = useState<
+    FieldValidationRule[]
+  >([])
+  const [targetRuleDrafts, setTargetRuleDrafts] = useState<
+    Record<string, FieldValidationRuleUpsertRequest>
+  >({})
   const [dirtyTargetRulePaths, setDirtyTargetRulePaths] = useState<string[]>([])
   const [draft, setDraft] = useState<SchemaDraft>(blankDraft)
   const [issue, setIssue] = useState<FrontendIssue | null>(null)
@@ -81,8 +89,8 @@ export function useSchemaLibraryController() {
       setSourceSchemas(sources.schemas)
       setTargetSchemas(targets.schemas)
       setDeletedSchemas(
-        [...allSources.schemas, ...allTargets.schemas].filter(
-          (schema) => Boolean(schema.deleted_at)
+        [...allSources.schemas, ...allTargets.schemas].filter((schema) =>
+          Boolean(schema.deleted_at)
         )
       )
       setSelectedSchemaId((current) => {
@@ -126,7 +134,11 @@ export function useSchemaLibraryController() {
       .then((response) => {
         if (!cancelled) {
           setSelectedTargetRules(response.rules)
-          setTargetRuleDrafts(Object.fromEntries(response.rules.map((rule) => [rule.path, ruleToDraft(rule)])))
+          setTargetRuleDrafts(
+            Object.fromEntries(
+              response.rules.map((rule) => [rule.path, ruleToDraft(rule)])
+            )
+          )
           setDirtyTargetRulePaths([])
         }
       })
@@ -183,7 +195,9 @@ export function useSchemaLibraryController() {
     setBusyAction("Deleting schema")
     setIssue(null)
     try {
-      await Effect.runPromise(deleteSchemaArtifactEffect(selectedSchema.schema_id))
+      await Effect.runPromise(
+        deleteSchemaArtifactEffect(selectedSchema.schema_id)
+      )
       await refreshSchemas()
     } catch (error) {
       setIssue(issueFromUnknown(error))
@@ -196,7 +210,9 @@ export function useSchemaLibraryController() {
     setBusyAction("Restoring schema")
     setIssue(null)
     try {
-      const restored = await Effect.runPromise(restoreSchemaArtifactEffect(schemaId))
+      const restored = await Effect.runPromise(
+        restoreSchemaArtifactEffect(schemaId)
+      )
       await refreshSchemas()
       setSelectedLibraryDirection(restored.direction)
       setSelectedSchemaId(restored.schema_id)
@@ -213,28 +229,41 @@ export function useSchemaLibraryController() {
   ) {
     const schema = selectedSchema
     if (!schema || schema.direction !== "target") return
-    const current = targetRuleDrafts[path] ?? selectedTargetRules.find((rule) => rule.path === path)
+    const current =
+      targetRuleDrafts[path] ??
+      selectedTargetRules.find((rule) => rule.path === path)
     const request = mergeRuleDraft(path, current, patch)
     setTargetRuleDrafts((drafts) => ({ ...drafts, [path]: request }))
-    setDirtyTargetRulePaths((paths) => paths.includes(path) ? paths : [...paths, path])
+    setDirtyTargetRulePaths((paths) =>
+      paths.includes(path) ? paths : [...paths, path]
+    )
   }
 
   async function saveFieldRules() {
     const schema = selectedSchema
-    if (!schema || schema.direction !== "target" || dirtyTargetRulePaths.length === 0) return
+    if (
+      !schema ||
+      schema.direction !== "target" ||
+      dirtyTargetRulePaths.length === 0
+    )
+      return
     setBusyAction("Saving field rule")
     setIssue(null)
     try {
       const savedRules = await Promise.all(
         dirtyTargetRulePaths.map((path) => {
           const ruleDraft = targetRuleDrafts[path]
-          return Effect.runPromise(upsertFieldValidationRuleEffect(schema.schema_id, ruleDraft))
+          return Effect.runPromise(
+            upsertFieldValidationRuleEffect(schema.schema_id, ruleDraft)
+          )
         })
       )
       setSelectedTargetRules((rules) => mergeSavedRules(rules, savedRules))
       setTargetRuleDrafts((drafts) => ({
         ...drafts,
-        ...Object.fromEntries(savedRules.map((rule) => [rule.path, ruleToDraft(rule)])),
+        ...Object.fromEntries(
+          savedRules.map((rule) => [rule.path, ruleToDraft(rule)])
+        ),
       }))
       setDirtyTargetRulePaths([])
     } catch (error) {
@@ -312,7 +341,9 @@ export function useSchemaLibraryController() {
   }
 }
 
-function ruleToDraft(rule: FieldValidationRule): FieldValidationRuleUpsertRequest {
+function ruleToDraft(
+  rule: FieldValidationRule
+): FieldValidationRuleUpsertRequest {
   return {
     path: rule.path,
     value_type: rule.value_type,
@@ -354,7 +385,10 @@ function valueFromPatch<TKey extends keyof FieldValidationRuleUpsertRequest>(
   return current?.[key] ?? fallback
 }
 
-function mergeSavedRules(current: FieldValidationRule[], saved: FieldValidationRule[]) {
+function mergeSavedRules(
+  current: FieldValidationRule[],
+  saved: FieldValidationRule[]
+) {
   const byPath = new Map(current.map((rule) => [rule.path, rule]))
   for (const rule of saved) byPath.set(rule.path, rule)
   return [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path))

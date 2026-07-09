@@ -14,7 +14,12 @@ type Props = {
   children: ReactNode
 }
 
-export function DisclosurePanel({ title, summary, defaultOpen = false, children }: Props) {
+export function DisclosurePanel({
+  title,
+  summary,
+  defaultOpen = false,
+  children,
+}: Props) {
   return (
     <Accordion
       defaultValue={defaultOpen ? ["details"] : []}
@@ -25,11 +30,15 @@ export function DisclosurePanel({ title, summary, defaultOpen = false, children 
           <span className="grid min-w-0 gap-0.5">
             <span>{title}</span>
             {summary ? (
-              <span className="text-xs font-normal text-muted-foreground">{summary}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {summary}
+              </span>
             ) : null}
           </span>
         </AccordionTrigger>
-        <AccordionContent className="grid gap-3 pb-3">{children}</AccordionContent>
+        <AccordionContent className="grid gap-3 pb-3">
+          {children}
+        </AccordionContent>
       </AccordionItem>
     </Accordion>
   )

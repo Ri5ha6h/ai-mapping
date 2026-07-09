@@ -13,7 +13,11 @@ describe("RunReviewPanel", () => {
     const runTransform = vi.fn()
     render(
       <RunReviewPanel
-        workbench={{ ...baseWorkbench, runTransform } as unknown as ReturnType<typeof useMappingWorkbenchController>}
+        workbench={
+          { ...baseWorkbench, runTransform } as unknown as ReturnType<
+            typeof useMappingWorkbenchController
+          >
+        }
       />
     )
 
@@ -30,17 +34,21 @@ describe("RunReviewPanel", () => {
     const setOverrideSourceInput = vi.fn()
     render(
       <RunReviewPanel
-        workbench={{
-          ...baseWorkbench,
-          runMode: "override",
-          overrideSourceInput: '{"id":"override"}',
-          setRunMode,
-          setOverrideSourceInput,
-        } as unknown as ReturnType<typeof useMappingWorkbenchController>}
+        workbench={
+          {
+            ...baseWorkbench,
+            runMode: "override",
+            overrideSourceInput: '{"id":"override"}',
+            setRunMode,
+            setOverrideSourceInput,
+          } as unknown as ReturnType<typeof useMappingWorkbenchController>
+        }
       />
     )
 
-    expect(screen.getByText("Review will parse and run the override payload.")).toBeTruthy()
+    expect(
+      screen.getByText("Review will parse and run the override payload.")
+    ).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Saved sample" }))
     expect(setRunMode).toHaveBeenCalledWith("saved-sample")
 
@@ -53,12 +61,22 @@ describe("RunReviewPanel", () => {
   it("disables Run Script until the mapping is executable", () => {
     render(
       <RunReviewPanel
-        workbench={{ ...baseWorkbench, readyForTransform: false } as unknown as ReturnType<typeof useMappingWorkbenchController>}
+        workbench={
+          {
+            ...baseWorkbench,
+            readyForTransform: false,
+          } as unknown as ReturnType<typeof useMappingWorkbenchController>
+        }
       />
     )
 
-    expect(screen.getByRole("button", { name: "Run Script" })).toHaveProperty("disabled", true)
-    expect(screen.getByText("Select schemas and author a script before running.")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Run Script" })).toHaveProperty(
+      "disabled",
+      true
+    )
+    expect(
+      screen.getByText("Select schemas and author a script before running.")
+    ).toBeTruthy()
   })
 })
 
@@ -72,12 +90,19 @@ const baseWorkbench = {
     versions: [],
   },
   selectedSourceSchema: { name: "Orders source" },
-  activeSourceSchema: { path: "$", type: "object", required: true, examples: [] },
+  activeSourceSchema: {
+    path: "$",
+    type: "object",
+    required: true,
+    examples: [],
+  },
   runMode: "saved-sample",
   overrideSourceInput: "{}",
   readyForTransform: true,
   busyAction: null,
-  fieldValidationRules: [{ path: "$.id", value_type: "string", required: true }],
+  fieldValidationRules: [
+    { path: "$.id", value_type: "string", required: true },
+  ],
   setRunMode: vi.fn(),
   setOverrideSourceInput: vi.fn(),
   runTransform: vi.fn(),

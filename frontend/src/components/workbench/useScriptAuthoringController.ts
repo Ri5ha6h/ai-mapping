@@ -10,7 +10,12 @@ import type { MappingSpec, MappingSuggestion } from "@/types/mapping"
 import type { CurrentMappingInputs } from "./useMappingSetupController"
 
 export type AutoMapMode = "local" | "ai"
-export type AutoMapStatus = "idle" | "local" | "ai-used" | "ai-unavailable" | "ai-fallback"
+export type AutoMapStatus =
+  | "idle"
+  | "local"
+  | "ai-used"
+  | "ai-unavailable"
+  | "ai-fallback"
 
 export const DEFAULT_SCRIPT = `function transform(source, helpers) {
   // source is the parsed input object. XML and EDI inputs arrive as canonical JSON.
@@ -35,7 +40,9 @@ export function useScriptAuthoringController({
   const [suggestions, setSuggestions] = useState<MappingSuggestion[]>([])
   const [script, setScript] = useState(DEFAULT_SCRIPT)
   const [draftExplanation, setDraftExplanation] = useState("")
-  const [unresolvedTargetPaths, setUnresolvedTargetPaths] = useState<string[]>([])
+  const [unresolvedTargetPaths, setUnresolvedTargetPaths] = useState<string[]>(
+    []
+  )
   const [providerErrors, setProviderErrors] = useState<string[]>([])
   const [usedAi, setUsedAi] = useState(false)
   const [autoMapMode, setAutoMapMode] = useState<AutoMapMode>("local")
@@ -57,7 +64,8 @@ export function useScriptAuthoringController({
 
   useEffect(() => {
     Effect.runPromise(getMappingCapabilitiesEffect()).then(
-      (capabilities) => setAiMappingAvailable(capabilities.ai_mapping_available),
+      (capabilities) =>
+        setAiMappingAvailable(capabilities.ai_mapping_available),
       () => setAiMappingAvailable(false)
     )
   }, [])
@@ -71,7 +79,9 @@ export function useScriptAuthoringController({
     setSuggestions(response.suggestions)
     setUsedAi(response.used_ai)
     setProviderErrors(response.provider_errors)
-    setAutoMapStatus(statusForAutoMapResult(useAi, response.used_ai, response.provider_errors))
+    setAutoMapStatus(
+      statusForAutoMapResult(useAi, response.used_ai, response.provider_errors)
+    )
   }
 
   async function generateScript() {
@@ -154,4 +164,6 @@ function statusForAutoMapResult(
   return providerErrors.length > 0 ? "ai-fallback" : "ai-unavailable"
 }
 
-export type ScriptAuthoringController = ReturnType<typeof useScriptAuthoringController>
+export type ScriptAuthoringController = ReturnType<
+  typeof useScriptAuthoringController
+>

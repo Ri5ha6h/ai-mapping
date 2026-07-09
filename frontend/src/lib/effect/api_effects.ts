@@ -34,7 +34,10 @@ import type {
   SchemaDirection,
   SchemaNode,
 } from "@/types/schema"
-import type { FieldValidationRule, FieldValidationRuleUpsertRequest } from "@/types/validation"
+import type {
+  FieldValidationRule,
+  FieldValidationRuleUpsertRequest,
+} from "@/types/validation"
 
 export const parseEffect = (format: SourceFormat, content: string) =>
   Effect.tryPromise({
@@ -49,7 +52,7 @@ export const inferSchemaEffect = (data: unknown) =>
   })
 
 export const createSchemaArtifactEffect = (
-  request: SchemaArtifactCreateRequest,
+  request: SchemaArtifactCreateRequest
 ) =>
   Effect.tryPromise({
     try: () => createSchemaArtifact(request),
@@ -58,7 +61,7 @@ export const createSchemaArtifactEffect = (
 
 export const listSchemaArtifactsEffect = (
   direction?: SchemaDirection,
-  includeDeleted = false,
+  includeDeleted = false
 ) =>
   Effect.tryPromise({
     try: () => listSchemaArtifacts({ direction, includeDeleted }),
@@ -85,7 +88,7 @@ export const listFieldValidationRulesEffect = (schemaId: string) =>
 
 export const upsertFieldValidationRuleEffect = (
   schemaId: string,
-  request: FieldValidationRuleUpsertRequest,
+  request: FieldValidationRuleUpsertRequest
 ) =>
   Effect.tryPromise({
     try: () => upsertFieldValidationRule(schemaId, request),
@@ -95,7 +98,7 @@ export const upsertFieldValidationRuleEffect = (
 export const suggestMappingsEffect = (
   sourceSchema: SchemaNode,
   targetSchema: SchemaNode,
-  useAi: boolean,
+  useAi: boolean
 ) =>
   Effect.tryPromise({
     try: () => suggestMappings({ sourceSchema, targetSchema, useAi }),
@@ -114,7 +117,7 @@ export const generateScriptDraftEffect = (
   sourceSchema: SchemaNode | null,
   targetSchema: SchemaNode | null,
   fieldValidationRules: FieldValidationRule[],
-  useAi: boolean,
+  useAi: boolean
 ) =>
   Effect.tryPromise({
     try: () =>
@@ -134,10 +137,17 @@ export const transformEffect = (
   mappingSpec: MappingSpec,
   outputFormat: OutputFormat,
   targetSchema: SchemaNode | null,
-  fieldValidationRules: FieldValidationRule[] = [],
+  fieldValidationRules: FieldValidationRule[] = []
 ) =>
   Effect.tryPromise({
-    try: () => transformPayload({ sourceData, mappingSpec, outputFormat, targetSchema, fieldValidationRules }),
+    try: () =>
+      transformPayload({
+        sourceData,
+        mappingSpec,
+        outputFormat,
+        targetSchema,
+        fieldValidationRules,
+      }),
     catch: (error) => error,
   })
 
@@ -147,14 +157,26 @@ export const validateEffect = (
   mappingSpec: MappingSpec,
   targetSchema: SchemaNode | null,
   outputFormat: OutputFormat,
-  fieldValidationRules: FieldValidationRule[] = [],
+  fieldValidationRules: FieldValidationRule[] = []
 ) =>
   Effect.tryPromise({
-    try: () => validatePayload({ sourceData, output, mappingSpec, targetSchema, outputFormat, fieldValidationRules }),
+    try: () =>
+      validatePayload({
+        sourceData,
+        output,
+        mappingSpec,
+        targetSchema,
+        outputFormat,
+        fieldValidationRules,
+      }),
     catch: (error) => error,
   })
 
-export const diffOutputEffect = (expected: unknown, actual: unknown, outputFormat: OutputFormat) =>
+export const diffOutputEffect = (
+  expected: unknown,
+  actual: unknown,
+  outputFormat: OutputFormat
+) =>
   Effect.tryPromise({
     try: () => diffOutput({ expected, actual, outputFormat }),
     catch: (error) => error,
@@ -180,7 +202,7 @@ export const getTemplateEffect = (templateId: string) =>
 
 export const createTemplateVersionEffect = (
   templateId: string,
-  request: TemplateVersionCreateRequest,
+  request: TemplateVersionCreateRequest
 ) =>
   Effect.tryPromise({
     try: () => createTemplateVersion(templateId, request),

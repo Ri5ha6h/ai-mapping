@@ -13,7 +13,14 @@ describe("OutputDiffPanel", () => {
       <OutputDiffPanel
         outputFormat="json"
         hasRun
-        diffs={[{ kind: "changed", path: "$.tracking.number", expected: "A", actual: "B" }]}
+        diffs={[
+          {
+            kind: "changed",
+            path: "$.tracking.number",
+            expected: "A",
+            actual: "B",
+          },
+        ]}
       />
     )
 
@@ -24,12 +31,16 @@ describe("OutputDiffPanel", () => {
   it("distinguishes empty JSON diff from not-yet-run state", () => {
     render(<OutputDiffPanel outputFormat="json" hasRun diffs={[]} />)
 
-    expect(screen.getByText("No output differences after the last JSON run.")).toBeInstanceOf(HTMLElement)
+    expect(
+      screen.getByText("No output differences after the last JSON run.")
+    ).toBeInstanceOf(HTMLElement)
   })
 
   it("renders unsupported XML diff state", () => {
     render(<OutputDiffPanel outputFormat="xml" hasRun diffs={[]} />)
 
-    expect(screen.getByText(/Diff is not available for XML output/i)).toBeInstanceOf(HTMLElement)
+    expect(
+      screen.getByText(/Diff is not available for XML output/i)
+    ).toBeInstanceOf(HTMLElement)
   })
 })
