@@ -33,6 +33,8 @@ htmlcov/
 docs/*.html
 docs/*.md
 !docs/architecture-current.md
+!docs/adr-shadcn-base-ui-standardization.md
+!docs/ui-glossary.md
 samples/
 
 # Riptide artifacts (cloud-synced)

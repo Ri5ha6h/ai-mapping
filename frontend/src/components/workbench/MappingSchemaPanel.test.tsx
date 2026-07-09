@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { MappingSchemaPanel } from "./MappingSchemaPanel"
@@ -40,9 +40,15 @@ describe("MappingSchemaPanel", () => {
     expect(screen.getByText(/Source: detached snapshot fallback/)).toBeTruthy()
     expect(screen.getByText(/Target: detached snapshot fallback/)).toBeTruthy()
     expect(screen.getByText(/Rules: 1/)).toBeTruthy()
+    expect(screen.getByRole("combobox", { name: "Source schema" })).toBeTruthy()
+    expect(screen.getByRole("combobox", { name: "Target schema" })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Source schema" }))
     expect(screen.queryByRole("option", { name: /Archived Source/ })).toBeNull()
-    expect(screen.queryByRole("option", { name: /Archived Target/ })).toBeNull()
     expect(screen.getByRole("option", { name: /Active Source/ })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Target schema" }))
+    expect(screen.queryByRole("option", { name: /Archived Target/ })).toBeNull()
     expect(screen.getByRole("option", { name: /Active Target/ })).toBeTruthy()
   })
 })

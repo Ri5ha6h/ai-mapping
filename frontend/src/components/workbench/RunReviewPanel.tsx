@@ -3,6 +3,7 @@ import { Database, FileText, Loader2, Play, PlaySquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import type { useMappingWorkbenchController } from "./useMappingWorkbenchController"
+import { Field, SegmentedControl, StatusAlert, WorkbenchCard } from "./ui"
 
 type Props = {
   workbench: ReturnType<typeof useMappingWorkbenchController>
@@ -20,12 +21,10 @@ export function RunReviewPanel({ workbench }: Props) {
   const runDisabled = !workbench.readyForTransform || Boolean(workbench.busyAction)
 
   return (
-    <section className="tool-panel review-run-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Review cockpit</p>
-          <h2>Run and inspect</h2>
-        </div>
+    <WorkbenchCard
+      kicker="Review cockpit"
+      title="Run and inspect"
+      action={
         <Button
           type="button"
           onClick={() => void workbench.runTransform()}
@@ -39,46 +38,39 @@ export function RunReviewPanel({ workbench }: Props) {
           )}
           Run Script
         </Button>
-      </div>
+      }
+    >
 
-      <div className="review-context-card" aria-live="polite">
-        <Database size={16} />
-        <div>
-          <strong>{activeTemplateLabel}</strong>
-          <span>
-            {workbench.readyForTransform
-              ? `Ready with ${workbench.fieldValidationRules.length} field rule(s).`
-              : "Select schemas and author a script before running."}
-          </span>
-        </div>
-      </div>
+      <StatusAlert
+        icon={<Database size={16} />}
+        title={activeTemplateLabel}
+        description={
+          workbench.readyForTransform
+            ? `Ready with ${workbench.fieldValidationRules.length} field rule(s).`
+            : "Select schemas and author a script before running."
+        }
+      />
 
-      <div className="run-mode-panel">
-        <div className="field-stack">
-          <span>Input source</span>
-          <div className="schema-segmented-control">
-            <button
-              type="button"
-              className={workbench.runMode === "saved-sample" ? "active" : ""}
-              onClick={() => workbench.setRunMode("saved-sample")}
-            >
-              Saved sample
-            </button>
-            <button
-              type="button"
-              className={workbench.runMode === "override" ? "active" : ""}
-              onClick={() => workbench.setRunMode("override")}
-              disabled={!workbench.activeSourceSchema}
-            >
-              Override here
-            </button>
-          </div>
-        </div>
+      <div className="grid gap-3">
+        <Field label="Input source">
+          <SegmentedControl
+            value={workbench.runMode}
+            onValueChange={workbench.setRunMode}
+            options={[
+              { value: "saved-sample", label: "Saved sample" },
+              {
+                value: "override",
+                label: "Override here",
+                disabled: !workbench.activeSourceSchema,
+              },
+            ]}
+          />
+        </Field>
 
         {workbench.runMode === "override" ? (
-          <label className="field-stack review-override-stack">
-            <span>Override source payload</span>
+          <Field label="Override source payload" htmlFor="override-source-payload">
             <Textarea
+              id="override-source-payload"
               className="code-input review-input-editor"
               value={workbench.overrideSourceInput}
               onChange={(event) =>
@@ -86,23 +78,24 @@ export function RunReviewPanel({ workbench }: Props) {
               }
               spellCheck={false}
             />
-          </label>
+          </Field>
         ) : (
-          <div className="run-sample-summary">
+          <div className="inline-flex min-h-11 items-center gap-2 rounded-lg border bg-secondary/35 px-3 py-2 text-sm text-muted-foreground">
             <PlaySquare size={16} />
             <span>{sampleLabel}</span>
           </div>
         )}
       </div>
 
-      <div className="review-run-summary">
-        <FileText size={16} />
-        <span>
-          {workbench.runMode === "override"
+      <StatusAlert
+        icon={<FileText size={16} />}
+        title="Run input"
+        description={
+          workbench.runMode === "override"
             ? "Review will parse and run the override payload."
-            : `Review will run ${sampleLabel}.`}
-        </span>
-      </div>
-    </section>
+            : `Review will run ${sampleLabel}.`
+        }
+      />
+    </WorkbenchCard>
   )
 }

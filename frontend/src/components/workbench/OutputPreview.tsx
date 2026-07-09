@@ -1,6 +1,8 @@
 import { FileJson2 } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import type { TransformResponse } from "@/types/mapping"
+import { WorkbenchCard } from "./ui"
 
 type Props = {
   result: TransformResponse | null
@@ -8,30 +10,23 @@ type Props = {
 
 export function OutputPreview({ result }: Props) {
   return (
-    <section className="tool-panel output-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Transform</p>
-          <h2>Output preview</h2>
-        </div>
-        <FileJson2 size={18} className="text-muted-foreground" />
-      </div>
+    <WorkbenchCard kicker="Transform" title="Output preview" icon={<FileJson2 size={18} />}>
       <pre className="preview-block">
         {result ? formatOutput(result.output) : "No transformation output yet."}
       </pre>
       {result?.trace?.length ? (
-        <div className="trace-list">
+        <div className="grid gap-2">
           {result.trace.map((item) => (
-            <div className="trace-row" key={`${item.step_id}-${item.target_path ?? ""}`}>
-              <strong>{item.step_id}</strong>
-              <span>
+            <div className="flex min-w-0 items-center gap-2 rounded-lg border bg-muted/25 px-3 py-2" key={`${item.step_id}-${item.target_path ?? ""}`}>
+              <Badge variant="secondary">{item.step_id}</Badge>
+              <span className="min-w-0 truncate text-sm text-muted-foreground">
                 {item.status} {item.target_path ? `to ${item.target_path}` : ""}
               </span>
             </div>
           ))}
         </div>
       ) : null}
-    </section>
+    </WorkbenchCard>
   )
 }
 

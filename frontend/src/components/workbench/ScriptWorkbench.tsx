@@ -1,7 +1,15 @@
 import { Suspense, lazy, memo, useMemo } from "react"
 import { Bot, Braces, Loader2, Wand2 } from "lucide-react"
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { SegmentedControl, WorkbenchCard } from "./ui"
 
 type AutoMapMode = "local" | "ai"
 const MonacoEditor = lazy(() => import("@monaco-editor/react"))
@@ -42,44 +50,33 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
   const sourcePreview = useMemo(() => formatPreview(sourceReference), [sourceReference])
 
   return (
-    <section className="tool-panel script-workbench-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Transform function</p>
-          <h2>JavaScript script</h2>
-        </div>
-        <Braces size={18} className="text-muted-foreground" />
-      </div>
-
-      <div className="script-toolbar">
-        <div className="mapping-stage-status" aria-live="polite">
-          <span>Stage</span>
-          <strong>{statusText}</strong>
-        </div>
-        <div className="script-action-row">
-          <div className="auto-map-mode" aria-label="Auto map mode">
-            <button
-              type="button"
-              className={autoMapMode === "local" ? "active" : ""}
-              onClick={() => onAutoMapModeChange("local")}
-              disabled={Boolean(busyAction)}
-            >
-              Local
-            </button>
-            <button
-              type="button"
-              className={autoMapMode === "ai" ? "active" : ""}
-              onClick={() => onAutoMapModeChange("ai")}
-              disabled={Boolean(busyAction)}
-              title={
-                aiMappingAvailable
+    <WorkbenchCard
+      kicker="Transform function"
+      title="JavaScript script"
+      icon={<Braces size={18} />}
+      className="script-workbench-panel"
+    >
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <Badge variant="outline" className="h-auto min-h-9 rounded-lg px-3 py-1.5" aria-live="polite">
+          Stage: {statusText}
+        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <SegmentedControl
+            value={autoMapMode}
+            ariaLabel="Auto map mode"
+            disabled={Boolean(busyAction)}
+            onValueChange={onAutoMapModeChange}
+            options={[
+              { value: "local", label: "Local" },
+              {
+                value: "ai",
+                label: "AI-assisted",
+                title: aiMappingAvailable
                   ? "Use OpenRouter-assisted script generation and hints"
-                  : "Request AI assistance; backend will fall back to local generation if unavailable"
-              }
-            >
-              AI-assisted
-            </button>
-          </div>
+                  : "Request AI assistance; backend will fall back to local generation if unavailable",
+              },
+            ]}
+          />
           <Button
             type="button"
             variant="outline"
@@ -135,8 +132,10 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
         </Suspense>
       </div>
 
-      <details className="script-reference">
-        <summary>Reference</summary>
+      <Accordion className="rounded-lg border bg-muted/30 px-3">
+        <AccordionItem value="reference" className="border-0">
+          <AccordionTrigger>Reference</AccordionTrigger>
+          <AccordionContent className="pb-3">
         <div className="script-reference-grid">
           <div>
             <strong>source sample</strong>
@@ -158,19 +157,21 @@ export const ScriptWorkbench = memo(function ScriptWorkbenchView({
             <p>Current input format: {sourceFormat}. XML and EDI run as canonical JSON.</p>
           </div>
         </div>
-      </details>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
-      {explanation ? <p className="script-note">{explanation}</p> : null}
+      {explanation ? <p className="rounded-lg border bg-secondary/35 px-3 py-2 text-sm text-muted-foreground">{explanation}</p> : null}
       {unresolvedPaths.length > 0 ? (
-        <div className="unresolved-list">
+        <div className="grid gap-2 rounded-lg border bg-muted/30 px-3 py-2">
           <strong>Review these target paths</strong>
           {unresolvedPaths.slice(0, 12).map((path) => (
-            <span key={path}>{path}</span>
+            <span className="rounded bg-card px-2 py-1 font-mono text-xs text-muted-foreground" key={path}>{path}</span>
           ))}
-          {unresolvedPaths.length > 12 ? <span>+{unresolvedPaths.length - 12} more</span> : null}
+          {unresolvedPaths.length > 12 ? <span className="text-sm text-muted-foreground">+{unresolvedPaths.length - 12} more</span> : null}
         </div>
       ) : null}
-    </section>
+    </WorkbenchCard>
   )
 })
 

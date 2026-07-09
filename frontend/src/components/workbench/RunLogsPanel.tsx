@@ -1,6 +1,8 @@
 import { TerminalSquare } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import type { ScriptLogItem } from "@/types/mapping"
+import { WorkbenchCard } from "./ui"
 
 type Props = {
   logs: ScriptLogItem[]
@@ -8,26 +10,19 @@ type Props = {
 
 export function RunLogsPanel({ logs }: Props) {
   return (
-    <section className="tool-panel run-logs-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Debug</p>
-          <h2>Run logs</h2>
-        </div>
-        <TerminalSquare size={18} className="text-muted-foreground" />
-      </div>
-      <div className="run-log-list">
+    <WorkbenchCard kicker="Debug" title="Run logs" icon={<TerminalSquare size={18} />}>
+      <div className="grid gap-2">
         {logs.length === 0 ? (
-          <p className="empty-line">No console output from the last run.</p>
+          <p className="text-sm text-muted-foreground">No console output from the last run.</p>
         ) : (
           logs.map((log) => (
-            <div className={`run-log-row ${log.level}`} key={log.index}>
-              <span>{log.level}</span>
-              <code>{log.message}</code>
+            <div className="grid gap-1 rounded-lg border bg-muted/25 px-3 py-2" key={log.index}>
+              <Badge variant={log.level === "error" ? "destructive" : "outline"}>{log.level}</Badge>
+              <code className="break-words text-xs text-muted-foreground">{log.message}</code>
             </div>
           ))
         )}
       </div>
-    </section>
+    </WorkbenchCard>
   )
 }
