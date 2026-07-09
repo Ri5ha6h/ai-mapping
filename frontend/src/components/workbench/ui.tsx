@@ -43,7 +43,7 @@ export function WorkbenchCard({
   contentClassName,
 }: WorkbenchCardProps) {
   return (
-    <Card className={cn("min-w-0 shadow-sm", className)}>
+    <Card className={cn("manifest-panel min-w-0", className)}>
       <PanelHeader
         title={title}
         kicker={kicker}
@@ -76,10 +76,10 @@ export function PanelHeader({
   className,
 }: PanelHeaderProps) {
   return (
-    <CardHeader className={cn("gap-1", className)}>
+    <CardHeader className={cn("gap-1.5", className)}>
       <div className="min-w-0">
         {kicker ? <Kicker>{kicker}</Kicker> : null}
-        <h2 className="truncate font-heading text-base leading-snug font-medium">
+        <h2 className="truncate font-heading text-[15px] leading-snug font-semibold">
           {title}
         </h2>
         {description ? <CardDescription>{description}</CardDescription> : null}
@@ -94,7 +94,7 @@ export function PanelHeader({
 
 export function Kicker({ children }: { children: ReactNode }) {
   return (
-    <p className="mb-0.5 text-[11px] leading-none font-bold text-muted-foreground uppercase">
+    <p className="manifest-kicker mb-0.5 text-[10px] leading-none font-bold text-muted-foreground uppercase">
       {children}
     </p>
   )
@@ -160,7 +160,7 @@ export function SegmentedControl<TValue extends string>({
   return (
     <div
       className={cn(
-        "inline-flex min-w-0 flex-wrap items-center gap-1 rounded-lg border bg-card/90 p-1",
+        "inline-flex min-w-0 flex-wrap items-center gap-1 rounded-md border bg-card/90 p-1 shadow-inner",
         className
       )}
       aria-label={ariaLabel}
@@ -170,7 +170,7 @@ export function SegmentedControl<TValue extends string>({
           key={option.value}
           type="button"
           className={cn(
-            "inline-flex h-7 min-w-0 items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+            "inline-flex h-7 min-w-0 items-center justify-center gap-1.5 rounded-sm px-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
             value === option.value &&
               "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
           )}
@@ -279,7 +279,10 @@ export function StatusBadge({
   className?: string
 }) {
   return (
-    <Badge variant={variant} className={cn("max-w-full", className)}>
+    <Badge
+      variant={variant}
+      className={cn("manifest-status max-w-full", className)}
+    >
       <span className="truncate">{children}</span>
     </Badge>
   )

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Loader2, ShieldCheck } from "lucide-react"
+import { Loader2, MapPinned, RouteIcon, ShieldCheck } from "lucide-react"
 import { createFileRoute } from "@tanstack/react-router"
 
 import { MappingSchemaPanel } from "@/components/workbench/MappingSchemaPanel"
@@ -44,15 +44,28 @@ function MappingWorkbench() {
       : workbench.statusText
 
   return (
-    <main className="workbench-shell min-h-screen bg-background p-4 sm:p-5">
-      <header className="mx-auto mb-5 flex max-w-[1800px] flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <Kicker>Auto Mapping POC</Kicker>
-          <h1 className="text-3xl leading-none font-bold tracking-normal text-foreground sm:text-5xl">
+    <main className="workbench-shell min-h-screen bg-background p-3 sm:p-5">
+      <header className="manifest-header mx-auto mb-5 flex max-w-[1800px] flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <div className="relative z-10 min-w-0">
+          <Kicker>Auto Mapping POC / Local Manifest</Kicker>
+          <h1 className="text-3xl leading-none font-black tracking-normal text-foreground sm:text-5xl">
             Integration Workbench
           </h1>
+          <div className="mt-3 flex min-w-0 flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-sm border bg-card/70 px-2 py-1 font-mono">
+              <RouteIcon size={14} />
+              Script-first route
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-sm border bg-card/70 px-2 py-1 font-mono">
+              <MapPinned size={14} />
+              JSON / XML / EDI inputs
+            </span>
+          </div>
         </div>
-        <StatusBadge className="h-9 rounded-lg px-3 text-sm" aria-live="polite">
+        <StatusBadge
+          className="relative z-10 h-9 rounded-sm px-3 font-mono text-sm"
+          aria-live="polite"
+        >
           {contextStatus}
         </StatusBadge>
       </header>
@@ -120,7 +133,10 @@ function MappingWorkbench() {
         onValueChange={(value) => setActiveTab(value as "schema" | "mapping")}
         className="mx-auto max-w-[1800px]"
       >
-        <TabsList variant="line" className="mb-4 border-b">
+        <TabsList
+          variant="line"
+          className="mb-4 border-b bg-background/70 px-1 backdrop-blur"
+        >
           <TabsTrigger value="schema" className="min-w-28">
             Schema
           </TabsTrigger>
