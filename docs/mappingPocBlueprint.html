@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SaaS Auto Mapping Service - POC Research Blueprint</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 40px 20px;
+        background-color: #f9f9f9;
+      }
+      h1 {
+        color: #1a365d;
+        border-bottom: 3px solid #2b6cb0;
+        padding-bottom: 10px;
+        margin-top: 0;
+      }
+      h2 {
+        color: #2c5282;
+        margin-top: 30px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 5px;
+      }
+      h3 {
+        color: #4a5568;
+      }
+      .meta-box {
+        background-color: #ebf8ff;
+        border-left: 4px solid #3182ce;
+        padding: 15px;
+        margin-bottom: 30px;
+        border-radius: 0 4px 4px 0;
+      }
+      .grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .card {
+        background: #fff;
+        padding: 20px;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+      }
+      .in-scope {
+        border-top: 4px solid #48bb78;
+      }
+      .out-scope {
+        border-top: 4px solid #f56565;
+      }
+      code {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        background-color: #71717a;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      pre {
+        font-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+        background-color: #1a202c;
+        color: #fff;
+        padding: 15px;
+        border-radius: 6px;
+        overflow-x: auto;
+        font-size: 0.85em;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #cbd5e0;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+      }
+      th {
+        background-color: #f7fafc;
+        color: #4a5568;
+      }
+      ul,
+      ol {
+        padding-left: 20px;
+      }
+      .pipeline {
+        background-color: #edf2f7;
+        padding: 15px;
+        border-radius: 6px;
+        font-weight: bold;
+        text-align: center;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SaaS Auto Mapping Service: POC Strategic Blueprint</h1>
+
+    <div class="meta-box">
+      <strong>Project Context:</strong> This document serves as a comprehensive
+      system summary containing all architectural constraints, scope limits, and
+      design decisions finalized for the upcoming Proof of Concept (POC). It is
+      formatted specifically to guide deep LLM reasoning and code-generation
+      preparation.
+    </div>
+
+    <h2>1. Executive Summary & Core Philosophy</h2>
+    <p>
+      The objective is to build an <strong>Auto Mapping Service</strong> SaaS
+      tailored for the logistics and supply chain sector. Logistics data is
+      historically disjointed, messy, and locked behind varying legacy formats.
+    </p>
+    <p>
+      The core philosophy of this platform hinges on a critical architectural
+      boundary:
+      <strong>AI is utilized exclusively as a design-time assistant</strong>
+      (inferring schemas, mapping logic, and creating templates), while a
+      <strong>deterministic execution engine</strong> runs the actual production
+      data transformations. This ensures 100% predictable, low-latency, and
+      cost-effective operations.
+    </p>
+
+    <h2>2. POC Scope Boundaries</h2>
+    <div class="grid-container">
+      <div class="card in-scope">
+        <h3>In-Scope (What We Are Building Now)</h3>
+        <ul>
+          <li>
+            <strong>Design Engine Focus:</strong> Real-time mapping generation
+            inside a UI framework.
+          </li>
+          <li>
+            <strong>Small File Sizes:</strong> Standard payloads strictly capped
+            between 5MB to 10MB.
+          </li>
+          <li>
+            <strong>Format Horizon:</strong> JSON, XML, and basic EDI concepts.
+          </li>
+          <li>
+            <strong>Structural Routing:</strong> Map field paths from Point A to
+            Point B across different schemas.
+          </li>
+          <li>
+            <strong>Basic Transformations:</strong> Native support for string
+            concatenation, basic date string formatting, and hardcoded default
+            constants.
+          </li>
+          <li>
+            <strong>Python Foundations:</strong> Lightweight execution using
+            pure Python scripts.
+          </li>
+        </ul>
+      </div>
+
+      <div class="card out-scope">
+        <h3>Out-of-Scope (Deferred to Post-POC)</h3>
+        <ul>
+          <li>
+            <strong>5GB Streaming Architectures:</strong> High-volume
+            chunk-based file streaming and async chunking pipelines.
+          </li>
+          <li>
+            <strong>CSV Support:</strong> Flattening hierarchical layers or
+            handling missing array boundaries (deferred).
+          </li>
+          <li>
+            <strong>Custom DSL Parsing:</strong> Building a proprietary
+            execution compiler from scratch.
+          </li>
+          <li>
+            <strong>Advanced Logic:</strong> Complex multi-conditional looping
+            or programmatic code injections.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>3. The Data Transformation Pipeline</h2>
+    <p>
+      To avoid scaling problems, the architecture converts all incoming formats
+      into a centralized, canonical baseline structure before processing.
+    </p>
+
+    <div class="pipeline">
+      Source File &rarr; Open-Source EDI/XML Parsers &rarr; Canonical Internal
+      JSON &rarr; Lightweight Engine + Mapping Spec &rarr; Target Output
+    </div>
+
+    <ol>
+      <li>
+        <strong>Parser Phase:</strong> Files (XML or EDI) are converted
+        immediately to a Standard Python Dictionary (Canonical JSON equivalent).
+        EDI files will leverage open-source libraries (e.g., parsing tools with
+        established segments) to output raw XML first, which is then mapped to
+        the Canonical JSON format.
+      </li>
+      <li>
+        <strong>Design Phase (UI):</strong> The AI analyzes a tiny source sample
+        and target sample, recognizes semantic discrepancies (e.g., matching
+        <code>DTM*011</code> or <code>ship_dt</code> to
+        <code>deliveryDate</code>), and crafts a
+        <strong>JSON Mapping Specification</strong>.
+      </li>
+      <li>
+        <strong>Execution Phase (Engine):</strong> A fast, lightweight custom
+        Python script processes the Canonical JSON input, applies the JSON
+        Mapping Specification, executes mutations, and structures the output.
+      </li>
+    </ol>
+
+    <h2>4. Technical Stack Decisions</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>POC Implementation Strategy</th>
+          <th>Future Production Scale Target</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Language</strong></td>
+          <td>
+            <strong>Python</strong> (Rapid iteration, fast AI API SDKs, native
+            dictionary handling)
+          </td>
+          <td>
+            <strong>Java / Spring Boot</strong> (Enterprise alignment, robust
+            ecosystem)
+          </td>
+        </tr>
+        <tr>
+          <td><strong>EDI Transition</strong></td>
+          <td>
+            Leverage open-source libraries to map known logistics files (like an
+            EDI 850 Purchase Order) directly into an XML buffer.
+          </td>
+          <td>
+            Dedicated, industrial-grade streaming EDI translation schemas.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Mapping Implementation</strong></td>
+          <td>
+            <strong>Custom lightweight JSON script</strong> handling routing and
+            specific structural mutations.
+          </td>
+          <td>
+            Integration of robust specs like <strong>JOLT</strong> or enterprise
+            frameworks.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. JSON Mapping Specification Definition (The DSL)</h2>
+    <p>
+      The AI must generate a clean, JSON-based specification that declares
+      exactly how keys are mapped and what native functions should change the
+      underlying data values. Below is the structural layout required for the
+      engine:
+    </p>
+
+    <pre><code class="language-json">{
+  "specification_version": "1.0",
+  "mappings": [
+    {
+      "type": "direct",
+      "source_path": "order.header.id",
+      "target_path": "transactionId"
+    },
+    {
+      "type": "transform",
+      "transform_type": "CONCATENATE",
+      "source_paths": ["order.customer.firstName", "order.customer.lastName"],
+      "target_path": "customer.fullName",
+      "parameters": {
+        "delimiter": " "
+      }
+    },
+    {
+      "type": "transform",
+      "transform_type": "DATE_FORMAT",
+      "source_path": "order.dates.creation_dt",
+      "target_path": "metadata.processedAt",
+      "parameters": {
+        "input_format": "YYYYMMDD",
+        "output_format": "YYYY-MM-DD"
+      }
+    }
+  ]
+}</code></pre>
+
+    <h2>6. Core Edge Cases & Guardrails to Research</h2>
+    <ul>
+      <li>
+        <strong>Schema Inference Fallbacks:</strong> If the user targets fields
+        with zero contextual or semantic overlap, the engine must flag unmapped
+        variables back to the UI, allowing the user to manually draw links or
+        pass clarifying prompts down to the AI model.
+      </li>
+      <li>
+        <strong>Validation Checks:</strong> The design UI must require a formal
+        user confirmation before saving the mapping template. This places human
+        verification at the center of the lifecycle, mitigating data errors in
+        downstream logistics operations.
+      </li>
+      <li>
+        <strong>Array/Loop Constraints:</strong> For the POC, collections of
+        repeating records are expected to be clean arrays capped at 50 to 100
+        simple records, keeping structure depths shallow.
+      </li>
+    </ul>
+  </body>
+</html>

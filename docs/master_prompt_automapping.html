@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Master Prompt - Auto Mapping SaaS POC</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #64748b;
+      --primary: #1e40af;
+      --primary-soft: #dbeafe;
+      --border: #e2e8f0;
+      --code-bg: #111827;
+      --code-text: #e5e7eb;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.65;
+    }
+
+    main {
+      max-width: 1050px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    h1, h2, h3, h4 {
+      line-height: 1.25;
+      color: #0f172a;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      color: var(--primary);
+    }
+
+    h2 {
+      margin-top: 36px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      color: #1e3a8a;
+    }
+
+    h3 {
+      margin-top: 26px;
+      color: #334155;
+    }
+
+    p {
+      margin: 12px 0;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #eff6ff, #ffffff);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .badge {
+      background: var(--primary-soft);
+      color: #1e3a8a;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px;
+      margin: 18px 0;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    @media (max-width: 780px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .callout {
+      border-left: 5px solid var(--primary);
+      background: #eff6ff;
+      padding: 16px 18px;
+      border-radius: 8px;
+      margin: 18px 0;
+    }
+
+    .warning {
+      border-left-color: var(--warning);
+      background: #fffbeb;
+    }
+
+    .danger {
+      border-left-color: var(--danger);
+      background: #fef2f2;
+    }
+
+    .success {
+      border-left-color: var(--success);
+      background: #f0fdf4;
+    }
+
+    code {
+      background: #e5e7eb;
+      color: #111827;
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.9em;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 18px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      border: 1px solid var(--border);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #334155;
+    }
+
+    .phase {
+      border-left: 5px solid #2563eb;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .copy-block-label {
+      font-weight: 700;
+      color: #334155;
+      margin-top: 22px;
+    }
+
+    ul, ol {
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 7px 0;
+    }
+
+    .toc a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .toc a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>Master Prompt for Codex: Auto Mapping SaaS POC</h1>
+    <p>
+      Use this document as the master build prompt for creating a phased POC of an
+      AI-assisted Auto Mapping SaaS for logistics and supply chain integrations.
+      The POC must prove that source and target samples can be analyzed, mapped,
+      reviewed, edited, executed deterministically, validated, and saved as reusable
+      mapping templates.
+    </p>
+    <p class="small">
+      Primary POC focus: JSON, XML, and basic inbound EDI 214 / EDI 856 samples.
+      CSV, PDF/IDP, authentication, multi-tenancy, 5GB streaming, partner guides,
+      and iPaaS connectors are intentionally deferred.
+    </p>
+    <div class="badge-row">
+      <span class="badge">Python</span>
+      <span class="badge">FastAPI</span>
+      <span class="badge">Pydantic</span>
+      <span class="badge">Uvicorn</span>
+      <span class="badge">pytest</span>
+      <span class="badge">Ruff</span>
+      <span class="badge">Pyright</span>
+      <span class="badge">OpenRouter</span>
+      <span class="badge">TanStack Start</span>
+      <span class="badge">React</span>
+      <span class="badge">TypeScript</span>
+      <span class="badge">shadcn/UI</span>
+      <span class="badge">Base UI</span>
+      <span class="badge">Effect</span>
+      <span class="badge">JSONata</span>
+      <span class="badge">XML</span>
+      <span class="badge">JSON</span>
+      <span class="badge">EDI 214</span>
+      <span class="badge">EDI 856</span>
+    </div>
+  </section>
+
+  <section class="card toc">
+    <h2>Table of Contents</h2>
+    <ol>
+      <li><a href="#master-prompt">The Master Prompt to Give Codex</a></li>
+      <li><a href="#product-context">Product Context</a></li>
+      <li><a href="#scope">POC Scope and Non-Goals</a></li>
+      <li><a href="#architecture">Architecture Direction</a></li>
+      <li><a href="#jsonata">JSONata and Mapping Model</a></li>
+      <li><a href="#edi">EDI Handling</a></li>
+      <li><a href="#backend">Backend Requirements</a></li>
+      <li><a href="#frontend">Frontend Requirements</a></li>
+      <li><a href="#phases">Phased Build Plan</a></li>
+      <li><a href="#acceptance">Acceptance Criteria</a></li>
+      <li><a href="#sample-data">Sample Data and Test Cases</a></li>
+    </ol>
+  </section>
+
+  <section id="master-prompt" class="card">
+    <h2>1. The Master Prompt to Give Codex</h2>
+
+    <p class="copy-block-label">Copy the full prompt below into Codex:</p>
+
+    <pre><code>You are building a phased POC for an AI-assisted Auto Mapping SaaS targeted at logistics and supply chain integration teams.
+
+The goal is to build a full-stack POC with:
+- Backend: Python 3.14.5 + FastAPI 0.136.3 + Pydantic 2.13.4 + Uvicorn 0.49.0
+- Backend quality and tests: pytest 9.0.3, httpx 0.28.1, respx 0.23.1, Ruff 0.15.16, and Pyright 1.1.410
+- Backend parser/runtime helpers: orjson 3.11.9 where useful, defusedxml 0.7.1 for safe XML parsing, and lxml 6.1.1 only if richer XML writing is needed
+- Backend AI provider: optional OpenRouter integration through direct httpx REST calls when OPENROUTER_API_KEY is configured
+- Frontend: TanStack Start + React + TypeScript
+- UI system: shadcn/UI using Base UI primitive support
+- Frontend data/API workflows should use Effect for typed async flows, decoding, retries, and structured errors
+- Transformation expression layer: JSONata where possible
+- Supported structured formats for POC: JSON and XML
+- EDI support for POC: basic inbound EDI 214 and EDI 856 parsing into canonical JSON
+- Output formats for POC: JSON and XML
+- Execution model for POC: synchronous
+- Authentication and multi-tenancy: not required for POC
+- CSV: explicitly out of scope
+- PDF, scanned images, email extraction, IDP, and multimodal extraction: out of scope
+- 5GB streaming architecture: out of scope for implementation, but design code boundaries so that streaming support can be added later
+- Partner-facing implementation guides, webhooks, iPaaS connectors, and event orchestration: out of scope for the first POC
+
+The POC must prove:
+1. A user can upload or paste source data.
+2. A user can upload or paste target sample data.
+3. The system can infer source and target schemas.
+4. The system can generate suggested mappings using a blend of:
+   - rule-based heuristics
+   - optional OpenRouter integration if OPENROUTER_API_KEY is provided
+5. The user can review and edit mappings visually.
+6. The user can edit the advanced JSONata expression directly.
+7. The deterministic backend can execute the mapping.
+8. The output can be generated as JSON or XML.
+9. Validation errors are shown clearly.
+10. A mapping template can be saved with versions.
+
+Build the project in phases. Each phase must be reviewable and testable end to end before moving to the next phase.
+
+Important architectural principle:
+AI is only a design-time assistant. AI may suggest mappings, JSONata expressions, transformations, or schema hints. AI must not be the production transformation runtime. The transformation runtime must be deterministic.
+
+Frontend/backend boundary:
+Use TanStack Start as the frontend app shell, routing, and build framework only. FastAPI remains the only product backend for parsing, schema inference, mapping suggestions, transformation execution, validation, and mapping templates. Do not introduce TanStack Start server functions for product/domain APIs in the POC.
+
+Backend stack boundary:
+Target Python 3.14.5 for the POC. If a niche parser or runtime dependency fails on Python 3.14.5, document the issue and fall back to Python 3.13.x only for compatibility. Do not add the openai package as a backend dependency unless a later implementation explicitly chooses an SDK adapter.
+
+Use a canonical internal JSON representation. All source formats should be parsed into canonical JSON before mapping. Target writers should then serialize the mapped result into JSON or XML.
+
+For the POC, prefer clarity and inspectability over enterprise-scale optimization.</code></pre>
+  </section>
+
+  <section id="product-context" class="card">
+    <h2>2. Product Context</h2>
+    <p>
+      The product is an Auto Mapping Service for logistics and supply chain enterprises.
+      The long-term SaaS platform may include Auto Mapping, Parcel Solutions, and
+      Scraping Services, but this POC only covers Auto Mapping.
+    </p>
+
+    <div class="callout">
+      <strong>Positioning:</strong> AI-assisted data mapping and transformation engine
+      for logistics integrations.
+    </div>
+
+    <p>
+      Initial users are developers, integration engineers, and integration analysts.
+      Later versions may support non-technical users with more guided workflows.
+    </p>
+  </section>
+
+  <section id="scope" class="card">
+    <h2>3. POC Scope and Non-Goals</h2>
+
+    <div class="grid">
+      <div class="card">
+        <h3>In Scope</h3>
+        <ul>
+          <li>JSON to JSON mapping</li>
+          <li>XML to JSON mapping</li>
+          <li>JSON to XML mapping</li>
+          <li>XML to XML mapping if easy after the main flows are working</li>
+          <li>Basic EDI 214 to canonical JSON</li>
+          <li>Basic EDI 856 to canonical JSON</li>
+          <li>Canonical JSON representation</li>
+          <li>Schema inference from source and target samples</li>
+          <li>AI-assisted mapping suggestions</li>
+          <li>Rule-based fallback mapping suggestions</li>
+          <li>Visual mapping editor</li>
+          <li>Advanced JSONata editor</li>
+          <li>Validation errors</li>
+          <li>Reusable mapping templates</li>
+          <li>Template versioning</li>
+          <li>Synchronous execution</li>
+          <li>JSON and XML output</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Out of Scope</h3>
+        <ul>
+          <li>CSV support</li>
+          <li>5GB file processing implementation</li>
+          <li>Async job queue</li>
+          <li>Authentication</li>
+          <li>Multi-tenancy</li>
+          <li>PDF extraction</li>
+          <li>Scanned image extraction</li>
+          <li>Email body extraction</li>
+          <li>Full IDP workflow</li>
+          <li>Partner-facing implementation guide portal</li>
+          <li>Webhook delivery</li>
+          <li>Tray.ai, Zapier, MuleSoft, Boomi, or other iPaaS connectors</li>
+          <li>Production deployment hardening</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout warning">
+      <strong>Important:</strong> Do not accidentally build a full enterprise integration
+      platform in the first POC. Keep the POC focused on mapping design, deterministic
+      execution, validation, and versioned templates.
+    </div>
+  </section>
+
+  <section id="architecture" class="card">
+    <h2>4. Architecture Direction</h2>
+
+    <p>The high-level flow should be:</p>
+
+    <pre><code>Source Input
+  -> Format Parser
+  -> Canonical JSON
+  -> Mapping Suggestion Engine
+  -> Visual Mapping Editor / JSONata Editor
+  -> Deterministic Mapping Runtime
+  -> Validation Engine
+  -> JSON or XML Output
+  -> Save Versioned Mapping Template</code></pre>
+
+    <h3>Core Design Rules</h3>
+    <ul>
+      <li>Never use AI as the execution runtime.</li>
+      <li>Always parse source data into canonical JSON first.</li>
+      <li>Keep parser, mapper, validator, and writer layers separate.</li>
+      <li>Keep interfaces clean so 5GB streaming can be added later.</li>
+      <li>Keep mapping templates portable and versioned.</li>
+      <li>Allow both visual editing and advanced JSONata editing.</li>
+    </ul>
+
+    <h3>Suggested Backend Modules</h3>
+    <pre><code>backend/
+  app/
+    main.py
+    config/
+      settings.py
+    api/
+      routes_parse.py
+      routes_schema.py
+      routes_mapping.py
+      routes_transform.py
+      routes_templates.py
+      models.py
+    core/
+      parsers/
+        json_parser.py
+        xml_parser.py
+        edi_214_parser.py
+        edi_856_parser.py
+      schema/
+        infer_schema.py
+        schema_types.py
+      mapping/
+        rule_based_suggester.py
+        ai_suggester.py
+        openrouter_provider.py
+        deterministic_rule_runtime.py
+        optional_jsonata_runtime.py
+        mapping_model.py
+      validation/
+        validator.py
+        validation_models.py
+      writers/
+        json_writer.py
+        xml_writer.py
+      storage/
+        template_repository.py
+    tests/
+      test_json_to_json.py
+      test_xml_to_json.py
+      test_json_to_xml.py
+      test_edi_214.py
+      test_edi_856.py</code></pre>
+
+    <h3>Suggested Frontend Modules</h3>
+    <pre><code>frontend/
+  src/
+    routes/
+      index.tsx
+    components/
+      ui/
+        button.tsx
+        card.tsx
+        input.tsx
+        select.tsx
+        textarea.tsx
+        tabs.tsx
+      workbench/
+        SourceInputPanel.tsx
+        TargetInputPanel.tsx
+        SchemaViewer.tsx
+        MappingSuggestionPanel.tsx
+        VisualMappingEditor.tsx
+        JsonataEditor.tsx
+        OutputPreview.tsx
+        ValidationPanel.tsx
+        TemplateVersionPanel.tsx
+    lib/
+      api/
+        client.ts
+      effect/
+        api_effects.ts
+        errors.ts
+        schemas.ts
+    types/
+      mapping.ts
+      schema.ts
+      validation.ts</code></pre>
+  </section>
+
+  <section id="jsonata" class="card">
+    <h2>5. JSONata and Mapping Model</h2>
+
+    <p>
+      Use JSONata as the transformation expression layer wherever practical.
+      Do not expose only raw JSONata. The UI should maintain a structured mapping
+      model that can be rendered visually and can also store the advanced JSONata
+      expression.
+    </p>
+
+    <h3>Mapping Template Model</h3>
+    <pre><code>{
+  "template_id": "shipment-status-template",
+  "name": "Shipment Status Mapping",
+  "description": "Maps logistics shipment status source payload to target API payload.",
+  "active_version": 1,
+  "versions": [
+    {
+      "version": 1,
+      "source_format": "xml",
+      "target_format": "json",
+      "source_schema_snapshot": {},
+      "target_schema_snapshot": {},
+      "mapping_spec": {
+        "engine": "jsonata",
+        "rules": [
+          {
+            "id": "rule_001",
+            "type": "field",
+            "source_path": "$.shipment.trackingNumber",
+            "target_path": "$.tracking.number",
+            "required": true,
+            "confidence": 0.94,
+            "jsonata": "{ \"tracking\": { \"number\": shipment.trackingNumber } }"
+          }
+        ],
+        "full_jsonata_expression": "{ \"tracking\": { \"number\": shipment.trackingNumber } }"
+      },
+      "validation_rules": [
+        {
+          "type": "required",
+          "path": "$.tracking.number",
+          "message": "Tracking number is required."
+        }
+      ],
+      "created_at": "2026-06-08T00:00:00Z"
+    }
+  ]
+}</code></pre>
+
+    <h3>Rule Types to Support in POC</h3>
+    <ul>
+      <li><code>field</code>: direct source path to target path mapping</li>
+      <li><code>constant</code>: hardcoded value into target path</li>
+      <li><code>concat</code>: combine multiple source values</li>
+      <li><code>date_format</code>: basic date formatting</li>
+      <li><code>condition</code>: simple if/then mapping</li>
+      <li><code>loop</code>: basic array mapping for clean arrays</li>
+    </ul>
+
+    <div class="callout">
+      <strong>Implementation guidance:</strong> If complete JSONata execution is too heavy
+      in the first pass, implement a deterministic rule executor first and still keep
+      JSONata as editable/generated metadata. Then add JSONata execution as the next step.
+    </div>
+  </section>
+
+  <section id="edi" class="card">
+    <h2>6. EDI Handling</h2>
+
+    <p>
+      EDI is important for logistics, but the POC should not attempt a full EDI
+      translator. It should support basic parsing for two inbound transaction types:
+    </p>
+
+    <ul>
+      <li><strong>EDI 214:</strong> Transportation Carrier Shipment Status Message</li>
+      <li><strong>EDI 856:</strong> Advance Ship Notice</li>
+    </ul>
+
+    <h3>POC EDI Flow</h3>
+    <pre><code>EDI sample
+  -> Basic segment parser
+  -> Canonical JSON
+  -> Source schema inference
+  -> AI/rule-based mapping suggestions
+  -> Mapping execution
+  -> JSON or XML output</code></pre>
+
+    <h3>EDI POC Constraints</h3>
+    <ul>
+      <li>Support common segment recognition only.</li>
+      <li>Do not build a full X12 compliance engine.</li>
+      <li>Do not generate outbound EDI.</li>
+      <li>Do not validate against full implementation guides.</li>
+      <li>Preserve raw segment data for debugging.</li>
+    </ul>
+
+    <h3>Canonical EDI JSON Shape Example</h3>
+    <pre><code>{
+  "edi": {
+    "transaction_set": "214",
+    "segments": [
+      {
+        "segment_id": "B10",
+        "elements": ["123456", "TRACK123", "CARRIER"]
+      },
+      {
+        "segment_id": "L11",
+        "elements": ["REF123", "BM"]
+      },
+      {
+        "segment_id": "AT7",
+        "elements": ["X3", "NS", "", "", "20260608", "1030", "LT"]
+      }
+    ],
+    "raw": "ISA*...~GS*...~ST*214*...~"
+  }
+}</code></pre>
+  </section>
+
+  <section id="backend" class="card">
+    <h2>7. Backend Requirements</h2>
+
+    <h3>Tech Stack</h3>
+    <ul>
+      <li>Python 3.14.5 as the target runtime, with Python 3.13.x allowed only as a documented compatibility fallback.</li>
+      <li>FastAPI 0.136.3 for the API layer.</li>
+      <li>Pydantic 2.13.4 for request, response, template, schema, and validation models.</li>
+      <li>Uvicorn 0.49.0 for local ASGI development.</li>
+      <li>pytest 9.0.3 for backend tests.</li>
+      <li>httpx 0.28.1 for tests and direct OpenRouter REST calls.</li>
+      <li>respx 0.23.1 for mocking external OpenRouter calls in tests.</li>
+      <li>Ruff 0.15.16 for linting and formatting checks.</li>
+      <li>Pyright 1.1.410 for backend type checking.</li>
+      <li>orjson 3.11.9 where useful for JSON response or serialization performance.</li>
+      <li>defusedxml 0.7.1 for safe XML parsing.</li>
+      <li>lxml 6.1.1 only if richer XML writing is needed beyond the standard library.</li>
+      <li>Optional OpenRouter integration through direct <code>httpx</code> REST calls when <code>OPENROUTER_API_KEY</code> is configured.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>Backend dependency boundary:</strong> do not add the <code>openai</code>
+      package for the POC. Optional AI mapping suggestions should use OpenRouter
+      behind the <code>ai_suggester</code> provider interface with
+      <code>OPENROUTER_API_KEY</code>. Also support optional
+      <code>OPENROUTER_MODEL</code>, <code>OPENROUTER_HTTP_REFERER</code>, and
+      <code>OPENROUTER_APP_TITLE</code> environment variables.
+    </div>
+
+    <h3>Parser and Runtime Guidance</h3>
+    <ul>
+      <li>Use the standard library <code>json</code> first; use <code>orjson</code> only where it materially improves response or serialization paths.</li>
+      <li>Use <code>defusedxml</code> for safe XML parsing and add <code>lxml</code> only when richer XML writing is required.</li>
+      <li>Keep JSONata-compatible expressions in mapping templates, but use deterministic Python rule execution as the first runtime path.</li>
+      <li>Treat Python <code>jsonata 0.2.5</code> as optional and experimental if added later.</li>
+      <li>Use a custom lightweight X12 segment parser for EDI 214 and EDI 856. Do not depend on full EDI engines for the POC.</li>
+    </ul>
+
+    <h3>API Endpoints</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>POST /api/parse</code></td>
+          <td>Parse raw JSON, XML, or EDI into canonical JSON.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/schema/infer</code></td>
+          <td>Infer schema from canonical JSON.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/mappings/suggest</code></td>
+          <td>Generate mapping suggestions using rule-based logic plus optional AI.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/transform</code></td>
+          <td>Execute mapping synchronously and return output.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/validate</code></td>
+          <td>Validate output against target schema and mapping rules.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/templates</code></td>
+          <td>Save a mapping template.</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/templates</code></td>
+          <td>List saved templates.</td>
+        </tr>
+        <tr>
+          <td><code>GET /api/templates/{template_id}</code></td>
+          <td>Read one template with its versions.</td>
+        </tr>
+        <tr>
+          <td><code>POST /api/templates/{template_id}/versions</code></td>
+          <td>Create a new version of a saved mapping template.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Validation Errors to Support</h3>
+    <ul>
+      <li>Invalid source format</li>
+      <li>Invalid target sample format</li>
+      <li>Missing source path</li>
+      <li>Unmapped required target field</li>
+      <li>Type mismatch</li>
+      <li>Failed transformation</li>
+      <li>Invalid JSONata expression</li>
+      <li>Output does not match inferred or edited target schema</li>
+    </ul>
+
+    <h3>AI Blend Requirement</h3>
+    <p>
+      Implement mapping suggestion in two layers:
+    </p>
+    <ol>
+      <li>
+        <strong>Rule-based suggester:</strong> compares field names, normalized names,
+        path endings, common logistics synonyms, and primitive types.
+      </li>
+      <li>
+        <strong>Optional OpenRouter suggester:</strong> if <code>OPENROUTER_API_KEY</code>
+        is available, send source schema, target schema, and domain context to
+        OpenRouter through direct <code>httpx</code> REST calls and request mapping
+        suggestions. If no key is available, the app must still work using the
+        rule-based suggester.
+      </li>
+    </ol>
+
+    <h3>Storage</h3>
+    <p>
+      For POC, simple local JSON file storage is acceptable. Keep repository abstraction
+      so PostgreSQL can be added later.
+    </p>
+  </section>
+
+  <section id="frontend" class="card">
+    <h2>8. Frontend Requirements</h2>
+
+    <h3>Tech Stack</h3>
+    <ul>
+      <li>Node.js LTS with <code>pnpm</code> for frontend package management.</li>
+      <li>TanStack Start as the React app shell, routing, and build framework.</li>
+      <li>React and TypeScript for all frontend UI and domain modeling.</li>
+      <li>TanStack Router through TanStack Start for route structure.</li>
+      <li>TanStack Query for server state if request caching, retries, or invalidation are needed.</li>
+      <li>shadcn/UI scaffolded from the TanStack Start template with Base UI primitive support using <code>template=start</code> and <code>base=base</code>.</li>
+      <li>Tailwind CSS through the shadcn/UI and TanStack Start setup.</li>
+      <li>Effect for typed FastAPI calls, decoding, retries, async workflow composition, and structured frontend errors.</li>
+      <li>Monaco editor for advanced JSONata editing.</li>
+      <li>lucide-react for icons.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>Frontend boundary:</strong> shadcn/UI components should be copied into the
+      project and treated as editable local UI code. Base UI primitive support is
+      required by the scaffold or preset, not a later optional swap. TanStack Start
+      must not own product/domain APIs; all parser, mapping, transformation,
+      validation, and template calls go to FastAPI through the Effect-backed API layer.
+    </div>
+
+    <h3>Main Page: Mapping Workbench</h3>
+    <p>
+      Build one main workbench page with the following panels:
+    </p>
+
+    <ul>
+      <li>Source input panel: paste/upload source data and choose source format.</li>
+      <li>Target input panel: paste/upload target sample and choose target output format.</li>
+      <li>Parse and infer schema button.</li>
+      <li>Auto map / AI map button.</li>
+      <li>Source schema viewer.</li>
+      <li>Target schema viewer.</li>
+      <li>Visual mapping editor.</li>
+      <li>Advanced JSONata editor.</li>
+      <li>Validation panel.</li>
+      <li>Output preview panel.</li>
+      <li>Save template button.</li>
+      <li>Template version list.</li>
+    </ul>
+
+    <h3>UX Requirements</h3>
+    <ul>
+      <li>Users should clearly see source fields and target fields.</li>
+      <li>Suggested mappings should show confidence score.</li>
+      <li>Users should be able to edit source path, target path, rule type, and JSONata.</li>
+      <li>Users should see validation errors in plain language.</li>
+      <li>Users should be able to run transformation multiple times after editing mappings.</li>
+      <li>Users should be able to save the current mapping as a versioned template.</li>
+    </ul>
+  </section>
+
+  <section id="phases" class="card">
+    <h2>9. Phased Build Plan</h2>
+
+    <div class="card phase">
+      <h3>Phase 1: Backend Foundation</h3>
+      <ul>
+        <li>Create FastAPI backend with Python 3.14.5, FastAPI 0.136.3, Pydantic 2.13.4, Uvicorn 0.49.0, pytest 9.0.3, Ruff 0.15.16, and Pyright 1.1.410.</li>
+        <li>Add parsers for JSON and XML.</li>
+        <li>Add basic EDI segment parser.</li>
+        <li>Add canonical JSON output.</li>
+        <li>Add schema inference.</li>
+        <li>Add unit tests for parsing and schema inference.</li>
+      </ul>
+      <strong>Review checkpoint:</strong> Parse JSON, XML, EDI 214, and EDI 856 samples into canonical JSON.
+    </div>
+
+    <div class="card phase">
+      <h3>Phase 2: Mapping Suggestion Engine</h3>
+      <ul>
+        <li>Create rule-based mapping suggestion engine.</li>
+        <li>Add common logistics synonyms such as tracking number, shipment id, carrier, event code, date, location, quantity, item, container, order.</li>
+        <li>Add optional OpenRouter suggestion provider behind an interface using <code>httpx</code> and <code>OPENROUTER_API_KEY</code>.</li>
+        <li>Return mapping suggestions with confidence scores.</li>
+      </ul>
+      <strong>Review checkpoint:</strong> Given source and target schemas, system returns useful mapping suggestions.
+    </div>
+
+    <div class="card phase">
+      <h3>Phase 3: Deterministic Transformation Runtime</h3>
+      <ul>
+        <li>Implement mapping execution.</li>
+        <li>Support field mapping, constants, concat, date formatting, simple condition, and basic loop.</li>
+        <li>Add JSON output writer.</li>
+        <li>Add XML output writer.</li>
+        <li>Add validation errors.</li>
+      </ul>
+      <strong>Review checkpoint:</strong> Execute JSON to JSON, XML to JSON, JSON to XML, and EDI-derived JSON to JSON/XML.
+    </div>
+
+    <div class="card phase">
+      <h3>Phase 4: Frontend Mapping Workbench</h3>
+      <ul>
+        <li>Create TanStack Start frontend using <code>pnpm</code> and the shadcn/UI start template with Base UI support.</li>
+        <li>Route all frontend FastAPI calls through the Effect-backed API layer.</li>
+        <li>Add source and target input panels.</li>
+        <li>Add schema viewers.</li>
+        <li>Add mapping suggestion table/editor.</li>
+        <li>Add advanced JSONata editor.</li>
+        <li>Add output preview and validation panel.</li>
+      </ul>
+      <strong>Review checkpoint:</strong> User can perform the full mapping flow from UI.
+    </div>
+
+    <div class="card phase">
+      <h3>Phase 5: Template Versioning</h3>
+      <ul>
+        <li>Add local template repository.</li>
+        <li>Save mapping templates.</li>
+        <li>Create new template versions.</li>
+        <li>Load existing templates back into the editor.</li>
+      </ul>
+      <strong>Review checkpoint:</strong> User can save, reload, and version mappings.
+    </div>
+
+    <div class="card phase">
+      <h3>Phase 6: Polish and Demo Scenarios</h3>
+      <ul>
+        <li>Add sample data files.</li>
+        <li>Add clear empty states and error states.</li>
+        <li>Add README with setup instructions.</li>
+        <li>Add demo script for XML to JSON and EDI 214/856 to JSON/XML.</li>
+      </ul>
+      <strong>Review checkpoint:</strong> POC can be demoed end to end.
+    </div>
+  </section>
+
+  <section id="acceptance" class="card">
+    <h2>10. Acceptance Criteria</h2>
+
+    <ul>
+      <li>App starts locally with clear README instructions.</li>
+      <li>Backend and frontend run separately during development.</li>
+      <li>User can paste JSON source and JSON target sample, generate mapping, edit it, run it, and see JSON output.</li>
+      <li>User can paste XML source and JSON target sample, generate mapping, edit it, run it, and see JSON output.</li>
+      <li>User can paste JSON source and XML target sample, generate mapping, edit it, run it, and see XML output.</li>
+      <li>User can paste basic EDI 214 and convert it to canonical JSON.</li>
+      <li>User can paste basic EDI 856 and convert it to canonical JSON.</li>
+      <li>User can map EDI-derived canonical JSON to JSON or XML target output.</li>
+      <li>User can see validation errors for missing required fields, invalid paths, invalid formats, and transformation failures.</li>
+      <li>User can save a mapping template and create a new version.</li>
+      <li>OpenRouter integration is optional. The system must still work without an API key.</li>
+      <li>AI is never required for deterministic execution.</li>
+    </ul>
+  </section>
+
+  <section id="sample-data" class="card">
+    <h2>11. Sample Data and Test Cases</h2>
+
+    <h3>Sample Source JSON</h3>
+    <pre><code>{
+  "shipment": {
+    "trackingNumber": "TRK123",
+    "carrier": "MAERSK",
+    "status": {
+      "code": "X3",
+      "description": "Arrived at pickup location"
+    },
+    "eventTime": "20260608",
+    "location": {
+      "city": "Mumbai",
+      "country": "IN"
+    }
+  }
+}</code></pre>
+
+    <h3>Sample Target JSON</h3>
+    <pre><code>{
+  "tracking": {
+    "number": "",
+    "carrierCode": ""
+  },
+  "event": {
+    "statusCode": "",
+    "statusDescription": "",
+    "timestamp": "",
+    "city": "",
+    "country": ""
+  }
+}</code></pre>
+
+    <h3>Sample Target XML</h3>
+    <pre><code>&lt;ShipmentEvent&gt;
+  &lt;TrackingNumber&gt;&lt;/TrackingNumber&gt;
+  &lt;Carrier&gt;&lt;/Carrier&gt;
+  &lt;StatusCode&gt;&lt;/StatusCode&gt;
+  &lt;StatusDescription&gt;&lt;/StatusDescription&gt;
+  &lt;EventTimestamp&gt;&lt;/EventTimestamp&gt;
+  &lt;City&gt;&lt;/City&gt;
+  &lt;Country&gt;&lt;/Country&gt;
+&lt;/ShipmentEvent&gt;</code></pre>
+
+    <h3>Basic EDI 214 Sample</h3>
+    <pre><code>ISA*00*          *00*          *ZZ*SENDER         *ZZ*RECEIVER       *260608*1030*U*00401*000000001*0*T*&gt;~
+GS*QM*SENDER*RECEIVER*20260608*1030*1*X*004010~
+ST*214*0001~
+B10*REF123*TRK123*MAERSK~
+L11*ORDER123*BM~
+AT7*X3*NS***20260608*1030*LT~
+MS1*Mumbai*MH*IN~
+SE*6*0001~
+GE*1*1~
+IEA*1*000000001~</code></pre>
+
+    <h3>Basic EDI 856 Sample</h3>
+    <pre><code>ISA*00*          *00*          *ZZ*SENDER         *ZZ*RECEIVER       *260608*1030*U*00401*000000002*0*T*&gt;~
+GS*SH*SENDER*RECEIVER*20260608*1030*2*X*004010~
+ST*856*0002~
+BSN*00*SHIP123*20260608*1030~
+HL*1**S~
+TD5*B*2*MAERSK*M~
+REF*BM*ORDER123~
+DTM*011*20260608~
+HL*2*1*O~
+PRF*PO12345~
+HL*3*2*I~
+LIN**BP*ITEM001~
+SN1**10*EA~
+SE*11*0002~
+GE*1*2~
+IEA*1*000000002~</code></pre>
+
+    <h3>Minimum Test Cases</h3>
+    <ol>
+      <li>JSON source to JSON target output.</li>
+      <li>XML source to JSON target output.</li>
+      <li>JSON source to XML target output.</li>
+      <li>EDI 214 to canonical JSON.</li>
+      <li>EDI 856 to canonical JSON.</li>
+      <li>EDI 214 canonical JSON to JSON target output.</li>
+      <li>Missing required target field validation.</li>
+      <li>Invalid source path validation.</li>
+      <li>Invalid XML input error.</li>
+      <li>Save template version 1 and create version 2.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>12. Final Instruction to Codex</h2>
+    <pre><code>Start by generating the full project structure and Phase 1 implementation only.
+
+Do not jump directly to all phases at once.
+
+After Phase 1, provide:
+1. Files created
+2. Locked backend dependencies and Python version used
+3. How to run backend tests
+4. How to start backend
+5. Example curl requests for JSON, XML, EDI 214, and EDI 856 parsing
+6. What remains for Phase 2
+
+Keep the code clean, modular, and easy to extend.</code></pre>
+  </section>
+</main>
+</body>
+</html>
