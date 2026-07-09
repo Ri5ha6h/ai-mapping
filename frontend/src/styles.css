@@ -128,8 +128,9 @@
   }
   body {
     @apply bg-background text-foreground;
+
     min-width: 360px;
-    text-rendering: geometricPrecision;
+    text-rendering: geometricprecision;
   }
   html {
     @apply font-sans;
