@@ -26,9 +26,19 @@ afterEach(() => {
 describe("useRunReviewController", () => {
   it("runs JSON transforms, validates output, and requests a diff", async () => {
     const { Effect } = await import("effect")
-    transformEffect.mockReturnValue(Effect.succeed(transformResponse({ id: 2 })))
-    validateEffect.mockReturnValue(Effect.succeed({ errors: [{ path: "$.id", message: "Mismatch" }] }))
-    diffOutputEffect.mockReturnValue(Effect.succeed({ equal: false, supported: true, diffs: [{ path: "$.id", kind: "changed" }] }))
+    transformEffect.mockReturnValue(
+      Effect.succeed(transformResponse({ id: 2 }))
+    )
+    validateEffect.mockReturnValue(
+      Effect.succeed({ errors: [{ path: "$.id", message: "Mismatch" }] })
+    )
+    diffOutputEffect.mockReturnValue(
+      Effect.succeed({
+        equal: false,
+        supported: true,
+        diffs: [{ path: "$.id", kind: "changed" }],
+      })
+    )
 
     render(<RunReviewProbe />)
     await act(async () => screen.getByRole("button", { name: "run" }).click())
@@ -41,7 +51,11 @@ describe("useRunReviewController", () => {
       baseInputs.fieldValidationRules
     )
     expect(validateEffect).toHaveBeenCalled()
-    expect(diffOutputEffect).toHaveBeenCalledWith(baseInputs.targetData, { id: 2 }, "json")
+    expect(diffOutputEffect).toHaveBeenCalledWith(
+      baseInputs.targetData,
+      { id: 2 },
+      "json"
+    )
     expect(screen.getByTestId("output").textContent).toContain("2")
     expect(screen.getByTestId("errors").textContent).toBe("1")
     expect(screen.getByTestId("diffs").textContent).toBe("1")
@@ -50,7 +64,9 @@ describe("useRunReviewController", () => {
 
   it("skips diff calls for XML output and clears stale run state", async () => {
     const { Effect } = await import("effect")
-    transformEffect.mockReturnValue(Effect.succeed(transformResponse("<ShipmentEvent />")))
+    transformEffect.mockReturnValue(
+      Effect.succeed(transformResponse("<ShipmentEvent />"))
+    )
     validateEffect.mockReturnValue(Effect.succeed({ errors: [] }))
 
     render(<RunReviewProbe outputFormat="xml" />)
@@ -70,7 +86,11 @@ describe("useRunReviewController", () => {
   })
 })
 
-function RunReviewProbe({ outputFormat = "json" }: { outputFormat?: "json" | "xml" }) {
+function RunReviewProbe({
+  outputFormat = "json",
+}: {
+  outputFormat?: "json" | "xml"
+}) {
   const controller = useRunReviewController({
     currentMappingInputs: () => Promise.resolve(baseInputs),
     mappingSpec,
@@ -81,10 +101,16 @@ function RunReviewProbe({ outputFormat = "json" }: { outputFormat?: "json" | "xm
 
   return (
     <div>
-      <span data-testid="output">{controller.transformResult ? JSON.stringify(controller.transformResult.output) : "none"}</span>
+      <span data-testid="output">
+        {controller.transformResult
+          ? JSON.stringify(controller.transformResult.output)
+          : "none"}
+      </span>
       <span data-testid="errors">{controller.validationErrors.length}</span>
       <span data-testid="diffs">{controller.outputDiff.length}</span>
-      <span data-testid="logs">{controller.runLogs.map((log) => log.message).join(",")}</span>
+      <span data-testid="logs">
+        {controller.runLogs.map((log) => log.message).join(",")}
+      </span>
       <span data-testid="status">{controller.reviewStatusText}</span>
       <button onClick={() => controller.runTransform()}>run</button>
       <button onClick={() => controller.clearRunResults()}>clear</button>
@@ -92,7 +118,11 @@ function RunReviewProbe({ outputFormat = "json" }: { outputFormat?: "json" | "xm
   )
 }
 
-const mappingSpec = { engine: "script_js" as const, script_version: 1, script: "function transform() { return {}; }" }
+const mappingSpec = {
+  engine: "script_js" as const,
+  script_version: 1,
+  script: "function transform() { return {}; }",
+}
 
 const baseInputs: CurrentMappingInputs = {
   sourceData: { id: 1 },

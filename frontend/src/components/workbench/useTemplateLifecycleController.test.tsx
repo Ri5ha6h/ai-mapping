@@ -16,10 +16,12 @@ vi.mock("@/lib/effect/api_effects", async () => {
   return {
     listTemplatesEffect: (...args: unknown[]) => listTemplatesEffect(...args),
     createTemplateEffect: (...args: unknown[]) => createTemplateEffect(...args),
-    createTemplateVersionEffect: (...args: unknown[]) => createTemplateVersionEffect(...args),
+    createTemplateVersionEffect: (...args: unknown[]) =>
+      createTemplateVersionEffect(...args),
     getTemplateEffect: (...args: unknown[]) => getTemplateEffect(...args),
     deleteTemplateEffect: (...args: unknown[]) => deleteTemplateEffect(...args),
-    restoreTemplateEffect: (...args: unknown[]) => restoreTemplateEffect(...args),
+    restoreTemplateEffect: (...args: unknown[]) =>
+      restoreTemplateEffect(...args),
   }
 })
 
@@ -31,22 +33,35 @@ afterEach(() => {
 describe("useTemplateLifecycleController", () => {
   it("loads template lists and saves new templates and versions", async () => {
     const { Effect } = await import("effect")
-    listTemplatesEffect.mockReturnValue(Effect.succeed({ templates: [savedTemplate] }))
+    listTemplatesEffect.mockReturnValue(
+      Effect.succeed({ templates: [savedTemplate] })
+    )
     createTemplateEffect.mockReturnValue(Effect.succeed(savedTemplate))
-    createTemplateVersionEffect.mockReturnValue(Effect.succeed(versionedTemplate))
+    createTemplateVersionEffect.mockReturnValue(
+      Effect.succeed(versionedTemplate)
+    )
 
     render(<TemplateLifecycleProbe />)
-    await waitFor(() => expect(screen.getByTestId("templates").textContent).toBe("1"))
+    await waitFor(() =>
+      expect(screen.getByTestId("templates").textContent).toBe("1")
+    )
     await act(async () => screen.getByRole("button", { name: "save" }).click())
-    await act(async () => screen.getByRole("button", { name: "version" }).click())
+    await act(async () =>
+      screen.getByRole("button", { name: "version" }).click()
+    )
 
     expect(createTemplateEffect).toHaveBeenCalledWith(
       expect.objectContaining({
         name: "Shipment transform",
-        field_validation_rules: [expect.objectContaining({ path: "$.id", value_type: "string" })],
+        field_validation_rules: [
+          expect.objectContaining({ path: "$.id", value_type: "string" }),
+        ],
       })
     )
-    expect(createTemplateVersionEffect).toHaveBeenCalledWith("saved", expect.objectContaining({ mapping_spec: mappingSpec }))
+    expect(createTemplateVersionEffect).toHaveBeenCalledWith(
+      "saved",
+      expect.objectContaining({ mapping_spec: mappingSpec })
+    )
     expect(screen.getByTestId("selected").textContent).toBe("saved")
   })
 
@@ -58,7 +73,9 @@ describe("useTemplateLifecycleController", () => {
     const setFieldValidationRules = vi.fn()
     const setOverrideSourceInput = vi.fn()
     const restoreValidationErrors = vi.fn()
-    listTemplatesEffect.mockReturnValue(Effect.succeed({ templates: [savedTemplate] }))
+    listTemplatesEffect.mockReturnValue(
+      Effect.succeed({ templates: [savedTemplate] })
+    )
     getTemplateEffect.mockReturnValue(Effect.succeed(savedTemplate))
 
     render(
@@ -79,16 +96,24 @@ describe("useTemplateLifecycleController", () => {
     expect(setSourceSchema).toHaveBeenCalledWith(schema)
     expect(setTargetSchema).toHaveBeenCalledWith(schema)
     expect(setScriptRaw).toHaveBeenCalledWith(mappingSpec.script)
-    expect(setOverrideSourceInput).toHaveBeenCalledWith("{\"id\":1}")
+    expect(setOverrideSourceInput).toHaveBeenCalledWith('{"id":1}')
     expect(setFieldValidationRules).toHaveBeenCalledWith([
-      expect.objectContaining({ path: "$.id", value_type: "string", required: true })
+      expect.objectContaining({
+        path: "$.id",
+        value_type: "string",
+        required: true,
+      }),
     ])
-    expect(restoreValidationErrors).toHaveBeenCalledWith([{ path: "$.id", message: "Required" }])
+    expect(restoreValidationErrors).toHaveBeenCalledWith([
+      { path: "$.id", message: "Required" },
+    ])
     expect(screen.getByTestId("prompt").textContent).toBe("closed")
   })
 })
 
-function TemplateLifecycleProbe(overrides: Partial<Parameters<typeof useTemplateLifecycleController>[0]> = {}) {
+function TemplateLifecycleProbe(
+  overrides: Partial<Parameters<typeof useTemplateLifecycleController>[0]> = {}
+) {
   const controller = useTemplateLifecycleController({
     activeSourceFormat: "json",
     activeTargetFormat: "json",
@@ -128,7 +153,9 @@ function TemplateLifecycleProbe(overrides: Partial<Parameters<typeof useTemplate
     <div>
       <span data-testid="templates">{controller.templates.length}</span>
       <span data-testid="selected">{controller.selectedTemplateId}</span>
-      <span data-testid="prompt">{controller.newMappingPrompt.open ? "open" : "closed"}</span>
+      <span data-testid="prompt">
+        {controller.newMappingPrompt.open ? "open" : "closed"}
+      </span>
       <button onClick={() => controller.saveTemplate()}>save</button>
       <button onClick={() => controller.selectTemplate("saved")}>select</button>
       <button onClick={() => controller.saveTemplateVersion()}>version</button>
@@ -139,8 +166,17 @@ function TemplateLifecycleProbe(overrides: Partial<Parameters<typeof useTemplate
   )
 }
 
-const schema = { path: "$", type: "object" as const, required: true, examples: [] }
-const mappingSpec = { engine: "script_js" as const, script_version: 1, script: "function transform() { return { id: 1 }; }" }
+const schema = {
+  path: "$",
+  type: "object" as const,
+  required: true,
+  examples: [],
+}
+const mappingSpec = {
+  engine: "script_js" as const,
+  script_version: 1,
+  script: "function transform() { return { id: 1 }; }",
+}
 const templateVersion = {
   version: 1,
   source_format: "json" as const,
@@ -151,13 +187,26 @@ const templateVersion = {
   target_schema_snapshot: schema,
   mapping_spec: mappingSpec,
   validation_rules: [{ path: "$.id", message: "Required" }],
-  field_validation_rules: [{ path: "$.id", value_type: "string", required: true }],
-  sample_source_content: "{\"id\":1}",
-  sample_target_content: "{\"id\":1}",
+  field_validation_rules: [
+    { path: "$.id", value_type: "string", required: true },
+  ],
+  sample_source_content: '{"id":1}',
+  sample_target_content: '{"id":1}',
   created_at: "2026-06-19T00:00:00Z",
 }
-const savedTemplate = { template_id: "saved", name: "Saved", description: "", active_version: 1, is_seeded: false, versions: [templateVersion] }
-const versionedTemplate = { ...savedTemplate, active_version: 2, versions: [templateVersion, { ...templateVersion, version: 2 }] }
+const savedTemplate = {
+  template_id: "saved",
+  name: "Saved",
+  description: "",
+  active_version: 1,
+  is_seeded: false,
+  versions: [templateVersion],
+}
+const versionedTemplate = {
+  ...savedTemplate,
+  active_version: 2,
+  versions: [templateVersion, { ...templateVersion, version: 2 }],
+}
 const fieldRule = {
   schema_id: "target-live",
   path: "$.id",

@@ -53,7 +53,9 @@ describe("ScriptWorkbench", () => {
     fireEvent.click(screen.getByRole("button", { name: "Field hints" }))
     fireEvent.click(screen.getByRole("button", { name: "Generate script" }))
     fireEvent.change(await screen.findByLabelText("Monaco script editor"), {
-      target: { value: "function transform(source, helpers) { return source; }" },
+      target: {
+        value: "function transform(source, helpers) { return source; }",
+      },
     })
 
     expect(onAutoMapModeChange).toHaveBeenCalledWith("ai")

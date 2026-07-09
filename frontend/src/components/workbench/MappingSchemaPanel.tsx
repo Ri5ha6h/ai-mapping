@@ -49,7 +49,12 @@ export function MappingSchemaPanel({
         />
       ) : null}
       {!workbench.readyForMapping ? (
-        <Button type="button" variant="outline" onClick={onOpenSchemaTab} className="w-fit">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onOpenSchemaTab}
+          className="w-fit"
+        >
           Open Schema tab
         </Button>
       ) : null}
@@ -57,7 +62,11 @@ export function MappingSchemaPanel({
   )
 }
 
-function MappingContextStrip({ workbench }: { workbench: ReturnType<typeof useMappingWorkbenchController> }) {
+function MappingContextStrip({
+  workbench,
+}: {
+  workbench: ReturnType<typeof useMappingWorkbenchController>
+}) {
   const sourceStatus = schemaContextStatus(
     workbench.selectedSourceSchemaId,
     Boolean(workbench.selectedSourceSchema),
@@ -70,7 +79,10 @@ function MappingContextStrip({ workbench }: { workbench: ReturnType<typeof useMa
   )
 
   return (
-    <div className="flex min-w-0 items-start gap-3 rounded-lg border bg-secondary/35 px-3 py-2 text-sm" aria-live="polite">
+    <div
+      className="flex min-w-0 items-start gap-3 rounded-lg border bg-secondary/35 px-3 py-2 text-sm"
+      aria-live="polite"
+    >
       <Database size={16} />
       <div className="grid min-w-0 gap-1">
         <strong className="truncate">
@@ -84,14 +96,19 @@ function MappingContextStrip({ workbench }: { workbench: ReturnType<typeof useMa
             : "Select active schemas or load a saved template to begin."}
         </span>
         <span className="text-xs text-muted-foreground">
-          Source: {sourceStatus} · Target: {targetStatus} · Rules: {workbench.fieldValidationRules.length}
+          Source: {sourceStatus} · Target: {targetStatus} · Rules:{" "}
+          {workbench.fieldValidationRules.length}
         </span>
       </div>
     </div>
   )
 }
 
-function schemaContextStatus(schemaId: string, hasLiveSchema: boolean, hasSnapshot: boolean) {
+function schemaContextStatus(
+  schemaId: string,
+  hasLiveSchema: boolean,
+  hasSnapshot: boolean
+) {
   if (hasLiveSchema) return "active library schema"
   if (schemaId && hasSnapshot) return "detached snapshot fallback"
   if (hasSnapshot) return "stored snapshot"

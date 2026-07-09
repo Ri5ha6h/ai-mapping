@@ -44,11 +44,11 @@ function MappingWorkbench() {
       : workbench.statusText
 
   return (
-    <main className="min-h-screen bg-background p-4 sm:p-5 workbench-shell">
+    <main className="workbench-shell min-h-screen bg-background p-4 sm:p-5">
       <header className="mx-auto mb-5 flex max-w-[1800px] flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Kicker>Auto Mapping POC</Kicker>
-          <h1 className="text-3xl font-bold leading-none tracking-normal text-foreground sm:text-5xl">
+          <h1 className="text-3xl leading-none font-bold tracking-normal text-foreground sm:text-5xl">
             Integration Workbench
           </h1>
         </div>
@@ -77,16 +77,22 @@ function MappingWorkbench() {
             <Kicker>Unsaved work</Kicker>
             <DialogTitle>Start a new mapping?</DialogTitle>
             <DialogDescription>
-              Save this transform as a template before clearing the source, target, script, output, and validation state.
+              Save this transform as a template before clearing the source,
+              target, script, output, and validation state.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               type="button"
               onClick={() => void workbench.saveAndStartNewMapping()}
-              disabled={!workbench.readyForTemplateSave || workbench.newMappingPrompt.pending}
+              disabled={
+                !workbench.readyForTemplateSave ||
+                workbench.newMappingPrompt.pending
+              }
             >
-              {workbench.newMappingPrompt.pending ? <Loader2 className="animate-spin" /> : null}
+              {workbench.newMappingPrompt.pending ? (
+                <Loader2 className="animate-spin" />
+              ) : null}
               Save template
             </Button>
             <Button
@@ -109,10 +115,18 @@ function MappingWorkbench() {
         </DialogContent>
       </Dialog>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "schema" | "mapping")} className="mx-auto max-w-[1800px]">
+      <Tabs
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as "schema" | "mapping")}
+        className="mx-auto max-w-[1800px]"
+      >
         <TabsList variant="line" className="mb-4 border-b">
-          <TabsTrigger value="schema" className="min-w-28">Schema</TabsTrigger>
-          <TabsTrigger value="mapping" className="min-w-28">Mapping</TabsTrigger>
+          <TabsTrigger value="schema" className="min-w-28">
+            Schema
+          </TabsTrigger>
+          <TabsTrigger value="mapping" className="min-w-28">
+            Mapping
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="schema">
@@ -121,119 +135,170 @@ function MappingWorkbench() {
 
         <TabsContent value="mapping">
           <div className="workflow-stage-list">
-          <WorkflowStep
-            step={1}
-            title="Setup"
-            status={workbench.readyForMapping ? "Schema pair ready" : "Choose source and target schemas"}
-            blocker={workbench.readyForMapping ? null : "Select or create a source and target schema before generating hints or scripts."}
-            action={
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void workbench.startNewMapping()}
-                disabled={Boolean(workbench.busyAction)}
-              >
-                New Mapping
-              </Button>
-            }
-          >
-            <MappingSchemaPanel
-              workbench={workbench}
-              sourceSchemas={schemaLibrary.sourceSchemas}
-              targetSchemas={schemaLibrary.targetSchemas}
-              onOpenSchemaTab={() => setActiveTab("schema")}
-            />
-          </WorkflowStep>
+            <WorkflowStep
+              step={1}
+              title="Setup"
+              status={
+                workbench.readyForMapping
+                  ? "Schema pair ready"
+                  : "Choose source and target schemas"
+              }
+              blocker={
+                workbench.readyForMapping
+                  ? null
+                  : "Select or create a source and target schema before generating hints or scripts."
+              }
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void workbench.startNewMapping()}
+                  disabled={Boolean(workbench.busyAction)}
+                >
+                  New Mapping
+                </Button>
+              }
+            >
+              <MappingSchemaPanel
+                workbench={workbench}
+                sourceSchemas={schemaLibrary.sourceSchemas}
+                targetSchemas={schemaLibrary.targetSchemas}
+                onOpenSchemaTab={() => setActiveTab("schema")}
+              />
+            </WorkflowStep>
 
-          <WorkflowStep
-            step={2}
-            title="Author"
-            status={workbench.readyForTransform ? "Script ready to run" : workbench.autoMapStatusText}
-            blocker={workbench.providerErrors.length > 0 ? workbench.providerErrors[0] : null}
-            secondary={
-              <DisclosurePanel title="Field hints and schema fields" summary="Source, target, and provider details">
-                <div className="schema-grid compact-detail-grid">
-                  <SchemaViewer title="Source fields" schema={workbench.sourceSchema} />
-                  <SchemaViewer title="Target fields" schema={workbench.targetSchema} />
-                  <MappingSuggestionPanel
-                    suggestions={workbench.suggestions}
-                    usedAi={workbench.usedAi}
-                    statusText={workbench.autoMapStatusText}
-                    providerErrors={workbench.providerErrors}
-                  />
-                </div>
-              </DisclosurePanel>
-            }
-          >
-            <ScriptWorkbench
-              script={workbench.script}
-              explanation={workbench.draftExplanation}
-              unresolvedPaths={workbench.unresolvedTargetPaths}
-              sourceReference={workbench.sourceReference}
-              sourceFormat={workbench.sourceFormat}
-              statusText={workbench.statusText}
-              autoMapMode={workbench.autoMapMode}
-              aiMappingAvailable={workbench.aiMappingAvailable}
-              canGenerate={workbench.readyForMapping}
-              busyAction={workbench.busyAction}
-              onScriptChange={workbench.setScript}
-              onGenerate={() => void workbench.generateScript()}
-              onFieldHints={() => void workbench.autoMap()}
-              onAutoMapModeChange={workbench.setAutoMapMode}
-            />
-          </WorkflowStep>
+            <WorkflowStep
+              step={2}
+              title="Author"
+              status={
+                workbench.readyForTransform
+                  ? "Script ready to run"
+                  : workbench.autoMapStatusText
+              }
+              blocker={
+                workbench.providerErrors.length > 0
+                  ? workbench.providerErrors[0]
+                  : null
+              }
+              secondary={
+                <DisclosurePanel
+                  title="Field hints and schema fields"
+                  summary="Source, target, and provider details"
+                >
+                  <div className="schema-grid compact-detail-grid">
+                    <SchemaViewer
+                      title="Source fields"
+                      schema={workbench.sourceSchema}
+                    />
+                    <SchemaViewer
+                      title="Target fields"
+                      schema={workbench.targetSchema}
+                    />
+                    <MappingSuggestionPanel
+                      suggestions={workbench.suggestions}
+                      usedAi={workbench.usedAi}
+                      statusText={workbench.autoMapStatusText}
+                      providerErrors={workbench.providerErrors}
+                    />
+                  </div>
+                </DisclosurePanel>
+              }
+            >
+              <ScriptWorkbench
+                script={workbench.script}
+                explanation={workbench.draftExplanation}
+                unresolvedPaths={workbench.unresolvedTargetPaths}
+                sourceReference={workbench.sourceReference}
+                sourceFormat={workbench.sourceFormat}
+                statusText={workbench.statusText}
+                autoMapMode={workbench.autoMapMode}
+                aiMappingAvailable={workbench.aiMappingAvailable}
+                canGenerate={workbench.readyForMapping}
+                busyAction={workbench.busyAction}
+                onScriptChange={workbench.setScript}
+                onGenerate={() => void workbench.generateScript()}
+                onFieldHints={() => void workbench.autoMap()}
+                onAutoMapModeChange={workbench.setAutoMapMode}
+              />
+            </WorkflowStep>
 
-          <WorkflowStep
-            step={3}
-            title="Review"
-            status={workbench.transformResult ? "Output ready for validation" : "Run the script to review output"}
-            blocker={workbench.validationErrors.length > 0 ? `${workbench.validationErrors.length} validation issue(s) need review.` : null}
-            secondary={
-              <DisclosurePanel title="Diff and raw logs" summary="Secondary run diagnostics">
-                <div className="result-grid compact-detail-grid">
-                  <OutputDiffPanel
-                    diffs={workbench.outputDiff}
-                    outputFormat={workbench.targetFormat}
-                    hasRun={Boolean(workbench.transformResult)}
-                  />
-                  <RunLogsPanel logs={workbench.transformResult?.logs ?? []} />
-                </div>
-              </DisclosurePanel>
-            }
-          >
-            <div className="result-grid review-primary-grid">
-              <RunReviewPanel workbench={workbench} />
-              <OutputPreview result={workbench.transformResult} />
-              <ValidationPanel errors={workbench.validationErrors} outputFormat={workbench.targetFormat} />
-            </div>
-          </WorkflowStep>
+            <WorkflowStep
+              step={3}
+              title="Review"
+              status={
+                workbench.transformResult
+                  ? "Output ready for validation"
+                  : "Run the script to review output"
+              }
+              blocker={
+                workbench.validationErrors.length > 0
+                  ? `${workbench.validationErrors.length} validation issue(s) need review.`
+                  : null
+              }
+              secondary={
+                <DisclosurePanel
+                  title="Diff and raw logs"
+                  summary="Secondary run diagnostics"
+                >
+                  <div className="result-grid compact-detail-grid">
+                    <OutputDiffPanel
+                      diffs={workbench.outputDiff}
+                      outputFormat={workbench.targetFormat}
+                      hasRun={Boolean(workbench.transformResult)}
+                    />
+                    <RunLogsPanel
+                      logs={workbench.transformResult?.logs ?? []}
+                    />
+                  </div>
+                </DisclosurePanel>
+              }
+            >
+              <div className="result-grid review-primary-grid">
+                <RunReviewPanel workbench={workbench} />
+                <OutputPreview result={workbench.transformResult} />
+                <ValidationPanel
+                  errors={workbench.validationErrors}
+                  outputFormat={workbench.targetFormat}
+                />
+              </div>
+            </WorkflowStep>
 
-          <WorkflowStep
-            step={4}
-            title="Save"
-            status={workbench.readyForTemplateSave ? "Template can be saved" : "Run a valid script before saving"}
-          >
-            <TemplateVersionPanel
-              templates={workbench.templates}
-              deletedTemplates={workbench.deletedTemplates}
-              activeTemplate={workbench.activeTemplate}
-              selectedTemplateId={workbench.selectedTemplateId}
-              templateName={workbench.templateName}
-              templateDescription={workbench.templateDescription}
-              canSave={workbench.readyForTemplateSave}
-              busyAction={workbench.busyAction}
-              onTemplateNameChange={workbench.setTemplateName}
-              onTemplateDescriptionChange={workbench.setTemplateDescription}
-              onSelectedTemplateChange={workbench.selectTemplate}
-              onSaveTemplate={() => void workbench.saveTemplate()}
-              onCreateVersion={() => void workbench.saveTemplateVersion()}
-              onDeleteTemplate={(templateId) => void workbench.deleteTemplate(templateId)}
-              onRestoreTemplate={(templateId) => void workbench.restoreTemplate(templateId)}
-              onLoadTemplate={(templateId, version) => void workbench.loadTemplate(templateId, version)}
-              onRefreshTemplates={() => void workbench.refreshTemplates()}
-            />
-          </WorkflowStep>
+            <WorkflowStep
+              step={4}
+              title="Save"
+              status={
+                workbench.readyForTemplateSave
+                  ? "Template can be saved"
+                  : "Run a valid script before saving"
+              }
+            >
+              <TemplateVersionPanel
+                templates={workbench.templates}
+                deletedTemplates={workbench.deletedTemplates}
+                activeTemplate={workbench.activeTemplate}
+                selectedTemplateId={workbench.selectedTemplateId}
+                templateName={workbench.templateName}
+                templateDescription={workbench.templateDescription}
+                canSave={workbench.readyForTemplateSave}
+                busyAction={workbench.busyAction}
+                onTemplateNameChange={workbench.setTemplateName}
+                onTemplateDescriptionChange={workbench.setTemplateDescription}
+                onSelectedTemplateChange={workbench.selectTemplate}
+                onSaveTemplate={() => void workbench.saveTemplate()}
+                onCreateVersion={() => void workbench.saveTemplateVersion()}
+                onDeleteTemplate={(templateId) =>
+                  void workbench.deleteTemplate(templateId)
+                }
+                onRestoreTemplate={(templateId) =>
+                  void workbench.restoreTemplate(templateId)
+                }
+                onLoadTemplate={(templateId, version) =>
+                  void workbench.loadTemplate(templateId, version)
+                }
+                onRefreshTemplates={() => void workbench.refreshTemplates()}
+              />
+            </WorkflowStep>
           </div>
         </TabsContent>
       </Tabs>

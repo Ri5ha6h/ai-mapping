@@ -11,9 +11,10 @@ type Props = {
 }
 
 export function ValidationPanel({ errors, outputFormat = "json" }: Props) {
-  const policyText = outputFormat === "xml"
-    ? "XML runs verify script execution and XML serialization. JSON target-schema field/type checks and XML structural diff are intentionally not applied."
-    : "JSON runs check required target fields, scalar types, and active field validation rules when available."
+  const policyText =
+    outputFormat === "xml"
+      ? "XML runs verify script execution and XML serialization. JSON target-schema field/type checks and XML structural diff are intentionally not applied."
+      : "JSON runs check required target fields, scalar types, and active field validation rules when available."
 
   return (
     <WorkbenchCard
@@ -37,13 +38,24 @@ export function ValidationPanel({ errors, outputFormat = "json" }: Props) {
           />
         ) : (
           errors.map((error, index) => (
-            <div className="grid gap-1 rounded-lg border bg-card px-3 py-2" key={`${error.code}-${index}`}>
+            <div
+              className="grid gap-1 rounded-lg border bg-card px-3 py-2"
+              key={`${error.code}-${index}`}
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="destructive">{error.code}</Badge>
-                {error.path ? <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{error.path}</code> : null}
+                {error.path ? (
+                  <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                    {error.path}
+                  </code>
+                ) : null}
               </div>
               <span className="text-sm">{error.message}</span>
-              {error.rule_id ? <small className="text-xs text-muted-foreground">{fieldRuleHelper(error)}</small> : null}
+              {error.rule_id ? (
+                <small className="text-xs text-muted-foreground">
+                  {fieldRuleHelper(error)}
+                </small>
+              ) : null}
             </div>
           ))
         )}

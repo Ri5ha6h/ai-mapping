@@ -13,9 +13,20 @@ type Props = {
   secondary?: ReactNode
 }
 
-export function WorkflowStep({ step, title, status, blocker, action, children, secondary }: Props) {
+export function WorkflowStep({
+  step,
+  title,
+  status,
+  blocker,
+  action,
+  children,
+  secondary,
+}: Props) {
   return (
-    <Card className="min-w-0 shadow-sm" aria-labelledby={`workflow-step-${step}`}>
+    <Card
+      className="min-w-0 shadow-sm"
+      aria-labelledby={`workflow-step-${step}`}
+    >
       <CardHeader className="gap-3 sm:grid-cols-[1fr_auto]">
         <div className="flex min-w-0 items-center gap-3">
           <span
@@ -25,16 +36,22 @@ export function WorkflowStep({ step, title, status, blocker, action, children, s
             {step}
           </span>
           <div className="min-w-0">
-            <p className="mb-0.5 text-[11px] font-bold uppercase leading-none text-muted-foreground">
+            <p className="mb-0.5 text-[11px] leading-none font-bold text-muted-foreground uppercase">
               Step {step}
             </p>
-            <h2 id={`workflow-step-${step}`} className="text-base font-medium leading-snug">
+            <h2
+              id={`workflow-step-${step}`}
+              className="text-base leading-snug font-medium"
+            >
               {title}
             </h2>
           </div>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
-          <Badge variant="outline" className="h-auto min-h-6 max-w-full text-wrap rounded-lg py-1">
+          <Badge
+            variant="outline"
+            className="h-auto min-h-6 max-w-full rounded-lg py-1 text-wrap"
+          >
             {status}
           </Badge>
           {action}
@@ -47,7 +64,9 @@ export function WorkflowStep({ step, title, status, blocker, action, children, s
           </p>
         ) : null}
         <div className="grid min-w-0 gap-3">{children}</div>
-        {secondary ? <div className="grid min-w-0 gap-3">{secondary}</div> : null}
+        {secondary ? (
+          <div className="grid min-w-0 gap-3">{secondary}</div>
+        ) : null}
       </CardContent>
     </Card>
   )

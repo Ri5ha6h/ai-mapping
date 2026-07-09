@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Effect } from "effect"
 
-import { SAMPLE_SOURCE_JSON, SAMPLE_TARGET_JSON } from "@/components/workbench/constants"
-import { inferSchemaEffect, listFieldValidationRulesEffect, parseEffect } from "@/lib/effect/api_effects"
+import {
+  SAMPLE_SOURCE_JSON,
+  SAMPLE_TARGET_JSON,
+} from "@/components/workbench/constants"
+import {
+  inferSchemaEffect,
+  listFieldValidationRulesEffect,
+  parseEffect,
+} from "@/lib/effect/api_effects"
 import type { OutputFormat, SourceFormat } from "@/types/mapping"
 import type { SchemaArtifact, SchemaNode } from "@/types/schema"
 import type { FieldValidationRule } from "@/types/validation"
@@ -38,24 +45,35 @@ export function useMappingSetupController({
   const [overrideSourceInput, setOverrideSourceInput] = useState("")
   const [sourceSchema, setSourceSchema] = useState<SchemaNode | null>(null)
   const [targetSchema, setTargetSchema] = useState<SchemaNode | null>(null)
-  const [fieldValidationRules, setFieldValidationRules] = useState<FieldValidationRule[]>([])
+  const [fieldValidationRules, setFieldValidationRules] = useState<
+    FieldValidationRule[]
+  >([])
 
   const selectedSourceSchema = useMemo(
-    () => sourceSchemas.find((schema) => schema.schema_id === selectedSourceSchemaId) ?? null,
+    () =>
+      sourceSchemas.find(
+        (schema) => schema.schema_id === selectedSourceSchemaId
+      ) ?? null,
     [selectedSourceSchemaId, sourceSchemas]
   )
   const selectedTargetSchema = useMemo(
-    () => targetSchemas.find((schema) => schema.schema_id === selectedTargetSchemaId) ?? null,
+    () =>
+      targetSchemas.find(
+        (schema) => schema.schema_id === selectedTargetSchemaId
+      ) ?? null,
     [selectedTargetSchemaId, targetSchemas]
   )
-  const activeSourceSchema = selectedSourceSchema?.inferred_schema ?? sourceSchema
-  const activeTargetSchema = selectedTargetSchema?.inferred_schema ?? targetSchema
+  const activeSourceSchema =
+    selectedSourceSchema?.inferred_schema ?? sourceSchema
+  const activeTargetSchema =
+    selectedTargetSchema?.inferred_schema ?? targetSchema
   const activeSourceFormat = selectedSourceSchema?.format ?? sourceFormat
   const activeTargetFormat = selectedTargetSchema
     ? outputFormatForSchema(selectedTargetSchema)
     : targetFormat
   const readyForMapping = Boolean(activeSourceSchema && activeTargetSchema)
-  const sourceReference = selectedSourceSchema?.canonical_sample ?? parseReferenceSource(sourceInput)
+  const sourceReference =
+    selectedSourceSchema?.canonical_sample ?? parseReferenceSource(sourceInput)
 
   useEffect(() => {
     let ignore = false
@@ -63,7 +81,9 @@ export function useMappingSetupController({
       return
     }
 
-    Effect.runPromise(listFieldValidationRulesEffect(selectedTargetSchema.schema_id))
+    Effect.runPromise(
+      listFieldValidationRulesEffect(selectedTargetSchema.schema_id)
+    )
       .then((response) => {
         if (!ignore) setFieldValidationRules(response.rules)
       })
@@ -77,8 +97,12 @@ export function useMappingSetupController({
   }, [selectedTargetSchema])
 
   const parseAndInfer = useCallback(async () => {
-    const parsedSource = await Effect.runPromise(parseEffect(sourceFormat, sourceInput))
-    const parsedTarget = await Effect.runPromise(parseEffect(targetFormat, targetInput))
+    const parsedSource = await Effect.runPromise(
+      parseEffect(sourceFormat, sourceInput)
+    )
+    const parsedTarget = await Effect.runPromise(
+      parseEffect(targetFormat, targetInput)
+    )
     const [sourceResult, targetResult] = await Promise.all([
       Effect.runPromise(inferSchemaEffect(parsedSource.canonical)),
       Effect.runPromise(inferSchemaEffect(parsedTarget.canonical)),
@@ -88,65 +112,79 @@ export function useMappingSetupController({
     onSetupChanged()
   }, [onSetupChanged, sourceFormat, sourceInput, targetFormat, targetInput])
 
-  const currentMappingInputs = useCallback(async (): Promise<CurrentMappingInputs> => {
-    const nextSourceSchema = selectedSourceSchema?.inferred_schema ?? sourceSchema
-    const nextTargetSchema = selectedTargetSchema?.inferred_schema ?? targetSchema
-    if (!nextSourceSchema || !nextTargetSchema) {
-      throw new Error("Select or infer a source and target schema before running a script.")
-    }
+  const currentMappingInputs =
+    useCallback(async (): Promise<CurrentMappingInputs> => {
+      const nextSourceSchema =
+        selectedSourceSchema?.inferred_schema ?? sourceSchema
+      const nextTargetSchema =
+        selectedTargetSchema?.inferred_schema ?? targetSchema
+      if (!nextSourceSchema || !nextTargetSchema) {
+        throw new Error(
+          "Select or infer a source and target schema before running a script."
+        )
+      }
 
-    let sourceData: unknown
-    if (runMode === "override") {
-      const parsedOverride = await Effect.runPromise(
-        parseEffect(activeSourceFormat, overrideSourceInput)
-      )
-      sourceData = parsedOverride.canonical
-      setSourceInput(overrideSourceInput)
-    } else if (selectedSourceSchema) {
-      sourceData = selectedSourceSchema.canonical_sample
-      setSourceInput(selectedSourceSchema.original_content)
-    } else {
-      const parsedSource = await Effect.runPromise(parseEffect(sourceFormat, sourceInput))
-      sourceData = parsedSource.canonical
-    }
+      let sourceData: unknown
+      if (runMode === "override") {
+        const parsedOverride = await Effect.runPromise(
+          parseEffect(activeSourceFormat, overrideSourceInput)
+        )
+        sourceData = parsedOverride.canonical
+        setSourceInput(overrideSourceInput)
+      } else if (selectedSourceSchema) {
+        sourceData = selectedSourceSchema.canonical_sample
+        setSourceInput(selectedSourceSchema.original_content)
+      } else {
+        const parsedSource = await Effect.runPromise(
+          parseEffect(sourceFormat, sourceInput)
+        )
+        sourceData = parsedSource.canonical
+      }
 
-    const targetData = selectedTargetSchema
-      ? selectedTargetSchema.canonical_sample
-      : (await Effect.runPromise(parseEffect(targetFormat, targetInput))).canonical
-    if (selectedTargetSchema) setTargetInput(selectedTargetSchema.original_content)
-    setSourceFormat(activeSourceFormat)
-    setTargetFormat(activeTargetFormat)
-    setSourceSchema(nextSourceSchema)
-    setTargetSchema(nextTargetSchema)
-    const nextFieldValidationRules = selectedTargetSchema
-      ? (await Effect.runPromise(listFieldValidationRulesEffect(selectedTargetSchema.schema_id))).rules
-      : fieldValidationRules
-    setFieldValidationRules(nextFieldValidationRules)
-    return {
-      sourceData,
-      targetData,
-      sourceSchema: nextSourceSchema,
-      targetSchema: nextTargetSchema,
-      fieldValidationRules: nextFieldValidationRules,
-    }
-  }, [
-    activeSourceFormat,
-    activeTargetFormat,
-    fieldValidationRules,
-    overrideSourceInput,
-    runMode,
-    selectedSourceSchema,
-    selectedTargetSchema,
-    sourceFormat,
-    sourceInput,
-    sourceSchema,
-    targetFormat,
-    targetInput,
-    targetSchema,
-  ])
+      const targetData = selectedTargetSchema
+        ? selectedTargetSchema.canonical_sample
+        : (await Effect.runPromise(parseEffect(targetFormat, targetInput)))
+            .canonical
+      if (selectedTargetSchema)
+        setTargetInput(selectedTargetSchema.original_content)
+      setSourceFormat(activeSourceFormat)
+      setTargetFormat(activeTargetFormat)
+      setSourceSchema(nextSourceSchema)
+      setTargetSchema(nextTargetSchema)
+      const nextFieldValidationRules = selectedTargetSchema
+        ? (
+            await Effect.runPromise(
+              listFieldValidationRulesEffect(selectedTargetSchema.schema_id)
+            )
+          ).rules
+        : fieldValidationRules
+      setFieldValidationRules(nextFieldValidationRules)
+      return {
+        sourceData,
+        targetData,
+        sourceSchema: nextSourceSchema,
+        targetSchema: nextTargetSchema,
+        fieldValidationRules: nextFieldValidationRules,
+      }
+    }, [
+      activeSourceFormat,
+      activeTargetFormat,
+      fieldValidationRules,
+      overrideSourceInput,
+      runMode,
+      selectedSourceSchema,
+      selectedTargetSchema,
+      sourceFormat,
+      sourceInput,
+      sourceSchema,
+      targetFormat,
+      targetInput,
+      targetSchema,
+    ])
 
   function selectSourceSchema(schemaId: string) {
-    const schema = sourceSchemas.find((item) => item.schema_id === schemaId) ?? null
+    const schema =
+      sourceSchemas.find((item) => item.schema_id === schemaId) ?? null
     setSelectedSourceSchemaId(schemaId)
     if (schema) {
       setSourceFormat(schema.format)
@@ -160,7 +198,8 @@ export function useMappingSetupController({
   }
 
   function selectTargetSchema(schemaId: string) {
-    const schema = targetSchemas.find((item) => item.schema_id === schemaId) ?? null
+    const schema =
+      targetSchemas.find((item) => item.schema_id === schemaId) ?? null
     setSelectedTargetSchemaId(schemaId)
     if (schema) {
       setTargetFormat(outputFormatForSchema(schema))
@@ -238,4 +277,6 @@ function parseReferenceSource(value: string) {
   }
 }
 
-export type MappingSetupController = ReturnType<typeof useMappingSetupController>
+export type MappingSetupController = ReturnType<
+  typeof useMappingSetupController
+>

@@ -1,5 +1,8 @@
 import type { SchemaNode } from "./schema"
-import type { FieldValidationRuleUpsertRequest, ValidationErrorItem } from "./validation"
+import type {
+  FieldValidationRuleUpsertRequest,
+  ValidationErrorItem,
+} from "./validation"
 
 export type SourceFormat = "json" | "xml" | "edi_214" | "edi_856"
 export type OutputFormat = "json" | "xml"
@@ -53,7 +56,10 @@ export type TemplateCreateRequest = {
   sample_target_content?: string | null
 }
 
-export type TemplateVersionCreateRequest = Omit<TemplateCreateRequest, "template_id" | "name" | "description">
+export type TemplateVersionCreateRequest = Omit<
+  TemplateCreateRequest,
+  "template_id" | "name" | "description"
+>
 
 export type TemplateListResponse = {
   templates: MappingTemplate[]

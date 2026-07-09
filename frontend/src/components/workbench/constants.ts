@@ -9,7 +9,7 @@ export const SAMPLE_SOURCE_JSON = JSON.stringify(
     },
   },
   null,
-  2,
+  2
 )
 
 export const SAMPLE_TARGET_JSON = JSON.stringify(
@@ -24,5 +24,5 @@ export const SAMPLE_TARGET_JSON = JSON.stringify(
     },
   },
   null,
-  2,
+  2
 )

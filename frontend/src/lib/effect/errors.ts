@@ -9,4 +9,3 @@ export function issueFromUnknown(error: unknown): FrontendIssue {
   }
   return { title: "Unexpected error", detail: String(error) }
 }
-

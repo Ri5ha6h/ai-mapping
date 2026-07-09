@@ -9,9 +9,15 @@ import { useMappingSetupController } from "./useMappingSetupController"
 vi.mock("@/lib/effect/api_effects", async () => {
   const { Effect } = await import("effect")
   return {
-    parseEffect: (_format: string, content: string) => Effect.succeed({ canonical: JSON.parse(content) }),
+    parseEffect: (_format: string, content: string) =>
+      Effect.succeed({ canonical: JSON.parse(content) }),
     inferSchemaEffect: (canonical: unknown) =>
-      Effect.succeed({ schema: schemaNode("$", typeof canonical === "object" ? "object" : "string") }),
+      Effect.succeed({
+        schema: schemaNode(
+          "$",
+          typeof canonical === "object" ? "object" : "string"
+        ),
+      }),
     listFieldValidationRulesEffect: () => Effect.succeed({ rules: [] }),
   }
 })
@@ -36,12 +42,18 @@ describe("useMappingSetupController", () => {
     let resolved: unknown = null
     render(<SetupProbe onResolved={(value) => (resolved = value)} />)
 
-    await act(async () => screen.getByRole("button", { name: "infer ad hoc" }).click())
-    await waitFor(() => expect(screen.getByTestId("ready").textContent).toBe("ready"))
+    await act(async () =>
+      screen.getByRole("button", { name: "infer ad hoc" }).click()
+    )
+    await waitFor(() =>
+      expect(screen.getByTestId("ready").textContent).toBe("ready")
+    )
 
     act(() => screen.getByRole("button", { name: "select source" }).click())
     act(() => screen.getByRole("button", { name: "override mode" }).click())
-    await act(async () => screen.getByRole("button", { name: "resolve inputs" }).click())
+    await act(async () =>
+      screen.getByRole("button", { name: "resolve inputs" }).click()
+    )
     expect(resolved).toEqual({ shipment: { id: "override" } })
 
     act(() => screen.getByRole("button", { name: "reset" }).click())
@@ -50,12 +62,21 @@ describe("useMappingSetupController", () => {
 
   it("uses override input with restored schema snapshots when live source is unavailable", async () => {
     let resolved: unknown = null
-    render(<SetupProbe sourceSchemas={[]} onResolved={(value) => (resolved = value)} />)
+    render(
+      <SetupProbe
+        sourceSchemas={[]}
+        onResolved={(value) => (resolved = value)}
+      />
+    )
 
-    act(() => screen.getByRole("button", { name: "restore source snapshot" }).click())
+    act(() =>
+      screen.getByRole("button", { name: "restore source snapshot" }).click()
+    )
     act(() => screen.getByRole("button", { name: "select target" }).click())
     act(() => screen.getByRole("button", { name: "override mode" }).click())
-    await act(async () => screen.getByRole("button", { name: "resolve inputs" }).click())
+    await act(async () =>
+      screen.getByRole("button", { name: "resolve inputs" }).click()
+    )
 
     expect(resolved).toEqual({ shipment: { id: "override" } })
   })
@@ -78,16 +99,24 @@ function SetupProbe({
 
   return (
     <div>
-      <span data-testid="ready">{controller.readyForMapping ? "ready" : "waiting"}</span>
+      <span data-testid="ready">
+        {controller.readyForMapping ? "ready" : "waiting"}
+      </span>
       <span data-testid="source-format">{controller.activeSourceFormat}</span>
       <span data-testid="target-format">{controller.activeTargetFormat}</span>
-      <button onClick={() => controller.selectSourceSchema("source-1")}>select source</button>
-      <button onClick={() => controller.selectTargetSchema("target-1")}>select target</button>
+      <button onClick={() => controller.selectSourceSchema("source-1")}>
+        select source
+      </button>
+      <button onClick={() => controller.selectTargetSchema("target-1")}>
+        select target
+      </button>
       <button
         onClick={() => {
           controller.setSourceFormat("json")
           controller.setSourceInput('{"shipment":{"id":"saved snapshot"}}')
-          controller.setOverrideSourceInput('{"shipment":{"id":"saved snapshot"}}')
+          controller.setOverrideSourceInput(
+            '{"shipment":{"id":"saved snapshot"}}'
+          )
           controller.setSourceSchema(sourceSchema)
           controller.setSelectedSourceSchemaId("archived-source")
         }}
