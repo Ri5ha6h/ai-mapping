@@ -2,13 +2,18 @@ import { Clipboard, Database, FileText, Loader2, RefreshCw, RotateCcw, Trash2, U
 
 import { SchemaViewer } from "@/components/workbench/SchemaViewer"
 import { WorkflowStep } from "@/components/workbench/WorkflowStep"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { flattenSchema } from "@/lib/effect/schemas"
 import type { SourceFormat } from "@/types/mapping"
 import type { SchemaArtifact, SchemaNode } from "@/types/schema"
 import type { useSchemaLibraryController } from "./useSchemaLibraryController"
+import { Field, SegmentedControl, SelectField, StatusAlert, WorkbenchCard } from "./ui"
 
 type Props = {
   library: ReturnType<typeof useSchemaLibraryController>
@@ -32,13 +37,11 @@ export function SchemaLibraryPanel({ library }: Props) {
   return (
     <div className="workflow-stage-list schema-workflow">
       {library.issue ? (
-        <div className="issue-banner">
-          <FileText size={18} />
-          <div>
-            <strong>{library.issue.title}</strong>
-            <span>{library.issue.detail}</span>
-          </div>
-        </div>
+        <StatusAlert
+          icon={<FileText size={18} />}
+          title={library.issue.title}
+          description={library.issue.detail}
+        />
       ) : null}
 
       <WorkflowStep
@@ -46,17 +49,9 @@ export function SchemaLibraryPanel({ library }: Props) {
         title="Create"
         status={library.canCreateSchema ? "Ready to create schema" : "Paste or upload a schema sample"}
       >
-        <section className="tool-panel schema-create-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="panel-kicker">Create</p>
-              <h2>Schema artifact</h2>
-            </div>
-          </div>
-
+        <WorkbenchCard kicker="Create" title="Schema artifact" className="schema-create-panel">
           <div className="schema-form-grid">
-            <label className="field-stack" htmlFor="schema-artifact-name">
-              <span>Name</span>
+            <Field label="Name" htmlFor="schema-artifact-name">
               <Input
                 id="schema-artifact-name"
                 value={library.draft.name}
@@ -64,9 +59,8 @@ export function SchemaLibraryPanel({ library }: Props) {
                   library.updateDraft({ name: event.target.value })
                 }
               />
-            </label>
-            <label className="field-stack" htmlFor="schema-artifact-description">
-              <span>Description</span>
+            </Field>
+            <Field label="Description" htmlFor="schema-artifact-description">
               <Input
                 id="schema-artifact-description"
                 value={library.draft.description}
@@ -74,7 +68,7 @@ export function SchemaLibraryPanel({ library }: Props) {
                   library.updateDraft({ description: event.target.value })
                 }
               />
-            </label>
+            </Field>
           </div>
 
           <div className="schema-control-grid">
@@ -123,7 +117,7 @@ export function SchemaLibraryPanel({ library }: Props) {
             )}
             Create schema
           </Button>
-        </section>
+        </WorkbenchCard>
       </WorkflowStep>
 
       <WorkflowStep
@@ -132,12 +126,11 @@ export function SchemaLibraryPanel({ library }: Props) {
         status={library.selectedSchema ? `Selected ${library.selectedSchema.name}` : "Select a saved schema to inspect"}
       >
         <div className="schema-library-detail-grid">
-          <section className="tool-panel schema-library-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="panel-kicker">Library</p>
-                <h2>Saved schemas</h2>
-              </div>
+          <WorkbenchCard
+            kicker="Library"
+            title="Saved schemas"
+            className="schema-library-panel"
+            action={
               <Button
                 type="button"
                 variant="outline"
@@ -152,7 +145,8 @@ export function SchemaLibraryPanel({ library }: Props) {
                   <RefreshCw />
                 )}
               </Button>
-            </div>
+            }
+          >
             <SegmentedSchemaControl
               label="Schema type"
               value={library.selectedLibraryDirection}
@@ -168,7 +162,7 @@ export function SchemaLibraryPanel({ library }: Props) {
               selectedSchemaId={library.selectedSchemaId}
               onSelect={library.setSelectedSchemaId}
             />
-          </section>
+          </WorkbenchCard>
 
           <SchemaDetailPanel library={library} />
         </div>
@@ -180,20 +174,21 @@ export function SchemaLibraryPanel({ library }: Props) {
 
 function SchemaArchivePanel({ library }: Props) {
   return (
-    <section className="archive-panel">
-      <div className="schema-list-heading">
+    <Card>
+      <CardContent className="grid gap-3 pt-4">
+      <div className="flex items-center justify-between gap-3">
         <strong>Archive & Trash</strong>
-        <span>{library.deletedSchemas.length} archived schemas</span>
+        <Badge variant="outline">{library.deletedSchemas.length} archived schemas</Badge>
       </div>
       {library.deletedSchemas.length === 0 ? (
-        <p className="empty-line">Archived schemas will appear here with restore controls.</p>
+        <p className="text-sm text-muted-foreground">Archived schemas will appear here with restore controls.</p>
       ) : (
-        <div className="archive-card-list">
+        <div className="grid gap-2">
           {library.deletedSchemas.map((schema) => (
-            <div className="archive-row" key={schema.schema_id}>
-              <div>
+            <div className="flex min-w-0 flex-col gap-3 rounded-lg border bg-muted/25 px-3 py-2 sm:flex-row sm:items-center sm:justify-between" key={schema.schema_id}>
+              <div className="grid min-w-0 gap-1">
                 <strong>{schema.name}</strong>
-                <span>{schema.direction} · {schema.format.toUpperCase()} · archived schema</span>
+                <span className="text-sm text-muted-foreground">{schema.direction} · {schema.format.toUpperCase()} · archived schema</span>
               </div>
               <Button
                 type="button"
@@ -212,27 +207,31 @@ function SchemaArchivePanel({ library }: Props) {
           ))}
         </div>
       )}
-    </section>
+      </CardContent>
+    </Card>
   )
 }
 
 function InputModeControl({ library }: Props) {
   return (
-    <div className="field-stack">
-      <span>Input mode</span>
-      <div className="schema-segmented-control schema-input-mode">
-        <button
-          type="button"
-          className={library.draft.inputMethod === "paste" ? "active" : ""}
-          onClick={() => library.usePastedContent(library.draft.content)}
-        >
-          <Clipboard size={14} />
-          Paste
-        </button>
-        <label
-          className={library.draft.inputMethod === "upload" ? "active" : ""}
-          title="Upload schema sample"
-        >
+    <Field label="Input mode">
+      <div className="flex flex-wrap gap-2">
+        <SegmentedControl
+          value={library.draft.inputMethod}
+          onValueChange={(value) => {
+            if (value === "paste") library.usePastedContent(library.draft.content)
+          }}
+          options={[
+            { value: "paste", label: "Paste", icon: <Clipboard size={14} /> },
+            { value: "upload", label: "Upload", icon: <Upload size={14} />, disabled: true },
+          ]}
+        />
+        <label className={[
+          "inline-flex h-7 cursor-pointer items-center justify-center gap-1 rounded-md border px-2.5 text-xs font-semibold transition-colors",
+          library.draft.inputMethod === "upload"
+            ? "border-primary bg-primary text-primary-foreground"
+            : "bg-background text-foreground hover:bg-muted",
+        ].join(" ")}>
           <Upload size={14} />
           Upload
           <input
@@ -244,19 +243,19 @@ function InputModeControl({ library }: Props) {
           />
         </label>
       </div>
-    </div>
+    </Field>
   )
 }
 
 function UploadDraftPanel({ library }: Props) {
   return (
-    <div className="schema-upload-panel">
-      <label className="schema-upload-dropzone">
+    <div className="grid gap-3">
+      <label className="grid cursor-pointer place-items-center gap-2 rounded-lg border border-dashed bg-muted/30 p-6 text-center transition-colors hover:bg-muted/50">
         <Upload size={18} />
         <strong>
           {library.draft.originalFilename ?? "Choose a text schema sample"}
         </strong>
-        <span>JSON, XML, EDI 214, and EDI 856 samples are read as text.</span>
+        <span className="text-sm text-muted-foreground">JSON, XML, EDI 214, and EDI 856 samples are read as text.</span>
         <input
           className="hidden"
           type="file"
@@ -267,10 +266,10 @@ function UploadDraftPanel({ library }: Props) {
       </label>
 
       {library.draft.content ? (
-        <div className="schema-upload-preview">
-          <div className="schema-list-heading">
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between gap-3">
             <strong>Uploaded content preview</strong>
-            <span>{formatBytes(library.draft.originalSize)}</span>
+            <Badge variant="outline">{formatBytes(library.draft.originalSize)}</Badge>
           </div>
           <pre className="preview-block">{library.draft.content}</pre>
         </div>
@@ -291,35 +290,23 @@ function SegmentedSchemaControl<TValue extends string>({
   onChange: (value: TValue) => void
 }) {
   return (
-    <div className="field-stack">
-      <span>{label}</span>
-      <div className="schema-segmented-control">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            className={value === option.value ? "active" : ""}
-            onClick={() => onChange(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <Field label={label}>
+      <SegmentedControl value={value} options={options} onValueChange={onChange} />
+    </Field>
   )
 }
 
 function SchemaDraftMeta({ library }: Props) {
   if (library.draft.inputMethod === "upload" && library.draft.originalFilename) {
     return (
-      <p className="schema-meta-line">
+      <p className="text-xs text-muted-foreground">
         {library.draft.originalFilename} ·{" "}
         {library.draft.originalContentType || "text/plain"} ·{" "}
         {formatBytes(library.draft.originalSize)}
       </p>
     )
   }
-  return <p className="schema-meta-line">Pasted text will be preserved verbatim.</p>
+  return <p className="text-xs text-muted-foreground">Pasted text will be preserved verbatim.</p>
 }
 
 function SchemaList({
@@ -334,37 +321,40 @@ function SchemaList({
   onSelect: (schemaId: string) => void
 }) {
   return (
-    <div className="schema-library-column">
-      <div className="schema-list-heading">
+    <div className="grid gap-3">
+      <div className="flex items-center justify-between gap-3">
         <strong>{title}</strong>
-        <span>{schemas.length}</span>
+        <Badge variant="outline">{schemas.length}</Badge>
       </div>
-      <div className="schema-card-list">
+      <ScrollArea className="max-h-[420px] pr-2">
+      <div className="grid gap-2">
         {schemas.length === 0 ? (
-          <p className="empty-line">No saved {title.toLowerCase()} schemas.</p>
+          <p className="text-sm text-muted-foreground">No saved {title.toLowerCase()} schemas.</p>
         ) : (
           schemas.map((schema) => (
             <button
               key={schema.schema_id}
               type="button"
-              className={
-                selectedSchemaId === schema.schema_id
-                  ? "schema-card active"
-                  : "schema-card"
-              }
+              className={[
+                "grid min-w-0 gap-1 rounded-lg border bg-card px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                selectedSchemaId === schema.schema_id ? "border-primary bg-secondary/45" : "",
+              ].join(" ")}
               onClick={() => onSelect(schema.schema_id)}
             >
-              <span className="schema-card-title-row">
-                <strong>{schema.name}</strong>
-                {selectedSchemaId === schema.schema_id ? <em>Selected</em> : <em>Open</em>}
+              <span className="flex min-w-0 items-center justify-between gap-2">
+                <strong className="truncate">{schema.name}</strong>
+                <Badge variant={selectedSchemaId === schema.schema_id ? "default" : "outline"}>
+                  {selectedSchemaId === schema.schema_id ? "Selected" : "Open"}
+                </Badge>
               </span>
-              <span>
+              <span className="text-xs text-muted-foreground">
                 {schema.format.toUpperCase()} · {formatBytes(schema.original_size)} · click to inspect
               </span>
             </button>
           ))
         )}
       </div>
+      </ScrollArea>
     </div>
   )
 }
@@ -374,25 +364,18 @@ function SchemaDetailPanel({ library }: Props) {
 
   if (!schema) {
     return (
-      <section className="tool-panel schema-detail-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="panel-kicker">Inspect</p>
-            <h2>Schema detail</h2>
-          </div>
-        </div>
-        <p className="empty-line">Select an active schema card from the library to inspect fields, samples, and saved rules.</p>
-      </section>
+      <WorkbenchCard kicker="Inspect" title="Schema detail" className="schema-detail-panel">
+        <p className="text-sm text-muted-foreground">Select an active schema card from the library to inspect fields, samples, and saved rules.</p>
+      </WorkbenchCard>
     )
   }
 
   return (
-    <section className="tool-panel schema-detail-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">{schema.direction}</p>
-          <h2>{schema.name}</h2>
-        </div>
+    <WorkbenchCard
+      kicker={schema.direction}
+      title={schema.name}
+      className="schema-detail-panel"
+      action={
         <Button
           type="button"
           variant="destructive"
@@ -407,18 +390,19 @@ function SchemaDetailPanel({ library }: Props) {
             <Trash2 />
           )}
         </Button>
-      </div>
+      }
+    >
       {schema.description ? (
-        <p className="schema-description">{schema.description}</p>
+        <p className="text-sm text-muted-foreground">{schema.description}</p>
       ) : null}
-      <p className="schema-detail-status">
-        <strong>Active library schema</strong>
-        <span>{schema.direction === "target" ? "Target detail can store field validation rules for mapping runs." : "Source detail is read-only and provides sample context for mapping setup."}</span>
-      </p>
-      <div className="schema-detail-stats">
-        <span>{schema.format.toUpperCase()}</span>
-        <span>{formatBytes(schema.original_size)}</span>
-        <span>{schema.input_method}</span>
+      <StatusAlert
+        title="Active library schema"
+        description={schema.direction === "target" ? "Target detail can store field validation rules for mapping runs." : "Source detail is read-only and provides sample context for mapping setup."}
+      />
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="secondary">{schema.format.toUpperCase()}</Badge>
+        <Badge variant="outline">{formatBytes(schema.original_size)}</Badge>
+        <Badge variant="outline">{schema.input_method}</Badge>
       </div>
       <SchemaViewer title="Inferred fields" schema={schema.inferred_schema} />
       {schema.direction === "target" ? (
@@ -431,7 +415,7 @@ function SchemaDetailPanel({ library }: Props) {
         />
         <PreviewBlock title="Original content" value={schema.original_content} />
       </div>
-    </section>
+    </WorkbenchCard>
   )
 }
 
@@ -441,15 +425,15 @@ function TargetValidationRules({ library, schema }: Props & { schema: SchemaNode
   if (fields.length === 0) return null
 
   return (
-    <section className="target-validation-draft">
-      <div className="schema-list-heading">
+    <section className="grid gap-3 rounded-lg border bg-muted/25 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <strong>Target field validation rules</strong>
-        <span>
+        <Badge variant="outline">
           {library.selectedTargetRules.length} saved rules
           {library.dirtyTargetRulePaths.length > 0 ? ` · ${library.dirtyTargetRulePaths.length} unsaved` : ""}
-        </span>
+        </Badge>
       </div>
-      <div className="validation-draft-list">
+      <div className="grid gap-2">
         {fields.slice(0, 12).map((field) => (
           <FieldRuleRow
             key={field.path}
@@ -464,7 +448,7 @@ function TargetValidationRules({ library, schema }: Props & { schema: SchemaNode
       </div>
       <Button
         type="button"
-        className="target-validation-save"
+        className="w-fit"
         onClick={() => void library.saveFieldRules()}
         disabled={library.dirtyTargetRulePaths.length === 0 || Boolean(library.busyAction)}
       >
@@ -475,7 +459,7 @@ function TargetValidationRules({ library, schema }: Props & { schema: SchemaNode
         )}
         Save validation rules
       </Button>
-      <p className="schema-meta-line">
+      <p className="text-xs text-muted-foreground">
         Edits stay local until saved. Saved rules are used by mapping runs for this target schema.
       </p>
     </section>
@@ -503,24 +487,20 @@ function FieldRuleRow({
   const maxValue = ruleBoundValue(draftRule, savedRule, "max")
 
   return (
-    <div className="validation-draft-row">
-      <span title={field.path}>{field.path}</span>
-      <select
+    <div className="grid gap-2 rounded-lg border bg-card p-3 lg:grid-cols-[minmax(160px,1fr)_160px_120px_100px_100px_80px] lg:items-center">
+      <span className="truncate font-mono text-xs text-muted-foreground" title={field.path}>{field.path}</span>
+      <SelectField
+        label={`${field.path} type`}
         value={valueType}
-        aria-label={`${field.path} type`}
-        disabled={saving}
-        onChange={(event) => onUpdate({ ...draftBase(field.path, event.target.value, required), value_type: event.target.value })}
-      >
-              {validationTypes.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-      </select>
-      <label>
-        <input
-          type="checkbox"
+        onValueChange={(value) => onUpdate({ ...draftBase(field.path, value, required), value_type: value })}
+        options={validationTypes.map((type) => ({ value: type, label: type }))}
+        triggerClassName="h-8"
+      />
+      <label className="flex items-center gap-2 text-sm">
+        <Checkbox
           checked={required}
           disabled={saving}
-          onChange={(event) => onUpdate({ ...draftBase(field.path, valueType, event.target.checked), required: event.target.checked })}
+          onCheckedChange={(checked) => onUpdate({ ...draftBase(field.path, valueType, checked === true), required: checked === true })}
         />
         Required
       </label>
@@ -538,7 +518,7 @@ function FieldRuleRow({
         disabled={saving}
         onChange={(event) => onUpdate({ ...draftBase(field.path, valueType, required), ...maxPatch(valueType, event.target.value) })}
       />
-      <span className="schema-meta-line">{dirty ? "Unsaved" : savedRule ? "Saved" : "Default"}</span>
+      <Badge variant={dirty ? "default" : "outline"}>{dirty ? "Unsaved" : savedRule ? "Saved" : "Default"}</Badge>
     </div>
   )
 }
@@ -590,8 +570,8 @@ const validationTypes = ["string", "date", "number", "integer", "boolean", "obje
 
 function PreviewBlock({ title, value }: { title: string; value: string }) {
   return (
-    <div className="schema-preview-block">
-      <div className="schema-list-heading">
+    <div className="grid gap-2 rounded-lg border bg-muted/25 p-3">
+      <div className="flex items-center justify-between gap-3">
         <strong>{title}</strong>
       </div>
       <pre className="preview-block">{value}</pre>

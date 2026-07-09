@@ -1,7 +1,9 @@
 import { CircleCheck, TriangleAlert } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import type { OutputFormat } from "@/types/mapping"
 import type { ValidationErrorItem } from "@/types/validation"
+import { StatusAlert, WorkbenchCard } from "./ui"
 
 type Props = {
   errors: ValidationErrorItem[]
@@ -14,34 +16,39 @@ export function ValidationPanel({ errors, outputFormat = "json" }: Props) {
     : "JSON runs check required target fields, scalar types, and active field validation rules when available."
 
   return (
-    <section className="tool-panel validation-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Validation</p>
-          <h2>Target checks</h2>
-        </div>
-        {errors.length === 0 ? (
+    <WorkbenchCard
+      kicker="Validation"
+      title="Target checks"
+      icon={
+        errors.length === 0 ? (
           <CircleCheck size={18} className="text-emerald-600" />
         ) : (
           <TriangleAlert size={18} className="text-amber-600" />
-        )}
-      </div>
-      <div className="validation-stack">
-        <p className="empty-note">{policyText}</p>
+        )
+      }
+    >
+      <div className="grid gap-2">
+        <p className="text-sm text-muted-foreground">{policyText}</p>
         {errors.length === 0 ? (
-          <p className="success-line">No validation errors for the current policy.</p>
+          <StatusAlert
+            className="border-emerald-200 bg-emerald-50 text-emerald-950"
+            title="No validation errors"
+            description="No validation errors for the current policy."
+          />
         ) : (
           errors.map((error, index) => (
-            <div className="validation-row" key={`${error.code}-${index}`}>
-              <strong>{error.code}</strong>
-              <span>{error.message}</span>
-              {error.path ? <code>{error.path}</code> : null}
-              {error.rule_id ? <small>{fieldRuleHelper(error)}</small> : null}
+            <div className="grid gap-1 rounded-lg border bg-card px-3 py-2" key={`${error.code}-${index}`}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="destructive">{error.code}</Badge>
+                {error.path ? <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{error.path}</code> : null}
+              </div>
+              <span className="text-sm">{error.message}</span>
+              {error.rule_id ? <small className="text-xs text-muted-foreground">{fieldRuleHelper(error)}</small> : null}
             </div>
           ))
         )}
       </div>
-    </section>
+    </WorkbenchCard>
   )
 }
 

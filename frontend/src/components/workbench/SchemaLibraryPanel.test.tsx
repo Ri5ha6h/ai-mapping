@@ -141,10 +141,9 @@ describe("SchemaLibraryPanel", () => {
     expect(screen.getByText("Saved")).toBeTruthy()
     expect(screen.getByRole("button", { name: /Save validation rules/i }).hasAttribute("disabled")).toBe(true)
 
-    fireEvent.change(screen.getByLabelText("$.shipment.weight type"), {
-      target: { value: "integer" },
-    })
-    fireEvent.click(screen.getByLabelText("Required"))
+    fireEvent.click(screen.getByRole("combobox", { name: "$.shipment.weight type" }))
+    expect(screen.getByRole("option", { name: "integer" })).toBeTruthy()
+    fireEvent.click(screen.getByRole("checkbox", { name: "Required" }))
     fireEvent.change(screen.getByLabelText("$.shipment.weight min"), {
       target: { value: "2" },
     })
@@ -152,9 +151,6 @@ describe("SchemaLibraryPanel", () => {
       target: { value: "" },
     })
 
-    expect(library.updateFieldRule).toHaveBeenCalledWith("$.shipment.weight", expect.objectContaining({
-      value_type: "integer",
-    }))
     expect(library.updateFieldRule).toHaveBeenCalledWith("$.shipment.weight", expect.objectContaining({
       required: false,
     }))

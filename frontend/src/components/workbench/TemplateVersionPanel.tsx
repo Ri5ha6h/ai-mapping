@@ -1,9 +1,11 @@
 import { Download, History, RefreshCw, RotateCcw, Save, Split, Trash2 } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import type { MappingTemplate } from "@/types/mapping"
+import { Field, SelectField, StatusAlert, WorkbenchCard } from "./ui"
 
 type Props = {
   templates: MappingTemplate[]
@@ -50,54 +52,42 @@ export function TemplateVersionPanel({
   const busy = Boolean(busyAction)
 
   return (
-    <section className="tool-panel template-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Save</p>
-          <h2>Script templates</h2>
-        </div>
-        <History size={18} className="text-muted-foreground" />
-      </div>
-
-      <div className="template-stack">
+    <WorkbenchCard kicker="Save" title="Script templates" icon={<History size={18} />} className="template-panel">
+      <div className="grid gap-3">
         {activeTemplate ? (
-          <div className="active-template-strip">
-            <History size={16} />
-            <div>
-              <strong>{activeTemplate.name} v{activeTemplate.active_version} is in use</strong>
-              <span>Loading a version copies its script, samples, schema snapshots, validation results, and field validation rules into the current mapping workspace.</span>
-            </div>
-          </div>
+          <StatusAlert
+            icon={<History size={16} />}
+            title={`${activeTemplate.name} v${activeTemplate.active_version} is in use`}
+            description="Loading a version copies its script, samples, schema snapshots, validation results, and field validation rules into the current mapping workspace."
+          />
         ) : null}
 
-        <div className="template-save-mode-grid" aria-label="Template save options">
-          <div>
+        <div className="grid gap-2 sm:grid-cols-2" aria-label="Template save options">
+          <div className="rounded-lg border bg-muted/25 p-3">
             <strong>Save template</strong>
-            <span>Updates the selected template name, notes, and current workspace snapshot.</span>
+            <span className="block text-sm text-muted-foreground">Updates the selected template name, notes, and current workspace snapshot.</span>
           </div>
-          <div>
+          <div className="rounded-lg border bg-muted/25 p-3">
             <strong>New version</strong>
-            <span>Adds a numbered snapshot while keeping older versions loadable.</span>
+            <span className="block text-sm text-muted-foreground">Adds a numbered snapshot while keeping older versions loadable.</span>
           </div>
         </div>
 
-        <div className="template-note version-helper-note">
-          <strong>How versions work</strong>
-          <span>Versions preserve script, samples, schema snapshots, validation results, and field validation rules so archive/restore or schema changes do not break prior mappings.</span>
-        </div>
+        <StatusAlert
+          title="How versions work"
+          description="Versions preserve script, samples, schema snapshots, validation results, and field validation rules so archive/restore or schema changes do not break prior mappings."
+        />
 
-        <label className="field-stack" htmlFor="template-name">
-          <span>Name</span>
+        <Field label="Name" htmlFor="template-name">
           <Input
             id="template-name"
             value={templateName}
             onChange={(event) => onTemplateNameChange(event.target.value)}
             placeholder="Shipment transform"
           />
-        </label>
+        </Field>
 
-        <label className="field-stack" htmlFor="template-description">
-          <span>Description</span>
+        <Field label="Description" htmlFor="template-description">
           <Textarea
             id="template-description"
             value={templateDescription}
@@ -105,9 +95,9 @@ export function TemplateVersionPanel({
             placeholder="Reusable transform notes"
             rows={3}
           />
-        </label>
+        </Field>
 
-        <div className="template-actions">
+        <div className="flex flex-wrap items-center gap-2">
           <Button type="button" onClick={onSaveTemplate} disabled={!canSave || busy || templateName.trim().length === 0}>
             <Save size={15} />
             Save template
@@ -136,56 +126,48 @@ export function TemplateVersionPanel({
           </Button>
         </div>
 
-        <label className="field-stack">
-          <span>Templates</span>
-          <select
-            value={selectedTemplateId}
-            onChange={(event) => onSelectedTemplateChange(event.target.value)}
-            className="template-select"
-          >
-            <option value="">No template selected</option>
-            {exampleTemplates.length > 0 ? (
-              <optgroup label="Examples">
-                {exampleTemplates.map((template) => (
-                  <option key={template.template_id} value={template.template_id}>
-                    {template.name} v{template.active_version}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-            {savedTemplates.length > 0 ? (
-              <optgroup label="Saved">
-                {savedTemplates.map((template) => (
-                  <option key={template.template_id} value={template.template_id}>
-                    {template.name} v{template.active_version}
-                  </option>
-                ))}
-              </optgroup>
-            ) : null}
-          </select>
-        </label>
+        <SelectField
+          label="Templates"
+          value={selectedTemplateId}
+          placeholder="No template selected"
+          onValueChange={onSelectedTemplateChange}
+          options={[
+            { value: "", label: "No template selected" },
+            ...exampleTemplates.map((template) => ({
+              value: template.template_id,
+              label: `Example: ${template.name} v${template.active_version}`,
+            })),
+            ...savedTemplates.map((template) => ({
+              value: template.template_id,
+              label: `Saved: ${template.name} v${template.active_version}`,
+            })),
+          ]}
+        />
 
         {selectedTemplate?.is_seeded ? (
-          <div className="template-note">
-            <strong>Example</strong>
-            <span>Includes source and target samples.</span>
-          </div>
+          <StatusAlert title="Example" description="Includes source and target samples." />
         ) : null}
 
         {selectedTemplate ? (
-          <div className="version-list">
+          <div className="grid gap-2">
             {selectedTemplate.versions
               .slice()
               .sort((left, right) => right.version - left.version)
               .map((version) => (
-                <div className={version.version === selectedTemplate.active_version ? "version-row active" : "version-row"} key={`${selectedTemplate.template_id}-${version.version}`}>
-                  <div>
-                    <strong>Version {version.version}{version.version === selectedTemplate.active_version ? " · current" : ""}</strong>
-                    <span>
+                <div className={[
+                  "flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between",
+                  version.version === selectedTemplate.active_version ? "border-primary bg-secondary/40" : "",
+                ].join(" ")} key={`${selectedTemplate.template_id}-${version.version}`}>
+                  <div className="grid min-w-0 gap-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong>Version {version.version}</strong>
+                      {version.version === selectedTemplate.active_version ? <Badge>current</Badge> : null}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
                       {version.source_format} to {version.target_format}
                       {version.sample_source_content ? " with samples" : ""}
                     </span>
-                    <span className="template-engine-note">
+                    <span className="text-xs text-muted-foreground">
                       JavaScript · {version.mapping_spec.script.length} chars · {version.field_validation_rules.length} field rules
                     </span>
                   </div>
@@ -199,26 +181,26 @@ export function TemplateVersionPanel({
                     Load
                   </Button>
                 </div>
-              ))}
+            ))}
           </div>
         ) : (
-          <p className="empty-line">Save a script or select an existing template.</p>
+          <p className="text-sm text-muted-foreground">Save a script or select an existing template.</p>
         )}
 
-        <div className="archive-panel">
-          <div className="schema-list-heading">
+        <div className="grid gap-3 rounded-lg border bg-card p-3">
+          <div className="flex items-center justify-between gap-3">
             <strong>Archive & Trash</strong>
-            <span>{deletedTemplates.length} archived templates</span>
+            <Badge variant="outline">{deletedTemplates.length} archived templates</Badge>
           </div>
           {deletedTemplates.length === 0 ? (
-            <p className="empty-line">Archived mapping templates will appear here with restore controls.</p>
+            <p className="text-sm text-muted-foreground">Archived mapping templates will appear here with restore controls.</p>
           ) : (
-            <div className="archive-card-list">
+            <div className="grid gap-2">
               {deletedTemplates.map((template) => (
-                <div className="archive-row" key={template.template_id}>
-                  <div>
+                <div className="flex min-w-0 flex-col gap-3 rounded-lg border bg-muted/25 p-3 sm:flex-row sm:items-center sm:justify-between" key={template.template_id}>
+                  <div className="grid min-w-0 gap-1">
                     <strong>{template.name}</strong>
-                    <span>v{template.active_version} · {template.versions.length} version(s) · archived template</span>
+                    <span className="text-sm text-muted-foreground">v{template.active_version} · {template.versions.length} version(s) · archived template</span>
                   </div>
                   <Button
                     type="button"
@@ -235,6 +217,6 @@ export function TemplateVersionPanel({
           )}
         </div>
       </div>
-    </section>
+    </WorkbenchCard>
   )
 }

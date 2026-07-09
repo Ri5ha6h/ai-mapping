@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Loader2, ShieldCheck } from "lucide-react"
 import { createFileRoute } from "@tanstack/react-router"
 
@@ -17,7 +17,17 @@ import { DisclosurePanel } from "@/components/workbench/DisclosurePanel"
 import { WorkflowStep } from "@/components/workbench/WorkflowStep"
 import { useMappingWorkbenchController } from "@/components/workbench/useMappingWorkbenchController"
 import { useSchemaLibraryController } from "@/components/workbench/useSchemaLibraryController"
+import { Kicker, StatusAlert, StatusBadge } from "@/components/workbench/ui"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export const Route = createFileRoute("/")({ component: MappingWorkbench })
 
@@ -28,110 +38,89 @@ function MappingWorkbench() {
     targetSchemas: schemaLibrary.targetSchemas,
   })
   const [activeTab, setActiveTab] = useState<"schema" | "mapping">("schema")
-  const newMappingDialogRef = useRef<HTMLDialogElement>(null)
   const contextStatus =
     activeTab === "schema"
       ? `${schemaLibrary.sourceSchemas.length} source / ${schemaLibrary.targetSchemas.length} target schemas`
       : workbench.statusText
 
-  useEffect(() => {
-    const dialog = newMappingDialogRef.current
-    if (!dialog) return
-    if (workbench.newMappingPrompt.open && !dialog.open) {
-      dialog.showModal()
-      return
-    }
-    if (!workbench.newMappingPrompt.open && dialog.open) {
-      dialog.close()
-    }
-  }, [workbench.newMappingPrompt.open])
-
   return (
-    <main className="workbench-shell">
-      <header className="workbench-header">
+    <main className="min-h-screen bg-background p-4 sm:p-5 workbench-shell">
+      <header className="mx-auto mb-5 flex max-w-[1800px] flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="eyebrow">Auto Mapping POC</p>
-          <h1>Integration Workbench</h1>
+          <Kicker>Auto Mapping POC</Kicker>
+          <h1 className="text-3xl font-bold leading-none tracking-normal text-foreground sm:text-5xl">
+            Integration Workbench
+          </h1>
         </div>
-        <div className="context-status" aria-live="polite">{contextStatus}</div>
+        <StatusBadge className="h-9 rounded-lg px-3 text-sm" aria-live="polite">
+          {contextStatus}
+        </StatusBadge>
       </header>
 
       {workbench.issue ? (
-        <div className="issue-banner">
-          <ShieldCheck size={18} />
-          <div>
-            <strong>{workbench.issue.title}</strong>
-            <span>{workbench.issue.detail}</span>
-          </div>
-        </div>
+        <StatusAlert
+          className="mx-auto mb-4 max-w-[1800px]"
+          icon={<ShieldCheck size={18} />}
+          title={workbench.issue.title}
+          description={workbench.issue.detail}
+        />
       ) : null}
 
-      <div className="workbench-tabs" role="tablist" aria-label="Workbench tabs">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "schema"}
-          className={activeTab === "schema" ? "active" : ""}
-          onClick={() => setActiveTab("schema")}
-        >
-          Schema
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={activeTab === "mapping"}
-          className={activeTab === "mapping" ? "active" : ""}
-          onClick={() => setActiveTab("mapping")}
-        >
-          Mapping
-        </button>
-      </div>
-
-      <dialog
-        ref={newMappingDialogRef}
-        aria-labelledby="new-mapping-title"
-        className="confirm-dialog"
-        onCancel={workbench.cancelNewMapping}
+      <Dialog
+        open={workbench.newMappingPrompt.open}
+        onOpenChange={(open) => {
+          if (!open) workbench.cancelNewMapping()
+        }}
       >
-        <div>
-          <p className="panel-kicker">Unsaved work</p>
-          <h2 id="new-mapping-title">Start a new mapping?</h2>
-          <p>
-            Save this transform as a template before clearing the source, target, script, output, and validation state.
-          </p>
-        </div>
-        <div className="dialog-actions">
-          <Button
-            type="button"
-            onClick={() => void workbench.saveAndStartNewMapping()}
-            disabled={!workbench.readyForTemplateSave || workbench.newMappingPrompt.pending}
-          >
-            {workbench.newMappingPrompt.pending ? <Loader2 className="animate-spin" /> : null}
-            Save template
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={workbench.discardAndStartNewMapping}
-            disabled={workbench.newMappingPrompt.pending}
-          >
-            Discard
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={workbench.cancelNewMapping}
-            disabled={workbench.newMappingPrompt.pending}
-          >
-            Cancel
-          </Button>
-        </div>
-      </dialog>
+        <DialogContent>
+          <DialogHeader>
+            <Kicker>Unsaved work</Kicker>
+            <DialogTitle>Start a new mapping?</DialogTitle>
+            <DialogDescription>
+              Save this transform as a template before clearing the source, target, script, output, and validation state.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => void workbench.saveAndStartNewMapping()}
+              disabled={!workbench.readyForTemplateSave || workbench.newMappingPrompt.pending}
+            >
+              {workbench.newMappingPrompt.pending ? <Loader2 className="animate-spin" /> : null}
+              Save template
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={workbench.discardAndStartNewMapping}
+              disabled={workbench.newMappingPrompt.pending}
+            >
+              Discard
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={workbench.cancelNewMapping}
+              disabled={workbench.newMappingPrompt.pending}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {activeTab === "schema" ? (
-        <SchemaLibraryPanel library={schemaLibrary} />
-      ) : (
-        <div className="workflow-stage-list">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "schema" | "mapping")} className="mx-auto max-w-[1800px]">
+        <TabsList variant="line" className="mb-4 border-b">
+          <TabsTrigger value="schema" className="min-w-28">Schema</TabsTrigger>
+          <TabsTrigger value="mapping" className="min-w-28">Mapping</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="schema">
+          <SchemaLibraryPanel library={schemaLibrary} />
+        </TabsContent>
+
+        <TabsContent value="mapping">
+          <div className="workflow-stage-list">
           <WorkflowStep
             step={1}
             title="Setup"
@@ -141,7 +130,7 @@ function MappingWorkbench() {
               <Button
                 type="button"
                 variant="outline"
-                className="compact-workflow-action"
+                size="sm"
                 onClick={() => void workbench.startNewMapping()}
                 disabled={Boolean(workbench.busyAction)}
               >
@@ -245,8 +234,9 @@ function MappingWorkbench() {
               onRefreshTemplates={() => void workbench.refreshTemplates()}
             />
           </WorkflowStep>
-        </div>
-      )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </main>
   )
 }

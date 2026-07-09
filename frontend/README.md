@@ -8,6 +8,14 @@ The current workbench is script-first: users select schemas, generate field hint
 author a JavaScript `transform(source, helpers)` function, run it through the
 backend, and save versioned script templates. See `../docs/architecture-current.md`.
 
+## UI Standards
+
+The frontend uses shadcn/ui components backed by Base UI primitives for reusable
+controls and panel chrome. Keep custom CSS limited to theme/base rules, workbench
+layout grids, Monaco/editor framing, and code preview overflow behavior.
+
+See `../docs/adr-shadcn-base-ui-standardization.md` and `../docs/ui-glossary.md`.
+
 ## Install
 
 ```bash

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 
 import { DisclosurePanel } from "./DisclosurePanel"
@@ -32,6 +32,7 @@ describe("WorkflowStep", () => {
     expect(screen.getByText("Provider fallback used.")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Primary action" })).toBeTruthy()
     expect(screen.getByText("Secondary details")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Secondary details" }))
     expect(screen.getByText("Hidden until expanded but reachable")).toBeTruthy()
   })
 })

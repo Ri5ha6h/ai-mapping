@@ -1,5 +1,7 @@
 import { BrainCircuit } from "lucide-react"
 
+import { Badge } from "@/components/ui/badge"
+import { StatusAlert, WorkbenchCard } from "@/components/workbench/ui"
 import type { MappingSuggestion } from "@/types/mapping"
 
 type Props = {
@@ -11,40 +13,33 @@ type Props = {
 
 export function MappingSuggestionPanel({ suggestions, usedAi, statusText, providerErrors }: Props) {
   return (
-    <section className="tool-panel suggestion-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Script hints</p>
-          <h2>Likely field links</h2>
-        </div>
-        <BrainCircuit size={18} className="text-muted-foreground" />
-      </div>
-      <div className="status-strip">
-        <span>{statusText}</span>
-        <span>{usedAi ? "OpenRouter" : "Deterministic"}</span>
-        <span>{suggestions.length} hints</span>
+    <WorkbenchCard kicker="Script hints" title="Likely field links" icon={<BrainCircuit size={18} />}>
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">{statusText}</Badge>
+        <Badge variant="secondary">{usedAi ? "OpenRouter" : "Deterministic"}</Badge>
+        <Badge variant="outline">{suggestions.length} hints</Badge>
       </div>
       {providerErrors.map((error) => (
-        <p className="issue-line" key={error}>
-          {error}
-        </p>
+        <StatusAlert key={error} title="Provider notice" description={error} />
       ))}
-      <div className="suggestion-stack">
+      <div className="grid gap-2">
         {suggestions.length === 0 ? (
-          <p className="empty-line">No field hints generated yet.</p>
+          <p className="text-sm text-muted-foreground">No field hints generated yet.</p>
         ) : (
           suggestions.map((suggestion) => (
-            <div className="suggestion-row" key={suggestion.id}>
-              <div>
-                <strong>{suggestion.target_path}</strong>
-                <span>{suggestion.source_path}</span>
+            <div className="grid gap-2 rounded-lg border bg-muted/25 px-3 py-2" key={suggestion.id}>
+              <div className="grid min-w-0 gap-1">
+                <strong className="truncate font-mono text-xs">{suggestion.target_path}</strong>
+                <span className="truncate font-mono text-xs text-muted-foreground">{suggestion.source_path}</span>
               </div>
-              <meter min={0} max={1} value={suggestion.confidence} />
-              <b>{Math.round(suggestion.confidence * 100)}%</b>
+              <div className="flex items-center gap-2">
+                <meter className="h-2 flex-1" min={0} max={1} value={suggestion.confidence} />
+                <Badge variant="outline">{Math.round(suggestion.confidence * 100)}%</Badge>
+              </div>
             </div>
           ))
         )}
       </div>
-    </section>
+    </WorkbenchCard>
   )
 }

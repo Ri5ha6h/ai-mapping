@@ -3,6 +3,7 @@ import { Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { SchemaArtifact } from "@/types/schema"
 import type { useMappingWorkbenchController } from "./useMappingWorkbenchController"
+import { SelectField, StatusAlert, WorkbenchCard } from "./ui"
 
 type Props = {
   workbench: ReturnType<typeof useMappingWorkbenchController>
@@ -18,14 +19,11 @@ export function MappingSchemaPanel({
   onOpenSchemaTab,
 }: Props) {
   return (
-    <section className="tool-panel mapping-schema-panel">
-      <div className="panel-heading">
-        <div>
-          <p className="panel-kicker">Mapping context</p>
-          <h2>Schema and template setup</h2>
-        </div>
-      </div>
-
+    <WorkbenchCard
+      kicker="Mapping context"
+      title="Schema and template setup"
+      className="mapping-schema-panel"
+    >
       <MappingContextStrip workbench={workbench} />
 
       <div className="mapping-schema-grid">
@@ -44,15 +42,18 @@ export function MappingSchemaPanel({
       </div>
 
       {!workbench.readyForMapping ? (
-        <div className="template-note">
-          <strong>Schema pair required</strong>
-          <span>Create or select one source schema and one target schema.</span>
-          <Button type="button" variant="outline" onClick={onOpenSchemaTab}>
-            Open Schema tab
-          </Button>
-        </div>
+        <StatusAlert
+          title="Schema pair required"
+          description="Create or select one source schema and one target schema."
+          className="items-center"
+        />
       ) : null}
-    </section>
+      {!workbench.readyForMapping ? (
+        <Button type="button" variant="outline" onClick={onOpenSchemaTab} className="w-fit">
+          Open Schema tab
+        </Button>
+      ) : null}
+    </WorkbenchCard>
   )
 }
 
@@ -69,20 +70,20 @@ function MappingContextStrip({ workbench }: { workbench: ReturnType<typeof useMa
   )
 
   return (
-    <div className="active-template-strip mapping-context-strip" aria-live="polite">
+    <div className="flex min-w-0 items-start gap-3 rounded-lg border bg-secondary/35 px-3 py-2 text-sm" aria-live="polite">
       <Database size={16} />
-      <div>
-        <strong>
+      <div className="grid min-w-0 gap-1">
+        <strong className="truncate">
           {workbench.activeTemplate
             ? `${workbench.activeTemplate.name} v${workbench.activeTemplate.active_version}`
             : "No template loaded"}
         </strong>
-        <span>
+        <span className="text-muted-foreground">
           {workbench.activeTemplate
             ? "Loaded versions carry script, samples, schema snapshots, and field validation rules."
             : "Select active schemas or load a saved template to begin."}
         </span>
-        <span className="mapping-context-status">
+        <span className="text-xs text-muted-foreground">
           Source: {sourceStatus} · Target: {targetStatus} · Rules: {workbench.fieldValidationRules.length}
         </span>
       </div>
@@ -109,20 +110,18 @@ function SchemaSelect({
   onChange: (schemaId: string) => void
 }) {
   return (
-    <label className="field-stack">
-      <span>{label}</span>
-      <select
-        className="template-select"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        <option value="">No schema selected</option>
-        {schemas.map((schema) => (
-          <option key={schema.schema_id} value={schema.schema_id}>
-            {schema.name} ({schema.format.toUpperCase()})
-          </option>
-        ))}
-      </select>
-    </label>
+    <SelectField
+      label={label}
+      value={value}
+      placeholder="No schema selected"
+      onValueChange={onChange}
+      options={[
+        { value: "", label: "No schema selected" },
+        ...schemas.map((schema) => ({
+          value: schema.schema_id,
+          label: `${schema.name} (${schema.format.toUpperCase()})`,
+        })),
+      ]}
+    />
   )
 }
